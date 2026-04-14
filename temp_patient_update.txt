@@ -1,0 +1,24 @@
+This is a temporary file to help with updating patient data.
+
+For each patient, add:
+- name: "FirstName LastName"
+- locationId: "branch-1" or "branch-2" (alternating)
+- locationName: "Downtown Branch" or "Uptown Branch" (based on locationId)
+- appointmentCount: same as totalAppointments
+
+Patient mapping:
+1. patient-1: branch-1, Downtown Branch
+2. patient-2: branch-2, Uptown Branch  
+3. patient-3: branch-1, Downtown Branch
+4. patient-4: branch-2, Uptown Branch
+5. patient-5: branch-1, Downtown Branch
+6. patient-6: branch-2, Uptown Branch
+7. patient-7: branch-1, Downtown Branch
+8. patient-8: branch-2, Uptown Branch
+9. patient-9: branch-1, Downtown Branch
+10. patient-10: branch-2, Uptown Branch
+11. patient-11: branch-1, Downtown Branch
+12. patient-12: branch-2, Uptown Branch
+13. patient-13: branch-1, Downtown Branch
+14. patient-14: branch-2, Uptown Branch
+15. patient-15: branch-1, Downtown Branch

@@ -1,0 +1,245 @@
+import { useState, useEffect } from "react";
+import { CheckSquare, Square, Search, X, Check, Save, Printer, ArrowLeft } from "lucide-react";
+
+export interface CarePlanScheduleRow {
+  id: string;
+  timesPerWeek: number;
+  durationWeeks: number;
+}
+
+export interface CarePlan {
+  id: string;
+  patientId: string;
+  datePrepared: string;
+  basedOn: string[];
+  actionPlan: string[];
+  nutritionalSupplements: string;
+  scheduleRows: CarePlanScheduleRow[];
+  patientResponsibility: string;
+  doctorSignatureDate: string;
+  patientSignatureDate: string;
+}
+
+interface CarePlanBuilderProps {
+  patientId: string;
+  patientName: string;
+  existingPlanId?: string | null;
+  onSave: (plan: CarePlan) => void;
+  onCancel: () => void;
+}
+
+export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave, onCancel }: CarePlanBuilderProps) => {
+  const [plan, setPlan] = useState<CarePlan>({
+    id: `cp-${Date.now()}`,
+    patientId,
+    datePrepared: new Date().toISOString(),
+    basedOn: [],
+    actionPlan: [],
+    nutritionalSupplements: "",
+    scheduleRows: [{ id: `sch-${Date.now()}`, timesPerWeek: 3, durationWeeks: 4 }],
+    patientResponsibility: "Health Workshop, Home Exercises, and Traction as Recommended",
+    doctorSignatureDate: "",
+    patientSignatureDate: ""
+  });
+
+  useEffect(() => {
+    if (existingPlanId) {
+      const saved = localStorage.getItem(`carePlan_${existingPlanId}`);
+      if (saved) {
+        setPlan(JSON.parse(saved));
+      }
+    }
+  }, [existingPlanId]);
+
+  const toggleBasedOn = (item: string) => {
+    setPlan(prev => ({
+      ...prev,
+      basedOn: prev.basedOn.includes(item)
+        ? prev.basedOn.filter(i => i !== item)
+        : [...prev.basedOn, item]
+    }));
+  };
+
+  const toggleActionPlan = (item: string) => {
+    setPlan(prev => ({
+      ...prev,
+      actionPlan: prev.actionPlan.includes(item)
+        ? prev.actionPlan.filter(i => i !== item)
+        : [...prev.actionPlan, item]
+    }));
+  };
+
+  const updateScheduleRow = (id: string, field: "timesPerWeek" | "durationWeeks", value: number) => {
+    setPlan(prev => ({
+      ...prev,
+      scheduleRows: prev.scheduleRows.map(row => row.id === id ? { ...row, [field]: value } : row)
+    }));
+  };
+
+  const addScheduleRow = () => {
+    setPlan(prev => ({
+      ...prev,
+      scheduleRows: [...prev.scheduleRows, { id: `sch-${Date.now()}`, timesPerWeek: 1, durationWeeks: 1 }]
+    }));
+  };
+
+  const removeScheduleRow = (id: string) => {
+    setPlan(prev => ({
+      ...prev,
+      scheduleRows: prev.scheduleRows.filter(row => row.id !== id)
+    }));
+  };
+
+  const totalVisits = plan.scheduleRows.reduce((acc, row) => acc + (row.timesPerWeek * row.durationWeeks), 0);
+  const totalWeeks = plan.scheduleRows.reduce((acc, row) => acc + row.durationWeeks, 0);
+  const totalMonths = (totalWeeks / 4).toFixed(2);
+
+  const handleSave = () => {
+    localStorage.setItem(`carePlan_${plan.id}`, JSON.stringify(plan));
+    onSave(plan);
+  };
+
+  return (
+    <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 px-6 py-4 bg-neutral-50 dark:bg-neutral-800/50">
+        <div className="flex items-center gap-4">
+          <button onClick={onCancel} className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+            {existingPlanId ? "Edit Care Plan" : "New Recommended Action Plan"}
+          </h2>
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="px-3 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 shadow-sm flex items-center gap-2 hidden sm:flex">
+             <Printer className="w-4 h-4"/> Print PDF
+          </button>
+          <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 shadow-sm flex items-center gap-2">
+            <Save className="w-4 h-4" /> Save Plan
+          </button>
+        </div>
+      </div>
+
+      <div className="p-8 w-full mx-auto space-y-10">
+        
+        {/* Meta Info */}
+        <div className="flex justify-between items-center text-sm text-neutral-900 dark:text-neutral-100 font-medium">
+           <div>Patient: <span className="font-semibold text-primary-700">{patientName}</span></div>
+           <div>Date Prepared: {new Date(plan.datePrepared).toLocaleDateString()}</div>
+        </div>
+
+        {/* Based On Section */}
+        <div className="space-y-4">
+          <h3 className="font-bold text-neutral-900 dark:text-white border-b border-neutral-200 dark:border-neutral-800 pb-2">Your Recommended Action Plan is Based On:</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pl-4">
+             {["Your Age", "MRI /CT Report", "Digital Foot Scans", "Number of Exam Abnormalities", "Your History and Physical Examination", "Posture/Range of Motion Abnormalities"].map(item => (
+                <label key={item} className="flex items-center gap-3 cursor-pointer group select-none">
+                  <input type="checkbox" className="hidden" checked={plan.basedOn.includes(item)} onChange={() => toggleBasedOn(item)} />
+                  <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${plan.basedOn.includes(item) ? 'bg-primary-600 border-primary-600 text-white' : 'bg-white border-neutral-400 group-hover:border-primary-500'}`}>
+                     {plan.basedOn.includes(item) && <Check className="w-3.5 h-3.5" />}
+                  </div>
+                  <span className="text-sm text-neutral-700 dark:text-neutral-300">{item}</span>
+                </label>
+             ))}
+          </div>
+          <p className="text-xs text-neutral-500 italic mt-4 text-center">My specific recommendations in your particular case are based on your individual exam findings and my experience with many other cases similar to yours over the past 25 years. Please understand that healing and pain relief is a matter of time.</p>
+        </div>
+
+        {/* Doctor Action Plan Section */}
+        <div className="space-y-4">
+          <h3 className="font-bold text-neutral-900 dark:text-white border-b border-neutral-200 dark:border-neutral-800 pb-2">Doctor Recommended Action Plan:</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
+             {["Spinal Adjustments", "Extremity Adjustments", "Hot Moist Packs", "Electrical Stimulation"].map(item => (
+                <label key={item} className="flex items-center gap-3 cursor-pointer group select-none">
+                  <input type="checkbox" className="hidden" checked={plan.actionPlan.includes(item)} onChange={() => toggleActionPlan(item)} />
+                  <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${plan.actionPlan.includes(item) ? 'bg-primary-600 border-primary-600 text-white' : 'bg-white border-neutral-400 group-hover:border-primary-500'}`}>
+                     {plan.actionPlan.includes(item) && <Check className="w-3.5 h-3.5" />}
+                  </div>
+                  <span className="text-sm text-neutral-700 dark:text-neutral-300 font-medium">{item}</span>
+                </label>
+             ))}
+          </div>
+        </div>
+
+        {/* Supplements */}
+        <div className="flex flex-col gap-2">
+           <label className="font-bold text-neutral-900 dark:text-white">Nutritional Supplements:</label>
+           <input 
+             type="text" 
+             value={plan.nutritionalSupplements}
+             onChange={(e) => setPlan(prev => ({...prev, nutritionalSupplements: e.target.value}))}
+             placeholder="e.g. Omega 3 Fish oil 3 caps at bed with water"
+             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm bg-neutral-50 dark:bg-neutral-800 dark:text-white focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+           />
+        </div>
+
+        {/* Treatment Schedule */}
+        <div className="space-y-4 bg-neutral-50 dark:bg-neutral-800/30 p-6 rounded-xl border border-neutral-200 dark:border-neutral-800">
+          <h3 className="font-bold text-neutral-900 dark:text-white mb-4">Your Recommended Treatment Schedule:</h3>
+          
+          <div className="space-y-3">
+             {plan.scheduleRows.map((row, idx) => (
+                <div key={row.id} className="flex items-center gap-3 flex-wrap">
+                   <input type="number" min="1" max="7" value={row.timesPerWeek} onChange={e => updateScheduleRow(row.id, "timesPerWeek", parseInt(e.target.value) || 0)} className="w-16 px-2 py-1 text-center font-bold bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded focus:ring-primary-500"/>
+                   <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">times a week for</span>
+                   <input type="number" min="1" max="52" value={row.durationWeeks} onChange={e => updateScheduleRow(row.id, "durationWeeks", parseInt(e.target.value) || 0)} className="w-16 px-2 py-1 text-center font-bold bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded focus:ring-primary-500"/>
+                   <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">weeks =</span>
+                   <span className="text-sm font-bold text-primary-700 w-16 text-center underline underline-offset-4">{row.timesPerWeek * row.durationWeeks} visits</span>
+                   {plan.scheduleRows.length > 1 && (
+                      <button onClick={() => removeScheduleRow(row.id)} className="ml-2 text-neutral-400 hover:text-red-500"><X className="w-4 h-4"/></button>
+                   )}
+                </div>
+             ))}
+          </div>
+
+          <button onClick={addScheduleRow} className="text-sm text-primary-600 font-medium hover:underline mt-2">+ Add Phase</button>
+
+          <div className="pt-4 mt-6 border-t border-neutral-200 dark:border-neutral-700 flex items-center gap-4 text-base font-bold text-neutral-900 dark:text-white">
+             <span>Total Visits <span className="underline underline-offset-4 text-primary-700">{totalVisits}</span></span>
+             <span className="text-neutral-400 font-medium">/</span>
+             <span><span className="underline underline-offset-4">{totalMonths}</span> Months</span>
+          </div>
+        </div>
+
+        {/* Patient Responsibility */}
+        <div className="flex flex-col gap-2">
+           <label className="font-bold text-neutral-900 dark:text-white">Patient Responsibility:</label>
+           <input 
+             type="text" 
+             value={plan.patientResponsibility}
+             onChange={(e) => setPlan(prev => ({...prev, patientResponsibility: e.target.value}))}
+             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm bg-neutral-50 dark:bg-neutral-800 dark:text-white focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+           />
+        </div>
+
+        <div className="bg-primary-50/50 dark:bg-primary-900/10 p-4 rounded-lg italic text-sm text-primary-900 dark:text-primary-100 font-medium text-center border border-primary-100 dark:border-primary-900/30">
+          Features and Benefits of Your Corrective Care Program, and How It Works: Comparative progress exams every 12 visits. 90 days of tailor-made, trainer directed exercise.
+        </div>
+
+        {/* Signatures */}
+        <div className="grid grid-cols-3 gap-8 pt-10 mt-8 border-t border-neutral-200 dark:border-neutral-800 pb-10">
+           <div className="flex flex-col gap-2 relative">
+             {plan.doctorSignatureDate ? (
+                <div className="h-10 text-primary-700 font-serif italic text-xl border-b border-neutral-400">Signed Digitally</div>
+             ) : (
+                <button onClick={() => setPlan(prev => ({...prev, doctorSignatureDate: new Date().toISOString()}))} className="h-10 text-sm font-medium text-neutral-500 hover:text-primary-600 border-b border-neutral-400 text-left w-full hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition duration-150">Click to Sign Form</button>
+             )}
+             <span className="text-sm font-medium text-neutral-600">Doctor Signature</span>
+           </div>
+           <div className="flex flex-col gap-2 relative">
+             <div className="h-10 border-b border-neutral-400"></div>
+             <span className="text-sm font-medium text-neutral-600">Patient Signature</span>
+           </div>
+           <div className="flex flex-col gap-2 relative">
+             <div className="h-10 border-b border-neutral-400 flex items-end pb-1 font-semibold text-neutral-800 dark:text-neutral-200">
+                {plan.doctorSignatureDate ? new Date(plan.doctorSignatureDate).toLocaleDateString() : ""}
+             </div>
+             <span className="text-sm font-medium text-neutral-600">Date</span>
+           </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
