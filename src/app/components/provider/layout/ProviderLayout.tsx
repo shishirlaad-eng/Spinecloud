@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { ProviderHeader } from "./ProviderHeader";
-import { ProviderSidebar } from "./ProviderSidebar";
 
 interface ProviderLayoutProps {
   children: React.ReactNode;
@@ -21,33 +20,24 @@ export function ProviderLayout({
   onNavigateToNotifications,
   unreadNotificationsCount = 0,
 }: ProviderLayoutProps) {
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-      {/* Header */}
+      {/* Header with Horizontal Navigation */}
       <ProviderHeader
-        onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)}
+        activeMenu={activeMenu}
+        onNavigate={onNavigate}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         onLogout={onLogout}
         onNavigateToProfile={onNavigateToProfile}
         onNavigateToNotifications={onNavigateToNotifications}
         unreadNotificationsCount={unreadNotificationsCount}
       />
 
-      {/* Sidebar */}
-      <ProviderSidebar
-        isExpanded={isSidebarExpanded}
-        onClose={() => setIsSidebarExpanded(false)}
-        activeMenu={activeMenu}
-        onNavigate={onNavigate}
-      />
-
       {/* Main Content */}
-      <main
-        className={`pt-16 transition-all duration-300 ${
-          isSidebarExpanded ? "md:pl-64" : "pl-16"
-        }`}
-      >
+      <main className="pt-16 max-w-[1600px] mx-auto w-full">
         {children}
       </main>
     </div>

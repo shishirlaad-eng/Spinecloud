@@ -7374,8 +7374,14 @@ export default function App() {
             }
           }}
           onViewAppointment={(appointmentId) => {
-            setCurrentAppointmentId(appointmentId);
-            console.log("View appointment:", appointmentId);
+            const apt = patientAppointments.find((a) => a.id === appointmentId);
+            if (apt) {
+               const matchedPatient = patients.find(p => p.name === apt.patientName || `${p.firstName} ${p.lastName}` === apt.patientName);
+               if (matchedPatient) {
+                  setSelectedPatientId(matchedPatient.id);
+                  setCurrentScreen("providerPatientDetails");
+               }
+            }
           }}
           onLogout={() => {
             setCurrentEntity("patient");

@@ -110,6 +110,8 @@ export function ProviderPatientDetailsScreen({
   const [isBuildingFinancialPlan, setIsBuildingFinancialPlan] = useState(false);
   const [financialPlanSearchQuery, setFinancialPlanSearchQuery] = useState("");
   const [savedFinancialPlans, setSavedFinancialPlans] = useState<FinancialPlan[]>([]);
+  
+  const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null);
 
   // Load SOAP notes from local storage
   useEffect(() => {
@@ -323,148 +325,74 @@ export function ProviderPatientDetailsScreen({
 
   return (
     <ProviderLayout activeMenu="patients" onNavigate={onNavigate} onLogout={onLogout}>
-      <div className="p-6 space-y-6">
-        {/* Back Button */}
-        <button
-          onClick={onBack}
-          className="inline-flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors group"
-        >
-          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-          Back to patients
-        </button>
-
-        {/* Patient Header Card */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6">
-          <div className="flex items-start gap-6">
-            {/* Profile Picture */}
-            <div className="shrink-0">
-              {patient.profilePicture ? (
-                <img
-                  src={patient.profilePicture}
-                  alt={`${patient.firstName} ${patient.lastName}`}
-                  className="w-20 h-20 rounded-full object-cover border-2 border-neutral-200 dark:border-neutral-700"
-                />
-              ) : (
-                <div className="w-20 h-20 bg-primary-600 dark:bg-primary-500 rounded-full flex items-center justify-center text-white">
-                  <User className="w-10 h-10" />
-                </div>
-              )}
-            </div>
-
-            {/* Patient Info */}
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-6">
-              <div>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">
-                  Patient name
-                </p>
-                <p className="text-lg font-semibold text-neutral-900 dark:text-white">
-                  {patient.firstName} {patient.lastName}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">
-                  Date of birth
-                </p>
-                <p className="text-sm font-medium text-neutral-900 dark:text-white">
-                  {formatDate(patient.dateOfBirth)}
-                </p>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  {calculateAge(patient.dateOfBirth)} years old
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">
-                  Email
-                </p>
-                <p className="text-sm font-medium text-neutral-900 dark:text-white">
-                  {patient.email}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">
-                  Contact number
-                </p>
-                <p className="text-sm font-medium text-neutral-900 dark:text-white">
-                  {patient.phone}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-1">
-                  Gender
-                </p>
-                <p className="text-sm font-medium text-neutral-900 dark:text-white">
-                  {getGenderDisplay(patient.gender)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 rounded-t-xl mt-6">
-          {["overview", "appointments", "soap", "reports", "carePlan", "financialPlans"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActivePatientTab(tab as any)}
-              className={`px-6 py-4 font-medium text-sm transition-colors border-b-2 whitespace-nowrap ${
-                activePatientTab === tab
-                  ? "border-primary-600 text-primary-600 dark:text-primary-400 bg-neutral-50 dark:bg-neutral-800/30"
-                  : "border-transparent text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
-              }`}
-            >
-              {tab === "carePlan" ? "Care Plans" : tab === "financialPlans" ? "Financial Plans" : tab === "soap" ? "SOAP Notes" : tab === "reports" ? "DICOM & Reports" : tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab Content */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-b-xl border-t-0 p-6 min-h-[500px]">
+      <div className="p-3 md:p-4 w-full mx-auto flex flex-col lg:flex-row gap-4">
+        
+        {/* LEFT COLUMN: Main Canvas */}
+        <div className="flex-1 min-w-0 order-2 lg:order-1 flex flex-col">
+           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 min-h-[600px] shadow-sm flex-1">
 
           {/* TAB: OVERVIEW */}
           {activePatientTab === "overview" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-              <div className="space-y-6">
-                <div>
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-neutral-600 dark:text-neutral-400 border-b border-neutral-100 dark:border-neutral-800 pb-2 mb-3">
-                    <MapPin className="w-4 h-4" /> Address details
-                  </h4>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-neutral-900 dark:text-white">{patient.street}</p>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{patient.city}, {patient.state} {patient.zipCode}</p>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{patient.country === "US" ? "United States" : patient.country}</p>
-                  </div>
-                </div>
-                
-                <div>
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-neutral-600 dark:text-neutral-400 border-b border-neutral-100 dark:border-neutral-800 pb-2 mb-3">
-                    <User className="w-4 h-4" /> Emergency Contact
-                  </h4>
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-neutral-900 dark:text-white">{patient.emergencyName}</p>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400">{patient.emergencyCountryCode} {patient.emergencyContact}</p>
-                  </div>
-                </div>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-base font-semibold text-neutral-900 dark:text-white mb-3">Patient Overview</h3>
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Address Card */}
+                <div className="bg-white dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-700/60 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-4">
+                     <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <MapPin className="w-5 h-5" />
+                     </div>
+                     <h4 className="text-sm font-bold text-neutral-900 dark:text-white">Address details</h4>
+                  </div>
+                  <div className="space-y-1.5 pl-13">
+                    <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{patient.street}</p>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400">{patient.city}, {patient.state} {patient.zipCode}</p>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400">{patient.country === "US" ? "United States" : patient.country}</p>
+                  </div>
+                </div>
 
-              <div className="space-y-6">
-                <div>
-                  <h4 className="flex items-center gap-2 text-sm font-semibold text-neutral-600 dark:text-neutral-400 border-b border-neutral-100 dark:border-neutral-800 pb-2 mb-3">
-                    <FileText className="w-4 h-4" /> Primary Insurance
-                  </h4>
-                  <div className="space-y-2">
+                {/* Emergency Contact Card */}
+                <div className="bg-white dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-700/60 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-4">
+                     <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
+                        <User className="w-5 h-5" />
+                     </div>
+                     <h4 className="text-sm font-bold text-neutral-900 dark:text-white">Emergency Contact</h4>
+                  </div>
+                  <div className="space-y-2 pl-13">
                     <div>
-                      <p className="text-xs text-neutral-500">Provider / Network</p>
-                      <p className="text-sm font-medium text-neutral-900 dark:text-white">{patient.insuranceProvider} ({patient.planNetworkName})</p>
+                      <p className="text-xs text-neutral-400 mb-0.5">Name</p>
+                      <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{patient.emergencyName}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-xs text-neutral-500">Policy Number</p>
-                        <p className="text-sm font-medium text-neutral-900 dark:text-white">{patient.policyNumber}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-neutral-500">Group Number</p>
-                        <p className="text-sm font-medium text-neutral-900 dark:text-white">{patient.groupNumber}</p>
-                      </div>
+                    <div>
+                      <p className="text-xs text-neutral-400 mb-0.5">Phone</p>
+                      <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{patient.emergencyCountryCode} {patient.emergencyContact}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Insurance Card */}
+                <div className="bg-white dark:bg-neutral-800/40 border border-neutral-200 dark:border-neutral-700/60 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow md:col-span-2">
+                  <div className="flex items-center gap-3 mb-5">
+                     <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                        <FileText className="w-5 h-5" />
+                     </div>
+                     <h4 className="text-sm font-bold text-neutral-900 dark:text-white">Primary Insurance</h4>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pl-13">
+                    <div>
+                      <p className="text-xs text-neutral-400 mb-0.5">Provider / Network</p>
+                      <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{patient.insuranceProvider} ({patient.planNetworkName})</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-400 mb-0.5">Policy Number</p>
+                      <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{patient.policyNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-400 mb-0.5">Group Number</p>
+                      <p className="text-sm font-medium text-neutral-800 dark:text-neutral-200">{patient.groupNumber}</p>
                     </div>
                   </div>
                 </div>
@@ -475,16 +403,61 @@ export function ProviderPatientDetailsScreen({
           {/* TAB: APPOINTMENTS */}
           {activePatientTab === "appointments" && (
             <div>
-              {/* Search and Filters */}
-              <div className="flex flex-col sm:flex-row gap-3 mb-6">
+              {/* Appointments - Filter + Search row */}
+              <div className="flex items-center gap-2 mb-4">
+                <div className="relative">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`h-10 w-10 flex items-center justify-center border rounded-lg transition-colors ${activeFilterCount > 0 ? 'bg-primary-50 border-primary-200 text-primary-600 dark:bg-primary-900/30 dark:border-primary-800 dark:text-primary-400' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
+                  >
+                    <Filter className="w-4 h-4" />
+                  </button>
+                  {showFilters && (
+                    <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg p-4 z-50 flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">Filters</h4>
+                        <button onClick={() => setShowFilters(false)} className="text-neutral-400 hover:text-neutral-600"><X className="w-4 h-4" /></button>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-neutral-500 mb-1.5 block">Status</label>
+                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full h-9 px-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md text-sm outline-none">
+                          <option value="all">All</option>
+                          <option value="Confirmed">Confirmed</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-neutral-500 mb-1.5 block">Location</label>
+                        <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="w-full h-9 px-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md text-sm outline-none">
+                          <option value="all">All Locations</option>
+                          {uniqueLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-neutral-500 mb-1.5 block">Date Range</label>
+                        <select value={dateRangeFilter} onChange={(e) => setDateRangeFilter(e.target.value)} className="w-full h-9 px-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md text-sm outline-none">
+                          <option value="all">All Time</option>
+                          <option value="upcoming">Upcoming</option>
+                          <option value="past">Past</option>
+                          <option value="this-week">This Week</option>
+                          <option value="this-month">This Month</option>
+                        </select>
+                      </div>
+                      {activeFilterCount > 0 && (
+                        <button onClick={clearFilters} className="text-sm text-red-500 hover:text-red-700 font-medium text-left">Clear Filters ({activeFilterCount})</button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                   <input
                     type="text"
-                    placeholder="Search history"
+                    placeholder="Search appointments..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-10 pl-9 pr-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 outline-none transition-[border-color,box-shadow]"
+                    className="w-full h-10 pl-9 pr-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 outline-none"
                   />
                 </div>
               </div>
@@ -540,11 +513,7 @@ export function ProviderPatientDetailsScreen({
             <div className="-m-6">
               {activeSOAPNoteId || isCreatingSOAP ? (
                 <div className="p-6">
-                   <div className="mb-4">
-                     <button onClick={() => { setActiveSOAPNoteId(null); setIsCreatingSOAP(false); }} className="text-sm text-neutral-500 hover:text-neutral-900 flex items-center gap-2">
-                       <ArrowLeft className="w-4 h-4" /> Back to SOAP list
-                     </button>
-                   </div>
+
                   <div className="w-full">
                     <SOAPNotesContent
                        appointmentId={activeSOAPNoteId || `new-${Date.now()}`} 
@@ -556,35 +525,55 @@ export function ProviderPatientDetailsScreen({
               ) : (
                 <div className="p-6">
                   {/* SOAP List View */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                    <div className="flex items-center gap-3 flex-1 flex-wrap">
-                      <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
-                        <input
-                          type="text"
-                          placeholder="Search SOAP notes..."
-                          value={soapSearchQuery}
-                          onChange={(e) => setSoapSearchQuery(e.target.value)}
-                          className="w-full h-10 pl-9 pr-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 outline-none"
-                        />
-                      </div>
-                      <select 
-                        value={soapStatusFilter}
-                        onChange={(e) => setSoapStatusFilter(e.target.value)}
-                        className="h-10 px-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-700 dark:text-neutral-300 outline-none focus:border-primary-600"
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="relative">
+                      <button
+                        onClick={() => setActiveFilterDropdown(activeFilterDropdown === 'soap' ? null : 'soap')}
+                        className={`h-10 w-10 flex items-center justify-center border rounded-lg transition-colors ${activeFilterDropdown === 'soap' ? 'bg-primary-50 border-primary-200 text-primary-600 dark:bg-primary-900/30 dark:border-primary-800 dark:text-primary-400' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
                       >
-                        <option value="all">Status: All</option>
-                        <option value="draft">Draft</option>
-                        <option value="final">Finalized</option>
-                      </select>
-                      <select 
-                        value={soapDateFilter}
-                        onChange={(e) => setSoapDateFilter(e.target.value)}
-                        className="h-10 px-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-700 dark:text-neutral-300 outline-none focus:border-primary-600 hidden sm:block"
-                      >
-                        <option value="all">Date: All Time</option>
-                        <option value="this-month">This Month</option>
-                      </select>
+                        <Filter className="w-4 h-4" />
+                      </button>
+                      {activeFilterDropdown === 'soap' && (
+                         <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg p-4 z-50 flex flex-col gap-4">
+                            <div className="flex items-center justify-between">
+                               <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">Filters</h4>
+                               <button onClick={() => setActiveFilterDropdown(null)} className="text-neutral-400 hover:text-neutral-600"><X className="w-4 h-4" /></button>
+                            </div>
+                            <div>
+                               <label className="text-xs font-semibold text-neutral-500 mb-1.5 block">Status</label>
+                               <select 
+                                 value={soapStatusFilter}
+                                 onChange={(e) => setSoapStatusFilter(e.target.value)}
+                                 className="w-full h-9 px-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md text-sm text-neutral-700 dark:text-neutral-300 outline-none focus:border-primary-500"
+                               >
+                                 <option value="all">All</option>
+                                 <option value="draft">Draft</option>
+                                 <option value="final">Finalized</option>
+                               </select>
+                            </div>
+                            <div>
+                               <label className="text-xs font-semibold text-neutral-500 mb-1.5 block">Date</label>
+                               <select 
+                                 value={soapDateFilter}
+                                 onChange={(e) => setSoapDateFilter(e.target.value)}
+                                 className="w-full h-9 px-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md text-sm text-neutral-700 dark:text-neutral-300 outline-none focus:border-primary-500"
+                               >
+                                 <option value="all">All Time</option>
+                                 <option value="this-month">This Month</option>
+                               </select>
+                            </div>
+                         </div>
+                      )}
+                    </div>
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
+                      <input
+                        type="text"
+                        placeholder="Search SOAP notes..."
+                        value={soapSearchQuery}
+                        onChange={(e) => setSoapSearchQuery(e.target.value)}
+                        className="w-full h-10 pl-9 pr-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 outline-none"
+                      />
                     </div>
                     <button onClick={() => setIsCreatingSOAP(true)} className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap">
                       + Create a new SOAP note
@@ -595,10 +584,10 @@ export function ProviderPatientDetailsScreen({
                     <table className="w-full text-sm text-left">
                       <thead className="bg-neutral-50 dark:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400">
                         <tr>
-                          <th className="px-5 py-3 font-medium">Date Encountered</th>
+                          <th className="px-5 py-3 font-medium w-1/4">Date Encountered</th>
+                          <th className="px-5 py-3 font-medium">Method</th>
                           <th className="px-5 py-3 font-medium">Provider</th>
-                          <th className="px-5 py-3 font-medium">Status</th>
-                          <th className="px-5 py-3 text-right">Actions</th>
+                          <th className="px-5 py-3 font-medium text-right">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -608,13 +597,17 @@ export function ProviderPatientDetailsScreen({
                                <ClipboardList className="w-4 h-4 text-primary-500"/> 
                                {note.finalizedAt ? formatDate(note.finalizedAt) : "Unsaved Draft"}
                              </td>
-                             <td className="px-5 py-4 text-neutral-600 dark:text-neutral-400">{note.finalizedBy || "Dr. David Bohn"}</td>
                              <td className="px-5 py-4">
-                               <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${note.status === 'final' ? 'bg-success-50 text-success-700' : 'bg-warning-50 text-warning-700'}`}>
+                                <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300">
+                                   Manual
+                                </span>
+                             </td>
+                             <td className="px-5 py-4 text-neutral-600 dark:text-neutral-400">{note.finalizedBy || "Dr. David Bohn"}</td>
+                             <td className="px-5 py-4 text-right">
+                               <span className={`px-2.5 py-1 rounded-full text-xs font-semibold inline-block ${note.status === 'final' ? 'bg-success-50 text-success-700' : 'bg-warning-50 text-warning-700'}`}>
                                  {note.status === 'final' ? 'Finalized' : 'Draft'}
                                </span>
                              </td>
-                             <td className="px-5 py-4 text-right"><span className="text-primary-600 hover:underline">View details</span></td>
                            </tr>
                          )) : (
                            <tr>
@@ -632,44 +625,55 @@ export function ProviderPatientDetailsScreen({
           {/* TAB: REPORTS */}
           {activePatientTab === "reports" && (
             <div>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                <div className="flex items-center gap-4 flex-1 flex-wrap">
-                  <h3 className="text-lg font-semibold text-neutral-900 dark:text-white hidden sm:block">Diagnostic & Analysis Reports</h3>
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <div className="relative flex-1 sm:w-64">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
-                      <input
-                        type="text"
-                        placeholder="Search reports..."
-                        value={reportsSearchQuery}
-                        onChange={(e) => setReportsSearchQuery(e.target.value)}
-                        className="w-full h-10 pl-9 pr-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 outline-none"
-                      />
-                    </div>
-                    <select 
-                      value={reportsStatusFilter}
-                      onChange={(e) => setReportsStatusFilter(e.target.value)}
-                      className="h-10 px-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-700 dark:text-neutral-300 outline-none focus:border-primary-600"
-                    >
-                      <option value="all">Status: All</option>
-                      <option value="draft">Draft</option>
-                      <option value="finalized">Finalized</option>
-                    </select>
-                  </div>
+              <div className="flex items-center gap-2 mb-5">
+                <div className="relative">
+                  <button
+                    onClick={() => setActiveFilterDropdown(activeFilterDropdown === 'reports' ? null : 'reports')}
+                    className={`h-10 w-10 flex items-center justify-center border rounded-lg transition-colors ${activeFilterDropdown === 'reports' ? 'bg-primary-50 border-primary-200 text-primary-600 dark:bg-primary-900/30 dark:border-primary-800 dark:text-primary-400' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
+                  >
+                    <Filter className="w-4 h-4" />
+                  </button>
+                  {activeFilterDropdown === 'reports' && (
+                     <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg p-4 z-50 flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                           <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">Filters</h4>
+                           <button onClick={() => setActiveFilterDropdown(null)} className="text-neutral-400 hover:text-neutral-600"><X className="w-4 h-4" /></button>
+                        </div>
+                        <div>
+                           <label className="text-xs font-semibold text-neutral-500 mb-1.5 block">Status</label>
+                           <select 
+                             value={reportsStatusFilter}
+                             onChange={(e) => setReportsStatusFilter(e.target.value)}
+                             className="w-full h-9 px-2 bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-md text-sm text-neutral-700 dark:text-neutral-300 outline-none focus:border-primary-500"
+                           >
+                             <option value="all">All</option>
+                             <option value="draft">Draft</option>
+                             <option value="finalized">Finalized</option>
+                           </select>
+                        </div>
+                     </div>
+                  )}
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
+                  <input
+                    type="text"
+                    placeholder="Search reports..."
+                    value={reportsSearchQuery}
+                    onChange={(e) => setReportsSearchQuery(e.target.value)}
+                    className="w-full h-10 pl-9 pr-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 outline-none"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2 shrink-0">
                   <button 
-                      className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors hidden sm:block ${selectedDicomIds.length >= 2 ? 'bg-primary-50 border-primary-300 text-primary-700 hover:bg-primary-100' : 'border-neutral-300 text-neutral-400 cursor-not-allowed'}`}
+                      className={`px-4 h-10 border rounded-lg text-sm font-medium transition-colors ${selectedDicomIds.length >= 2 ? 'bg-primary-50 border-primary-300 text-primary-700 hover:bg-primary-100' : 'border-neutral-300 text-neutral-400 cursor-not-allowed'}`}
                       onClick={() => selectedDicomIds.length >= 2 && setIsComparingDicom(true)}
                       disabled={selectedDicomIds.length < 2}
                   >
-                    Compare Selected ({selectedDicomIds.length})
+                    Compare ({selectedDicomIds.length})
                   </button>
-                  <button className="px-4 py-2 border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium transition-colors">
-                    Download PDF
-                  </button>
-                  <button onClick={() => setIsNewReportModalOpen(true)} className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4"/> Analyze DICOM
+                  <button onClick={() => setIsNewReportModalOpen(true)} className="px-4 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap">
+                    + Analyze DICOM
                   </button>
                 </div>
               </div>
@@ -753,9 +757,25 @@ export function ProviderPatientDetailsScreen({
                  />
               ) : (
                 <div className="p-6">
-                  {/* Care Plan List View */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                    <div className="relative flex-1 max-w-sm">
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="relative">
+                      <button
+                        onClick={() => setActiveFilterDropdown(activeFilterDropdown === 'carePlan' ? null : 'carePlan')}
+                        className={`h-10 w-10 flex items-center justify-center border rounded-lg transition-colors ${activeFilterDropdown === 'carePlan' ? 'bg-primary-50 border-primary-200 text-primary-600 dark:bg-primary-900/30 dark:border-primary-800 dark:text-primary-400' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
+                      >
+                        <Filter className="w-4 h-4" />
+                      </button>
+                      {activeFilterDropdown === 'carePlan' && (
+                         <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg p-4 z-50 flex flex-col gap-4">
+                            <div className="flex items-center justify-between">
+                               <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">Filters</h4>
+                               <button onClick={() => setActiveFilterDropdown(null)} className="text-neutral-400 hover:text-neutral-600"><X className="w-4 h-4" /></button>
+                            </div>
+                            <p className="text-sm text-neutral-500">More filters coming soon.</p>
+                         </div>
+                      )}
+                    </div>
+                    <div className="flex-1 relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
                       <input
                         type="text"
@@ -765,7 +785,7 @@ export function ProviderPatientDetailsScreen({
                         className="w-full h-10 pl-9 pr-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 outline-none"
                       />
                     </div>
-                    <button onClick={() => setIsBuildingCarePlan(true)} className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap">
+                    <button onClick={() => setIsBuildingCarePlan(true)} className="px-4 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap">
                       + Build New Care Plan
                     </button>
                   </div>
@@ -778,7 +798,6 @@ export function ProviderPatientDetailsScreen({
                                 <th className="px-6 py-4 font-medium">Care Plan ID</th>
                                 <th className="px-6 py-4 font-medium">Date Prepared</th>
                                 <th className="px-6 py-4 font-medium">Total Visits</th>
-                                <th className="px-6 py-4 text-right font-medium">Actions</th>
                              </tr>
                           </thead>
                           <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -793,9 +812,6 @@ export function ProviderPatientDetailsScreen({
                                    </td>
                                    <td className="px-6 py-4">
                                       {plan.scheduleRows.reduce((acc, row) => acc + (row.timesPerWeek * row.durationWeeks), 0)} visits
-                                   </td>
-                                   <td className="px-6 py-4 text-right">
-                                      <button className="text-primary-600 font-medium hover:underline text-sm mr-4" onClick={(e) => { e.stopPropagation(); setActiveCarePlanId(plan.id); }}>Edit</button>
                                    </td>
                                 </tr>
                              ))}
@@ -841,9 +857,25 @@ export function ProviderPatientDetailsScreen({
                  />
               ) : (
                 <div className="p-6">
-                  {/* Financial Plan List View */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                    <div className="relative flex-1 max-w-sm">
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="relative">
+                      <button
+                        onClick={() => setActiveFilterDropdown(activeFilterDropdown === 'financialPlans' ? null : 'financialPlans')}
+                        className={`h-10 w-10 flex items-center justify-center border rounded-lg transition-colors ${activeFilterDropdown === 'financialPlans' ? 'bg-primary-50 border-primary-200 text-primary-600 dark:bg-primary-900/30 dark:border-primary-800 dark:text-primary-400' : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
+                      >
+                        <Filter className="w-4 h-4" />
+                      </button>
+                      {activeFilterDropdown === 'financialPlans' && (
+                         <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-lg p-4 z-50 flex flex-col gap-4">
+                            <div className="flex items-center justify-between">
+                               <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">Filters</h4>
+                               <button onClick={() => setActiveFilterDropdown(null)} className="text-neutral-400 hover:text-neutral-600"><X className="w-4 h-4" /></button>
+                            </div>
+                            <p className="text-sm text-neutral-500">More filters coming soon.</p>
+                         </div>
+                      )}
+                    </div>
+                    <div className="flex-1 relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
                       <input
                         type="text"
@@ -853,7 +885,7 @@ export function ProviderPatientDetailsScreen({
                         className="w-full h-10 pl-9 pr-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 outline-none"
                       />
                     </div>
-                    <button onClick={() => setIsBuildingFinancialPlan(true)} className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap">
+                    <button onClick={() => setIsBuildingFinancialPlan(true)} className="px-4 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap">
                       + New Financial Plan
                     </button>
                   </div>
@@ -866,8 +898,7 @@ export function ProviderPatientDetailsScreen({
                                 <th className="px-6 py-4 font-medium">Agreement ID</th>
                                 <th className="px-6 py-4 font-medium">Date Prepared</th>
                                 <th className="px-6 py-4 font-medium">Investment</th>
-                                <th className="px-6 py-4 font-medium">Payment Mode</th>
-                                <th className="px-6 py-4 text-right font-medium">Actions</th>
+                                <th className="px-6 py-4 text-right font-medium">Payment Mode</th>
                              </tr>
                           </thead>
                           <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -883,11 +914,8 @@ export function ProviderPatientDetailsScreen({
                                    <td className="px-6 py-4 font-medium">
                                       ${plan.totalInvestment.toFixed(2)}
                                    </td>
-                                   <td className="px-6 py-4 capitalize text-neutral-600 dark:text-neutral-400">
+                                   <td className="px-6 py-4 capitalize text-neutral-600 dark:text-neutral-400 text-right">
                                       {plan.selectedPaymentMode.replace('-', ' ')}
-                                   </td>
-                                   <td className="px-6 py-4 text-right">
-                                      <button className="text-primary-600 font-medium hover:underline text-sm mr-4" onClick={(e) => { e.stopPropagation(); setActiveFinancialPlanId(plan.id); }}>Edit</button>
                                    </td>
                                 </tr>
                              ))}
@@ -913,6 +941,68 @@ export function ProviderPatientDetailsScreen({
             </div>
           )}
         </div>
+        </div>
+
+        {/* RIGHT COLUMN: narrow column */}
+        <div className="w-full lg:w-64 shrink-0 space-y-3 order-1 lg:order-2">
+           {/* Mini Patient Card */}
+           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-sm flex flex-col items-center">
+               <div className="relative mb-3">
+                 {patient.profilePicture ? (
+                   <img
+                     src={patient.profilePicture}
+                     alt={`${patient.firstName} ${patient.lastName}`}
+                     className="w-16 h-16 rounded-full object-cover border-2 border-neutral-200 dark:border-neutral-700 mx-auto"
+                   />
+                 ) : (
+                   <div className="w-16 h-16 bg-primary-600 dark:bg-primary-500 rounded-full flex items-center justify-center text-white mx-auto">
+                     <User className="w-8 h-8" />
+                   </div>
+                 )}
+               </div>
+               <h3 className="text-base font-semibold text-neutral-900 dark:text-white text-center">{patient.firstName} {patient.lastName}</h3>
+               <p className="text-xs text-neutral-500 mb-4 text-center">{calculateAge(patient.dateOfBirth)} yrs • {getGenderDisplay(patient.gender)}</p>
+               
+               <div className="w-full space-y-1.5 text-xs">
+                 <div className="flex justify-between items-center py-1 border-b border-neutral-100 dark:border-neutral-800/60">
+                    <span className="text-neutral-500">DOB</span>
+                    <span className="font-medium text-neutral-900 dark:text-white">{formatDate(patient.dateOfBirth)}</span>
+                 </div>
+                 <div className="flex justify-between items-center py-1 border-b border-neutral-100 dark:border-neutral-800/60">
+                    <span className="text-neutral-500">Phone</span>
+                    <span className="font-medium text-neutral-900 dark:text-white truncate max-w-[120px]">{patient.phone}</span>
+                 </div>
+                 <div className="flex justify-between items-start py-1">
+                    <span className="text-neutral-500 shrink-0">Email</span>
+                    <span className="font-medium text-neutral-900 dark:text-white break-all text-right max-w-[150px] leading-tight">{patient.email}</span>
+                 </div>
+               </div>
+           </div>
+
+           {/* Quick links */}
+           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-2 shadow-sm flex flex-col gap-1">
+             {["overview", "appointments", "soap", "reports", "carePlan", "financialPlans"].map((tab) => {
+               let label = tab.charAt(0).toUpperCase() + tab.slice(1);
+               if(tab === "carePlan") label = "Care Plans";
+               if(tab === "financialPlans") label = "Financial Plans";
+               if(tab === "soap") label = "SOAP Notes";
+               if(tab === "reports") label = "DICOM & Reports";
+               return (
+                 <button
+                   key={tab}
+                   onClick={() => setActivePatientTab(tab as any)}
+                   className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                     activePatientTab === tab
+                       ? "bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
+                       : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white"
+                   }`}
+                 >
+                   {label}
+                 </button>
+               )
+             })}
+           </div>
+        </div>
       </div>
       
       {/* Modals */}
@@ -924,12 +1014,32 @@ export function ProviderPatientDetailsScreen({
                 <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">Comparing DICOM Reports</h2>
                 <p className="text-sm text-neutral-500">{selectedDicomIds.length} Reports Selected</p>
               </div>
-              <button 
-                onClick={() => setIsComparingDicom(false)}
-                className="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const content = selectedDicomIds.map((id, i) => {
+                      const report = diagnosticReports.find(r => r.id === id);
+                      return `Report ${i + 1}: ${(report?.type || '').replace('-', ' ')} Report\nDate: ${new Date(report?.date || '').toLocaleDateString()}\n\n[DICOM Image: DICOM_${i + 1}.dcm]\n\nAnalysis: Automated analysis results for ${report?.type} DICOM scan.\n`;
+                    }).join('\n---\n\n');
+                    const blob = new Blob([`DICOM Comparison Report\nPatient: ${patient.firstName} ${patient.lastName}\nGenerated: ${new Date().toLocaleDateString()}\n\n${content}`], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `DICOM_Comparison_${patient.firstName}_${patient.lastName}_${new Date().toISOString().split('T')[0]}.txt`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  Download Report
+                </button>
+                <button 
+                  onClick={() => setIsComparingDicom(false)}
+                  className="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-auto p-6 bg-neutral-100 dark:bg-neutral-950">
                <div className={`grid gap-6 ${selectedDicomIds.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' : selectedDicomIds.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>

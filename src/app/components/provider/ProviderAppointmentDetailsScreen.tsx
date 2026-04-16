@@ -385,15 +385,6 @@ export function ProviderAppointmentDetailsScreen({
                 </div>
               </>
             )}
-
-            {appointment.status === "Confirmed" && onCompleteSession && (
-              <button
-                onClick={() => setShowCompleteDialog(true)}
-                className="px-4 h-10 bg-success-600 hover:bg-success-700 text-white rounded-lg font-medium text-sm transition-colors whitespace-nowrap"
-              >
-                Complete session
-              </button>
-            )}
           </div>
         </div>
 
@@ -459,45 +450,7 @@ export function ProviderAppointmentDetailsScreen({
         </div>
       </div>
 
-      {/* Complete Session Confirmation Dialog */}
-      {showCompleteDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-lg w-full max-w-md">
-            <div className="px-5 py-4 border-b border-neutral-200 dark:border-neutral-800">
-              <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
-                Complete session
-              </h3>
-            </div>
-            <div className="p-5 space-y-4">
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                Are you sure you want to mark this session as completed?
-              </p>
-              <div className="bg-primary-50 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800 rounded-lg p-4">
-                <p className="text-sm text-primary-700 dark:text-primary-300">
-                  <strong>Note:</strong> Billing and invoicing will be handled by clinic staff after completion.
-                </p>
-              </div>
-            </div>
-            <div className="px-5 pb-5 flex gap-3 justify-end">
-              <button
-                onClick={() => setShowCompleteDialog(false)}
-                className="px-4 h-10 border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors font-medium text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowCompleteDialog(false);
-                  onCompleteSession?.(appointment.id);
-                }}
-                className="px-4 h-10 bg-success-600 hover:bg-success-700 text-white rounded-lg transition-colors font-medium text-sm"
-              >
-                Yes, complete session
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Download Menu */}
       {showDownloadMenu && (

@@ -51,9 +51,10 @@ export function ProviderCalendarScreen({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const FILTER_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
+  const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
@@ -61,15 +62,31 @@ export function ProviderCalendarScreen({
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [showDetailDrawer, setShowDetailDrawer] = useState(false);
 
+  const locationColorMap = useMemo(() => {
+     let map: Record<string, string> = {};
+     selectedLocationIds.forEach((id, idx) => {
+       map[id] = FILTER_COLORS[idx % FILTER_COLORS.length];
+     });
+     return map;
+  }, [selectedLocationIds]);
+
+  const serviceColorMap = useMemo(() => {
+     let map: Record<string, string> = {};
+     selectedServices.forEach((serv, idx) => {
+       map[serv] = FILTER_COLORS[(idx + selectedLocationIds.length) % FILTER_COLORS.length];
+     });
+     return map;
+  }, [selectedServices, selectedLocationIds.length]);
+
   // Filter appointments
   const filteredAppointments = useMemo(() => {
     return appointments.filter((apt) => {
-      const locationMatch = !selectedLocationId || apt.locationId === selectedLocationId;
-      const serviceMatch = !selectedService || apt.service === selectedService;
-      const statusMatch = !selectedStatus || apt.status === selectedStatus;
+      const locationMatch = selectedLocationIds.length === 0 || selectedLocationIds.includes(apt.locationId);
+      const serviceMatch = selectedServices.length === 0 || selectedServices.includes(apt.service);
+      const statusMatch = selectedStatuses.length === 0 || selectedStatuses.includes(apt.status);
       return locationMatch && serviceMatch && statusMatch;
     });
-  }, [appointments, selectedLocationId, selectedService, selectedStatus]);
+  }, [appointments, selectedLocationIds, selectedServices, selectedStatuses]);
 
   // Navigation handlers
   const navigateDate = (direction: "prev" | "next") => {
@@ -139,8 +156,6 @@ export function ProviderCalendarScreen({
     switch (status) {
       case "Confirmed":
         return "bg-success-100 dark:bg-success-950/30 text-success-700 dark:text-success-400";
-      case "No-Show":
-        return "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-400";
       case "Cancelled":
         return "bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-400";
       case "Completed":
@@ -148,6 +163,16 @@ export function ProviderCalendarScreen({
       default:
         return "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-400";
     }
+  };
+
+  const getAppointmentColor = (apt: Appointment) => {
+    if (selectedLocationIds.length > 0 && locationColorMap[apt.locationId]) {
+      return locationColorMap[apt.locationId];
+    }
+    if (selectedServices.length > 0 && serviceColorMap[apt.service]) {
+      return serviceColorMap[apt.service];
+    }
+    return PROVIDER_COLOR;
   };
 
   // Date formatting
@@ -224,16 +249,18 @@ export function ProviderCalendarScreen({
                 >
                   {/* 30-minute divider line */}
                   <div className="absolute left-0 right-0 top-1/2 border-t border-neutral-100 dark:border-neutral-700 pointer-events-none z-0" />
-                  {hourAppointments.map((apt) => (
-                    <button
-                      key={apt.id}
-                      onClick={() => onViewAppointment?.(apt.id)}
-                      className="w-full mb-1 p-2 rounded text-left border-l-2 transition-all hover:shadow-md cursor-pointer"
-                      style={{
-                        backgroundColor: `${PROVIDER_COLOR}15`,
-                        borderLeftColor: PROVIDER_COLOR,
-                      }}
-                    >
+                  {hourAppointments.map((apt) => {
+                    const aptColor = getAppointmentColor(apt);
+                    return (
+                      <button
+                        key={apt.id}
+                        onClick={() => onViewAppointment?.(apt.id)}
+                        className="w-full mb-1 p-2 rounded text-left border-l-2 transition-all hover:shadow-md cursor-pointer"
+                        style={{
+                          backgroundColor: `${aptColor}15`,
+                          borderLeftColor: aptColor,
+                        }}
+                      >
                       <p className="text-xs font-medium text-neutral-900 dark:text-white truncate">
                         {apt.startTime} - {apt.endTime}
                       </p>
@@ -337,6 +364,7 @@ export function ProviderCalendarScreen({
                               const [endHour, endMin] = apt.endTime.split(':').map(Number);
                               const durationMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
                               const is30MinAppt = durationMinutes <= 30;
+                              const aptColor = getAppointmentColor(apt);
 
                               return (
                                 <button
@@ -344,14 +372,14 @@ export function ProviderCalendarScreen({
                                   onClick={() => onViewAppointment?.(apt.id)}
                                   className="w-full p-1.5 rounded text-left border-l-2 transition-all hover:shadow-md text-xs cursor-pointer"
                                   style={{
-                                    backgroundColor: `${PROVIDER_COLOR}15`,
-                                    borderLeftColor: PROVIDER_COLOR,
+                                    backgroundColor: `${aptColor}15`,
+                                    borderLeftColor: aptColor,
                                   }}
                                 >
                                   <div className="flex items-center gap-1 mb-0.5">
                                     <div
                                       className="w-1.5 h-1.5 rounded-full shrink-0"
-                                      style={{ backgroundColor: PROVIDER_COLOR }}
+                                      style={{ backgroundColor: aptColor }}
                                     />
                                     <p className="text-xs font-medium text-neutral-900 dark:text-white truncate">
                                       {apt.startTime}
@@ -386,13 +414,7 @@ export function ProviderCalendarScreen({
                                   <AppointmentOverflowPopup
                                     appointments={hourAppointments.slice(2)}
                                     getStatusColor={getStatusColor}
-                                    onViewAppointment={(id) => {
-                                      const apt = hourAppointments.find(a => a.id === id);
-                                      if (apt) {
-                                        setSelectedAppointment(apt);
-                                        setShowDetailDrawer(true);
-                                      }
-                                    }}
+                                    onViewAppointment={(id) => onViewAppointment?.(id)}
                                   />
                                 )}
                               </div>
@@ -463,25 +485,22 @@ export function ProviderCalendarScreen({
                 </div>
 
                 <div className="space-y-1">
-                  {/* Show only first 2 appointments total per day */}
                   {dayAppointments.slice(0, 2).map((apt) => {
+                    const aptColor = getAppointmentColor(apt);
                     return (
                       <button
                         key={apt.id}
-                        onClick={() => {
-                          setSelectedAppointment(apt);
-                          setShowDetailDrawer(true);
-                        }}
+                        onClick={() => onViewAppointment?.(apt.id)}
                         className="w-full p-1.5 rounded text-left border-l-2 transition-all hover:shadow-sm"
                         style={{
-                          backgroundColor: `${PROVIDER_COLOR}15`,
-                          borderLeftColor: PROVIDER_COLOR,
+                          backgroundColor: `${aptColor}15`,
+                          borderLeftColor: aptColor,
                         }}
                       >
                         <div className="flex items-center gap-1 mb-0.5">
                           <div
                             className="w-1.5 h-1.5 rounded-full shrink-0"
-                            style={{ backgroundColor: PROVIDER_COLOR }}
+                            style={{ backgroundColor: aptColor }}
                           />
                           <p className="text-xs font-medium text-neutral-900 dark:text-white truncate">
                             {apt.startTime}
@@ -513,13 +532,7 @@ export function ProviderCalendarScreen({
                          <AppointmentOverflowPopup
                            appointments={dayAppointments.slice(2)}
                            getStatusColor={getStatusColor}
-                           onViewAppointment={(id) => {
-                             const apt = dayAppointments.find(a => a.id === id);
-                             if (apt) {
-                               setSelectedAppointment(apt);
-                               setShowDetailDrawer(true);
-                             }
-                           }}
+                           onViewAppointment={(id) => onViewAppointment?.(id)}
                          />
                        )}
                     </div>
@@ -577,10 +590,7 @@ export function ProviderCalendarScreen({
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => {
-                          setSelectedAppointment(apt);
-                          setShowDetailDrawer(true);
-                        }}
+                        onClick={() => onViewAppointment?.(apt.id)}
                         className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline text-left transition-colors"
                       >
                         {apt.patientName}
@@ -680,33 +690,41 @@ export function ProviderCalendarScreen({
                     <div className="p-2">
                       <button
                         onClick={() => {
-                          setSelectedLocationId(null);
+                          setSelectedLocationIds([]);
                           setShowLocationDropdown(false);
                         }}
-                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                          !selectedLocationId
-                            ? "bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300"
+                        className={`w-full flex items-center gap-2 text-left px-3 py-2 text-sm rounded-lg transition-colors ${
+                          selectedLocationIds.length === 0
+                            ? "bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300 font-medium"
                             : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
                         }`}
                       >
                         All locations
                       </button>
-                      {locations.map((location) => (
-                        <button
-                          key={location.id}
-                          onClick={() => {
-                            setSelectedLocationId(location.id);
-                            setShowLocationDropdown(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                            selectedLocationId === location.id
-                              ? "bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300"
-                              : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                          }`}
-                        >
-                          {location.name}
-                        </button>
-                      ))}
+                      {locations.map((location) => {
+                         const isSelected = selectedLocationIds.includes(location.id);
+                         return (
+                           <button
+                             key={location.id}
+                             onClick={() => {
+                               if (isSelected) {
+                                  setSelectedLocationIds(prev => prev.filter(id => id !== location.id));
+                               } else {
+                                  setSelectedLocationIds(prev => [...prev, location.id]);
+                               }
+                             }}
+                             className="w-full flex items-center justify-between text-left px-3 py-2 text-sm rounded-lg transition-colors text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                           >
+                             <div className="flex items-center gap-2">
+                               {isSelected && (
+                                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: locationColorMap[location.id] || '#3B82F6' }}></div>
+                               )}
+                               <span className={isSelected ? "font-medium" : ""}>{location.name}</span>
+                             </div>
+                             {isSelected && <Check className="w-4 h-4 text-primary-600" />}
+                           </button>
+                         );
+                      })}
                     </div>
                   </div>
                 </>
@@ -737,33 +755,42 @@ export function ProviderCalendarScreen({
                     <div className="p-2">
                       <button
                         onClick={() => {
-                          setSelectedService(null);
+                          setSelectedServices([]);
                           setShowServiceDropdown(false);
                         }}
-                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                          !selectedService
-                            ? "bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300"
+                        className={`w-full flex items-center gap-2 text-left px-3 py-2 text-sm rounded-lg transition-colors ${
+                          selectedServices.length === 0
+                            ? "bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300 font-medium"
                             : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
                         }`}
                       >
                         All services
                       </button>
-                      {services.map((service: any) => (
-                        <button
-                          key={service.name || service}
-                          onClick={() => {
-                            setSelectedService(service.name || service);
-                            setShowServiceDropdown(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                            selectedService === (service.name || service)
-                              ? "bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300"
-                              : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                          }`}
-                        >
-                          {service.name || service}
-                        </button>
-                      ))}
+                      {services.map((service: any) => {
+                         const svcName = service.name || service;
+                         const isSelected = selectedServices.includes(svcName);
+                         return (
+                           <button
+                             key={svcName}
+                             onClick={() => {
+                               if (isSelected) {
+                                  setSelectedServices(prev => prev.filter(s => s !== svcName));
+                               } else {
+                                  setSelectedServices(prev => [...prev, svcName]);
+                               }
+                             }}
+                             className="w-full flex items-center justify-between text-left px-3 py-2 text-sm rounded-lg transition-colors text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                           >
+                              <div className="flex items-center gap-2">
+                               {isSelected && (
+                                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: serviceColorMap[svcName] || '#10B981' }}></div>
+                               )}
+                               <span className={isSelected ? "font-medium" : ""}>{svcName}</span>
+                             </div>
+                             {isSelected && <Check className="w-4 h-4 text-primary-600" />}
+                           </button>
+                         )
+                      })}
                     </div>
                   </div>
                 </>
@@ -794,33 +821,36 @@ export function ProviderCalendarScreen({
                     <div className="p-2">
                       <button
                         onClick={() => {
-                          setSelectedStatus(null);
+                          setSelectedStatuses([]);
                           setShowStatusDropdown(false);
                         }}
-                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                          !selectedStatus
-                            ? "bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300"
+                        className={`w-full flex items-center gap-2 text-left px-3 py-2 text-sm rounded-lg transition-colors ${
+                          selectedStatuses.length === 0
+                            ? "bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300 font-medium"
                             : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
                         }`}
                       >
                         All statuses
                       </button>
-                      {["Confirmed", "Pending", "Completed", "Cancelled"].map((status) => (
-                        <button
-                          key={status}
-                          onClick={() => {
-                            setSelectedStatus(status);
-                            setShowStatusDropdown(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                            selectedStatus === status
-                              ? "bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300"
-                              : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                          }`}
-                        >
-                          {status}
-                        </button>
-                      ))}
+                      {["Confirmed", "Completed", "Cancelled"].map((status) => {
+                         const isSelected = selectedStatuses.includes(status);
+                         return (
+                           <button
+                             key={status}
+                             onClick={() => {
+                               if (isSelected) {
+                                  setSelectedStatuses(prev => prev.filter(s => s !== status));
+                               } else {
+                                  setSelectedStatuses(prev => [...prev, status]);
+                               }
+                             }}
+                             className="w-full flex items-center justify-between text-left px-3 py-2 text-sm rounded-lg transition-colors text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                           >
+                             <span className={isSelected ? "font-medium" : ""}>{status}</span>
+                             {isSelected && <Check className="w-4 h-4 text-primary-600" />}
+                           </button>
+                         )
+                      })}
                     </div>
                   </div>
                 </>

@@ -104,9 +104,6 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave
       {/* Header */}
       <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 px-6 py-4 bg-neutral-50 dark:bg-neutral-800/50">
         <div className="flex items-center gap-4">
-          <button onClick={onCancel} className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
           <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
             {existingPlanId ? "Edit Care Plan" : "New Recommended Action Plan"}
           </h2>
