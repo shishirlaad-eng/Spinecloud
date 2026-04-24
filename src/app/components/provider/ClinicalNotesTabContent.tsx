@@ -17,6 +17,7 @@ interface ClinicalNotesTabContentProps {
   patientName: string;
   patientDateOfBirth: string;
   patientGender: string;
+  soapCategories?: any[]; // Add SOAP Master categories
 }
 
 export function ClinicalNotesTabContent({
@@ -24,6 +25,7 @@ export function ClinicalNotesTabContent({
   patientName,
   patientDateOfBirth,
   patientGender,
+  soapCategories = [], // Default to empty array
 }: ClinicalNotesTabContentProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -238,6 +240,7 @@ export function ClinicalNotesTabContent({
             time: "N/A", // Would come from appointment data
             service: selectedNote.service,
           }}
+          soapCategories={soapCategories}
           onSave={(note) => {
             console.log("SOAP note saved:", note);
           }}

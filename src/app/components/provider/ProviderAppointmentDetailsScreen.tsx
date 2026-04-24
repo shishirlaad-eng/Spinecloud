@@ -215,126 +215,61 @@ export function ProviderAppointmentDetailsScreen({
   return (
     <ProviderLayout activeMenu="patients" onNavigate={onNavigate} onLogout={onLogout}>
       <div className="p-6 space-y-6">
-        {/* Breadcrumb Navigation */}
-        <nav className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-          <button
-            onClick={() => onNavigate("patients")}
-            className="hover:text-neutral-900 dark:hover:text-white transition-colors"
-          >
-            Patients
-          </button>
-          <ChevronRight className="w-4 h-4" />
-          <button
-            onClick={onBackToPatient}
-            className="hover:text-neutral-900 dark:hover:text-white transition-colors"
-          >
-            {appointment.patient.name}
-          </button>
-          <ChevronRight className="w-4 h-4" />
-          <span className="text-neutral-900 dark:text-white font-medium">
-            Appointment details
-          </span>
-        </nav>
 
-        {/* Appointment & Patient Info Card */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Appointment Information */}
+
+        {/* Appointment Header & Info */}
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <div className="flex items-start justify-between mb-4">
-                <h2 className="text-xl font-semibold text-neutral-900 dark:text-white">
-                  {appointment.service}
-                </h2>
-                <span
-                  className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                    appointment.status
-                  )}`}
-                >
+              <div className="flex items-center gap-3 mb-2">
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getStatusColor(appointment.status)}`}>
                   {appointment.status}
                 </span>
+                <span className="text-xs text-neutral-500 font-medium">Appointment Details</span>
               </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <Calendar className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-                  <div>
-                    <span className="text-neutral-600 dark:text-neutral-400">Date:</span>
-                    <span className="ml-2 font-medium text-neutral-900 dark:text-white">
-                      {formatDate(appointment.date)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 text-sm">
-                  <Clock className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-                  <div>
-                    <span className="text-neutral-600 dark:text-neutral-400">Time:</span>
-                    <span className="ml-2 font-medium text-neutral-900 dark:text-white">
-                      {appointment.time}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 text-sm">
-                  <MapPin className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-                  <div>
-                    <span className="text-neutral-600 dark:text-neutral-400">Location:</span>
-                    <span className="ml-2 font-medium text-neutral-900 dark:text-white">
-                      {appointment.location}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 text-sm">
-                  <Stethoscope className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-                  <div>
-                    <span className="text-neutral-600 dark:text-neutral-400">Provider:</span>
-                    <span className="ml-2 font-medium text-neutral-900 dark:text-white">
-                      {appointment.provider}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <h1 className="text-3xl font-black text-neutral-900 dark:text-white tracking-tight">
+                {appointment.service}
+              </h1>
             </div>
 
-            {/* Patient Information */}
-            <div className="border-l border-neutral-200 dark:border-neutral-800 pl-8">
-              <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 tracking-wide mb-4">
-                Patient information
-              </h3>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <User className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-                  <div>
-                    <span className="text-neutral-600 dark:text-neutral-400">Name:</span>
-                    <span className="ml-2 font-medium text-neutral-900 dark:text-white">
-                      {appointment.patient.name}
-                    </span>
-                  </div>
+            <div className="flex flex-wrap gap-x-8 gap-y-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-950/30 flex items-center justify-center text-primary-600">
+                  <Calendar className="w-4 h-4" />
                 </div>
-
-                <div className="flex items-start gap-3 text-sm">
-                  <Calendar className="w-4 h-4 text-neutral-500 dark:text-neutral-400 mt-0.5" />
-                  <div>
-                    <span className="text-neutral-600 dark:text-neutral-400">Date of birth:</span>
-                    <span className="ml-2 font-medium text-neutral-900 dark:text-white">
-                      {formatDate(appointment.patient.dateOfBirth)}
-                    </span>
-                    <span className="ml-2 text-neutral-500 dark:text-neutral-400">
-                      ({calculateAge(appointment.patient.dateOfBirth)} years old)
-                    </span>
-                  </div>
+                <div>
+                  <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Date</p>
+                  <p className="text-sm font-bold text-neutral-900 dark:text-white">{formatDate(appointment.date)}</p>
                 </div>
+              </div>
 
-                <div className="flex items-center gap-3 text-sm">
-                  <User className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
-                  <div>
-                    <span className="text-neutral-600 dark:text-neutral-400">Gender:</span>
-                    <span className="ml-2 font-medium text-neutral-900 dark:text-white">
-                      {getGenderDisplay(appointment.patient.gender)}
-                    </span>
-                  </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-950/30 flex items-center justify-center text-primary-600">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Time</p>
+                  <p className="text-sm font-bold text-neutral-900 dark:text-white">{appointment.time}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-950/30 flex items-center justify-center text-primary-600">
+                  <Stethoscope className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Doctor</p>
+                  <p className="text-sm font-bold text-neutral-900 dark:text-white">{appointment.provider}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-primary-50 dark:bg-primary-950/30 flex items-center justify-center text-primary-600">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Branch</p>
+                  <p className="text-sm font-bold text-neutral-900 dark:text-white">{appointment.location}</p>
                 </div>
               </div>
             </div>

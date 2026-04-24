@@ -17,6 +17,9 @@ export function ClinicAdminSidebar({
   const [isTicketsExpanded, setIsTicketsExpanded] = useState(
     activeMenu === "tickets" || activeMenu === "raise-ticket"
   );
+  const [isMasterExpanded, setIsMasterExpanded] = useState(
+    activeMenu === "carePlanMaster" || activeMenu === "financialPlanMaster"
+  );
 
   const menuItems = [
     {
@@ -60,7 +63,7 @@ export function ClinicAdminSidebar({
       icon: FileText,
     },
     {
-      id: "master" as const,
+      id: "services" as const,
       label: "Services",
       icon: Settings,
     },
@@ -187,6 +190,25 @@ export function ClinicAdminSidebar({
               </button>
             );
           })}
+
+          {/* Care Plans Master */}
+          <button
+            onClick={() => {
+              onNavigate("carePlanMaster");
+              if (window.innerWidth < 768) onClose();
+            }}
+            className={`w-full flex items-center gap-3 px-3 h-10 rounded-lg transition-colors ${
+              activeMenu === "carePlanMaster"
+                ? "bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300"
+                : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            }`}
+            title={!isExpanded ? "Care Plans Master" : undefined}
+          >
+            <Settings className="w-5 h-5 shrink-0" />
+            {isExpanded && (
+              <span className="text-sm font-medium truncate flex-1 text-left">Care Plans Master</span>
+            )}
+          </button>
 
           {/* Ticket Management Submenu */}
           <div>

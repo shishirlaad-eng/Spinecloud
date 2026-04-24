@@ -55,7 +55,7 @@ export const generateDummyAppointments = () => {
   ];
   
   // Services
-  const services = ["Initial Consultation", "Follow-up", "Therapy Session", "Checkup"];
+  const services = ["Initial Consultation", "Follow-up", "Physical Therapy", "Acupuncture", "Initial Assessment", "SpineCloud IQ Scan", "Consultation", "Wellness Session", "Massage Therapy"];
   
   const dummyAppointments: any[] = [];
   let aptId = 1;

@@ -46,6 +46,7 @@ interface SOAPNotesContentProps {
     service: string;
     location?: string;
   };
+  patientAppointments?: any[];
 }
 
 export function SOAPNotesContent({
@@ -57,6 +58,7 @@ export function SOAPNotesContent({
   soapCategories = [], // Default to empty array
   patientInfo,
   appointmentInfo,
+  patientAppointments = [],
 }: SOAPNotesContentProps) {
   // Mode state - Manual or AI
   const [soapMode, setSOAPMode] = useState<"manual" | "ai">("ai");
@@ -71,6 +73,14 @@ export function SOAPNotesContent({
   // AI conversion state
   const [isConverting, setIsConverting] = useState(false);
   const [hasConvertedAudio, setHasConvertedAudio] = useState(false);
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+  };
 
   // SOAP note content
   const [soapNote, setSOAPNote] = useState<SOAPNote>(() => {
@@ -137,7 +147,7 @@ export function SOAPNotesContent({
   // Auto-save state
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isPARTExpanded, setIsPARTExpanded] = useState(true);
+  const [isPARTExpanded, setIsPARTExpanded] = useState(false);
   const [showLinkReportModal, setShowLinkReportModal] = useState(false);
   const [showLinkApptModal, setShowLinkApptModal] = useState(false);
   
@@ -426,33 +436,7 @@ export function SOAPNotesContent({
                 onChange={(value) => setSOAPNote((prev) => ({ ...prev, objective: value }))}
                 placeholder="Clinical observations, measurements, and examination findings..."
                 isReadOnly={isReadOnly}
-                actionButton={
-                  !isReadOnly ? (
-                    <button
-                      className="flex items-center gap-1.5 px-3 py-1 bg-primary-50 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-800 rounded-md text-xs font-semibold hover:bg-primary-100 dark:hover:bg-primary-900/60 transition-colors shadow-sm"
-                      onClick={() => setShowLinkReportModal(true)}
-                    >
-                      <FileCheck className="w-3.5 h-3.5" />
-                      + Link Report
-                    </button>
-                  ) : undefined
-                }
               />
-              {soapNote.linkedReports && soapNote.linkedReports.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {soapNote.linkedReports.map((reportId, idx) => (
-                    <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-md border border-blue-200 dark:border-blue-800/50">
-                      <ImageIcon className="w-3 h-3" />
-                      Linked DICOM Report ({reportId})
-                      {!isReadOnly && (
-                        <button onClick={() => setSOAPNote(prev => ({...prev, linkedReports: prev.linkedReports.filter(id => id !== reportId)}))} className="ml-1 text-blue-500 hover:text-blue-700">
-                          <X className="w-3 h-3" />
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div className="mb-4 pl-4 border-l-2 border-primary-200 dark:border-primary-800">
@@ -489,19 +473,42 @@ export function SOAPNotesContent({
               isReadOnly={isReadOnly}
               actionButton={
                 !isReadOnly ? (
-                  <button
-                    className="flex items-center gap-1.5 px-3 py-1 bg-primary-50 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-800 rounded-md text-xs font-semibold hover:bg-primary-100 dark:hover:bg-primary-900/60 transition-colors shadow-sm"
-                    onClick={() => {
-                      // Skeleton placeholder: Opening modal to select patient report
-                      console.log("Trigger link report modal");
-                    }}
-                  >
-                    <FileCheck className="w-3.5 h-3.5" />
-                    + Link Report
-                  </button>
+                    <button
+                      className="flex items-center gap-1.5 px-3 py-1 bg-primary-50 dark:bg-primary-900/40 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-800 rounded-md text-xs font-semibold hover:bg-primary-100 dark:hover:bg-primary-900/60 transition-colors shadow-sm"
+                      onClick={() => setShowLinkReportModal(true)}
+                    >
+                      <FileCheck className="w-3.5 h-3.5" />
+                      + Link Report
+                    </button>
                 ) : undefined
               }
             />
+
+            {soapNote.linkedReports && soapNote.linkedReports.length > 0 && (
+              <div className="mt-2 mb-4 p-3 bg-primary-50/50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-800/50 rounded-xl">
+                <p className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                  <FileCheck className="w-3 h-3" /> Linked Clinical Reports
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {soapNote.linkedReports.map((reportId, idx) => {
+                    const isKDT = reportId.startsWith("kdt");
+                    const isSI = reportId.startsWith("si");
+                    const label = isKDT ? "KDT Report" : isSI ? "Structural Integrity" : "DICOM Report";
+                    return (
+                      <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-medium rounded-lg border border-neutral-200 dark:border-neutral-700 shadow-sm">
+                        <ImageIcon className="w-3 h-3 text-primary-500" />
+                        {label} ({reportId})
+                        {!isReadOnly && (
+                          <button onClick={() => setSOAPNote(prev => ({...prev, linkedReports: prev.linkedReports.filter(id => id !== reportId)}))} className="ml-1 text-neutral-400 hover:text-red-500 transition-colors">
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <SOAPSection
               title="Plan"
@@ -595,12 +602,16 @@ export function SOAPNotesContent({
                 )}
              </div>
              <div className="flex flex-wrap gap-2">
-                {soapNote.linkedAppointments && soapNote.linkedAppointments.map((apptId, i) => (
-                   <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs rounded-full">
-                     <Calendar className="w-3.5 h-3.5" />
-                     {apptId === appointmentId ? "Current Appointment" : `Appt: ${apptId}`}
-                   </span>
-                ))}
+                {soapNote.linkedAppointments && soapNote.linkedAppointments.map((apptId, i) => {
+                    const appt = patientAppointments.find(a => a.id === apptId);
+                    return (
+                      <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-primary-50 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 text-xs font-medium rounded-full border border-primary-100 dark:border-primary-800">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {appt ? `${appt.service} (${formatDate(appt.date)})` : `Appt: ${apptId}`}
+                        {apptId === appointmentId && " (Current)"}
+                      </span>
+                    )
+                 })}
                 {(!soapNote.linkedAppointments || soapNote.linkedAppointments.length === 0) && (
                    <span className="text-xs text-neutral-500">Unlinked (Standalone Note)</span>
                 )}
@@ -709,30 +720,67 @@ export function SOAPNotesContent({
               </button>
             </div>
             <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
-              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">Select a generated report to attach reference context to this SOAP note.</p>
-              {/* Mock items */}
-              {["posture", "cervical-drma"].map(reportType => (
-                 <label key={reportType} className="flex items-center gap-3 p-3 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800/50 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={soapNote.linkedReports.includes(reportType)}
-                      onChange={(e) => {
-                        setSOAPNote(prev => {
-                          const has = prev.linkedReports.includes(reportType);
-                          return {
-                            ...prev, 
-                            linkedReports: has ? prev.linkedReports.filter(r => r !== reportType) : [...prev.linkedReports, reportType]
-                          };
-                        })
-                      }}
-                      className="rounded border-neutral-300 text-primary-600 focus:ring-primary-600"
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-neutral-900 dark:text-white capitalize">{reportType.replace("-", " ")} Report</p>
-                      <p className="text-xs text-neutral-500">Generated {new Date().toLocaleDateString()}</p>
-                    </div>
-                </label>
-              ))}
+              <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">Select generated clinical or imaging reports to link with this assessment.</p>
+              
+              {/* Reports Grid */}
+              <div className="space-y-4">
+                {/* Diagnostic Imaging Section */}
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Imaging & DICOM</h4>
+                  {["posture-dicom", "cervical-drma"].map(reportType => (
+                    <label key={reportType} className="flex items-center gap-3 p-3 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800/50 cursor-pointer transition-all">
+                        <input 
+                          type="checkbox" 
+                          checked={soapNote.linkedReports.includes(reportType)}
+                          onChange={(e) => {
+                            setSOAPNote(prev => {
+                              const has = prev.linkedReports.includes(reportType);
+                              return {
+                                ...prev, 
+                                linkedReports: has ? prev.linkedReports.filter(r => r !== reportType) : [...prev.linkedReports, reportType]
+                              };
+                            })
+                          }}
+                          className="rounded border-neutral-300 text-primary-600 focus:ring-primary-600"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-neutral-900 dark:text-white capitalize">{reportType.replace("-", " ")} Report</p>
+                          <p className="text-[10px] text-neutral-500">Diagnostic Imaging</p>
+                        </div>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Clinical Reports Section */}
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Clinical Analysis</h4>
+                  {[
+                    { id: "kdt-101", label: "KDT Decompression Report", type: "clinical" },
+                    { id: "si-202", label: "Structural Integrity Analysis", type: "clinical" }
+                  ].map(report => (
+                    <label key={report.id} className="flex items-center gap-3 p-3 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800/50 cursor-pointer transition-all">
+                        <input 
+                          type="checkbox" 
+                          checked={soapNote.linkedReports.includes(report.id)}
+                          onChange={(e) => {
+                            setSOAPNote(prev => {
+                              const has = prev.linkedReports.includes(report.id);
+                              return {
+                                ...prev, 
+                                linkedReports: has ? prev.linkedReports.filter(r => r !== report.id) : [...prev.linkedReports, report.id]
+                              };
+                            })
+                          }}
+                          className="rounded border-neutral-300 text-primary-600 focus:ring-primary-600"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-neutral-900 dark:text-white">{report.label}</p>
+                          <p className="text-[10px] text-neutral-500">Patient Case Study</p>
+                        </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
             <div className="p-4 border-t border-neutral-200 dark:border-neutral-800 flex justify-end gap-2">
                <button onClick={() => setShowLinkReportModal(false)} className="px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors">Done</button>
@@ -742,8 +790,8 @@ export function SOAPNotesContent({
       )}
 
       {showLinkApptModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-xl shadow-xl overflow-hidden border border-neutral-200 dark:border-neutral-800">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-neutral-900 w-full max-w-md rounded-2xl shadow-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden">
             <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
               <h3 className="font-semibold text-neutral-900 dark:text-white">Manage Linked Appointments</h3>
               <button onClick={() => setShowLinkApptModal(false)} className="text-neutral-500 hover:text-neutral-700">
@@ -752,30 +800,31 @@ export function SOAPNotesContent({
             </div>
             <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
               <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-2">Select the appointments this SOAP note clinically supports.</p>
-              {/* Mock items */}
-              {[`${appointmentId}`, "mock-appt-2"].map(apptId => (
-                 <label key={apptId} className="flex items-center gap-3 p-3 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800/50 cursor-pointer">
+              {patientAppointments.length > 0 ? patientAppointments.map(appt => (
+                 <label key={appt.id} className="flex items-center gap-3 p-3 border border-neutral-200 dark:border-neutral-800 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800/50 cursor-pointer">
                     <input 
                       type="checkbox" 
-                      checked={soapNote.linkedAppointments?.includes(apptId) || false}
+                      checked={soapNote.linkedAppointments?.includes(appt.id) || false}
                       onChange={(e) => {
                         setSOAPNote(prev => {
                           const arr = prev.linkedAppointments || [];
-                          const has = arr.includes(apptId);
+                          const has = arr.includes(appt.id);
                           return {
                             ...prev, 
-                            linkedAppointments: has ? arr.filter(a => a !== apptId) : [...arr, apptId]
+                            linkedAppointments: has ? arr.filter(a => a !== appt.id) : [...arr, appt.id]
                           };
                         })
                       }}
                       className="rounded border-neutral-300 text-primary-600 focus:ring-primary-600"
                     />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-neutral-900 dark:text-white">Physical Therapy Session</p>
-                      <p className="text-xs text-neutral-500">{apptId === appointmentId ? "Current Appointment" : "Previous Appointment"}</p>
+                      <p className="text-sm font-medium text-neutral-900 dark:text-white">{appt.service}</p>
+                      <p className="text-xs text-neutral-500">{formatDate(appt.date)} {appt.id === appointmentId && "(Current)"}</p>
                     </div>
                 </label>
-              ))}
+              )) : (
+                <div className="py-8 text-center text-neutral-500 italic">No appointments available to link.</div>
+              )}
             </div>
             <div className="p-4 border-t border-neutral-200 dark:border-neutral-800 flex justify-end gap-2">
                <button onClick={() => setShowLinkApptModal(false)} className="px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors">Done</button>

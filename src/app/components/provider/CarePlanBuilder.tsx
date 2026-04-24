@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { CheckSquare, Square, Search, X, Check, Save, Printer, ArrowLeft } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { CheckSquare, Square, Search, X, Check, Save, Printer, ArrowLeft, ChevronDown } from "lucide-react";
 
 export interface CarePlanScheduleRow {
   id: string;
@@ -24,11 +24,12 @@ interface CarePlanBuilderProps {
   patientId: string;
   patientName: string;
   existingPlanId?: string | null;
+  isReadOnly?: boolean;
   onSave: (plan: CarePlan) => void;
   onCancel: () => void;
 }
 
-export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave, onCancel }: CarePlanBuilderProps) => {
+export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, isReadOnly, onSave, onCancel }: CarePlanBuilderProps) => {
   const [plan, setPlan] = useState<CarePlan>({
     id: `cp-${Date.now()}`,
     patientId,
@@ -42,6 +43,34 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave
     patientSignatureDate: ""
   });
 
+  const [masterOptions, setMasterOptions] = useState({
+    basedOn: ["Your Age", "MRI /CT Report", "Digital Foot Scans", "Number of Exam Abnormalities", "Your History and Physical Examination", "Posture/Range of Motion Abnormalities"],
+    actionPlan: ["Spinal Adjustments", "Extremity Adjustments", "Hot Moist Packs", "Electrical Stimulation"],
+    supplements: ["Omega 3 Fish oil", "Vitamin D3", "Magnesium Glycinate", "Probiotics"],
+    responsibility: ["Health Workshop", "Home Exercises", "Traction as Recommended", "Stay Hydrated"]
+  });
+
+  useEffect(() => {
+    const loadMaster = (key: string, defaults: string[]) => {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
+           return parsed.filter((item: any) => item.status === "active").map((item: any) => item.label);
+        }
+        return parsed.map((item: any) => typeof item === 'string' ? item : item.label);
+      }
+      return defaults;
+    };
+
+    setMasterOptions({
+      basedOn: loadMaster("carePlan_master_basedOn", masterOptions.basedOn),
+      actionPlan: loadMaster("carePlan_master_actionPlan", masterOptions.actionPlan),
+      supplements: loadMaster("carePlan_master_supplements", masterOptions.supplements),
+      responsibility: loadMaster("carePlan_master_responsibility", masterOptions.responsibility)
+    });
+  }, []);
+
   useEffect(() => {
     if (existingPlanId) {
       const saved = localStorage.getItem(`carePlan_${existingPlanId}`);
@@ -52,6 +81,7 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave
   }, [existingPlanId]);
 
   const toggleBasedOn = (item: string) => {
+    if (isReadOnly) return;
     setPlan(prev => ({
       ...prev,
       basedOn: prev.basedOn.includes(item)
@@ -61,6 +91,7 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave
   };
 
   const toggleActionPlan = (item: string) => {
+    if (isReadOnly) return;
     setPlan(prev => ({
       ...prev,
       actionPlan: prev.actionPlan.includes(item)
@@ -112,9 +143,11 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave
           <button className="px-3 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 shadow-sm flex items-center gap-2 hidden sm:flex">
              <Printer className="w-4 h-4"/> Print PDF
           </button>
-          <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 shadow-sm flex items-center gap-2">
-            <Save className="w-4 h-4" /> Save Plan
-          </button>
+          {!isReadOnly && (
+            <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 shadow-sm flex items-center gap-2">
+              <Save className="w-4 h-4" /> Save Plan
+            </button>
+          )}
         </div>
       </div>
 
@@ -130,10 +163,10 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave
         <div className="space-y-4">
           <h3 className="font-bold text-neutral-900 dark:text-white border-b border-neutral-200 dark:border-neutral-800 pb-2">Your Recommended Action Plan is Based On:</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pl-4">
-             {["Your Age", "MRI /CT Report", "Digital Foot Scans", "Number of Exam Abnormalities", "Your History and Physical Examination", "Posture/Range of Motion Abnormalities"].map(item => (
-                <label key={item} className="flex items-center gap-3 cursor-pointer group select-none">
-                  <input type="checkbox" className="hidden" checked={plan.basedOn.includes(item)} onChange={() => toggleBasedOn(item)} />
-                  <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${plan.basedOn.includes(item) ? 'bg-primary-600 border-primary-600 text-white' : 'bg-white border-neutral-400 group-hover:border-primary-500'}`}>
+              {masterOptions.basedOn.map(item => (
+                <label key={item} className={`flex items-center gap-3 ${isReadOnly ? 'cursor-default' : 'cursor-pointer group'} select-none`}>
+                  <input type="checkbox" className="hidden" checked={plan.basedOn.includes(item)} onChange={() => toggleBasedOn(item)} disabled={isReadOnly} />
+                  <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${plan.basedOn.includes(item) ? 'bg-primary-600 border-primary-600 text-white' : 'bg-white border-neutral-400 group-hover:border-primary-500'} ${isReadOnly && !plan.basedOn.includes(item) ? 'opacity-50 hover:border-neutral-400' : ''}`}>
                      {plan.basedOn.includes(item) && <Check className="w-3.5 h-3.5" />}
                   </div>
                   <span className="text-sm text-neutral-700 dark:text-neutral-300">{item}</span>
@@ -147,10 +180,10 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave
         <div className="space-y-4">
           <h3 className="font-bold text-neutral-900 dark:text-white border-b border-neutral-200 dark:border-neutral-800 pb-2">Doctor Recommended Action Plan:</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
-             {["Spinal Adjustments", "Extremity Adjustments", "Hot Moist Packs", "Electrical Stimulation"].map(item => (
-                <label key={item} className="flex items-center gap-3 cursor-pointer group select-none">
-                  <input type="checkbox" className="hidden" checked={plan.actionPlan.includes(item)} onChange={() => toggleActionPlan(item)} />
-                  <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${plan.actionPlan.includes(item) ? 'bg-primary-600 border-primary-600 text-white' : 'bg-white border-neutral-400 group-hover:border-primary-500'}`}>
+             {masterOptions.actionPlan.map(item => (
+                <label key={item} className={`flex items-center gap-3 ${isReadOnly ? 'cursor-default' : 'cursor-pointer group'} select-none`}>
+                  <input type="checkbox" className="hidden" checked={plan.actionPlan.includes(item)} onChange={() => toggleActionPlan(item)} disabled={isReadOnly} />
+                  <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${plan.actionPlan.includes(item) ? 'bg-primary-600 border-primary-600 text-white' : 'bg-white border-neutral-400 group-hover:border-primary-500'} ${isReadOnly && !plan.actionPlan.includes(item) ? 'opacity-50 hover:border-neutral-400' : ''}`}>
                      {plan.actionPlan.includes(item) && <Check className="w-3.5 h-3.5" />}
                   </div>
                   <span className="text-sm text-neutral-700 dark:text-neutral-300 font-medium">{item}</span>
@@ -160,14 +193,14 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave
         </div>
 
         {/* Supplements */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 relative">
            <label className="font-bold text-neutral-900 dark:text-white">Nutritional Supplements:</label>
-           <input 
-             type="text" 
+           <SearchableDropdown
+             options={masterOptions.supplements}
              value={plan.nutritionalSupplements}
-             onChange={(e) => setPlan(prev => ({...prev, nutritionalSupplements: e.target.value}))}
-             placeholder="e.g. Omega 3 Fish oil 3 caps at bed with water"
-             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm bg-neutral-50 dark:bg-neutral-800 dark:text-white focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+             onChange={(val) => setPlan(prev => ({...prev, nutritionalSupplements: val}))}
+             placeholder="Select or type supplement..."
+             isReadOnly={isReadOnly}
            />
         </div>
 
@@ -178,19 +211,21 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave
           <div className="space-y-3">
              {plan.scheduleRows.map((row, idx) => (
                 <div key={row.id} className="flex items-center gap-3 flex-wrap">
-                   <input type="number" min="1" max="7" value={row.timesPerWeek} onChange={e => updateScheduleRow(row.id, "timesPerWeek", parseInt(e.target.value) || 0)} className="w-16 px-2 py-1 text-center font-bold bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded focus:ring-primary-500"/>
+                   <input type="number" min="1" max="7" value={row.timesPerWeek} readOnly={isReadOnly} onChange={e => updateScheduleRow(row.id, "timesPerWeek", parseInt(e.target.value) || 0)} className={`w-16 px-2 py-1 text-center font-bold bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded ${isReadOnly ? 'outline-none border-transparent bg-transparent pl-0 text-left' : 'focus:ring-primary-500'}`}/>
                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">times a week for</span>
-                   <input type="number" min="1" max="52" value={row.durationWeeks} onChange={e => updateScheduleRow(row.id, "durationWeeks", parseInt(e.target.value) || 0)} className="w-16 px-2 py-1 text-center font-bold bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded focus:ring-primary-500"/>
+                   <input type="number" min="1" max="52" value={row.durationWeeks} readOnly={isReadOnly} onChange={e => updateScheduleRow(row.id, "durationWeeks", parseInt(e.target.value) || 0)} className={`w-16 px-2 py-1 text-center font-bold bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded ${isReadOnly ? 'outline-none border-transparent bg-transparent pl-0 text-left' : 'focus:ring-primary-500'}`}/>
                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">weeks =</span>
                    <span className="text-sm font-bold text-primary-700 w-16 text-center underline underline-offset-4">{row.timesPerWeek * row.durationWeeks} visits</span>
-                   {plan.scheduleRows.length > 1 && (
+                   {!isReadOnly && plan.scheduleRows.length > 1 && (
                       <button onClick={() => removeScheduleRow(row.id)} className="ml-2 text-neutral-400 hover:text-red-500"><X className="w-4 h-4"/></button>
                    )}
                 </div>
              ))}
           </div>
 
-          <button onClick={addScheduleRow} className="text-sm text-primary-600 font-medium hover:underline mt-2">+ Add Phase</button>
+          {!isReadOnly && (
+            <button onClick={addScheduleRow} className="text-sm text-primary-600 font-medium hover:underline mt-2">+ Add Phase</button>
+          )}
 
           <div className="pt-4 mt-6 border-t border-neutral-200 dark:border-neutral-700 flex items-center gap-4 text-base font-bold text-neutral-900 dark:text-white">
              <span>Total Visits <span className="underline underline-offset-4 text-primary-700">{totalVisits}</span></span>
@@ -200,13 +235,14 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave
         </div>
 
         {/* Patient Responsibility */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 relative">
            <label className="font-bold text-neutral-900 dark:text-white">Patient Responsibility:</label>
-           <input 
-             type="text" 
+           <SearchableDropdown
+             options={masterOptions.responsibility}
              value={plan.patientResponsibility}
-             onChange={(e) => setPlan(prev => ({...prev, patientResponsibility: e.target.value}))}
-             className="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm bg-neutral-50 dark:bg-neutral-800 dark:text-white focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+             onChange={(val) => setPlan(prev => ({...prev, patientResponsibility: val}))}
+             placeholder="Select or type responsibility..."
+             isReadOnly={isReadOnly}
            />
         </div>
 
@@ -220,7 +256,11 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave
              {plan.doctorSignatureDate ? (
                 <div className="h-10 text-primary-700 font-serif italic text-xl border-b border-neutral-400">Signed Digitally</div>
              ) : (
-                <button onClick={() => setPlan(prev => ({...prev, doctorSignatureDate: new Date().toISOString()}))} className="h-10 text-sm font-medium text-neutral-500 hover:text-primary-600 border-b border-neutral-400 text-left w-full hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition duration-150">Click to Sign Form</button>
+                isReadOnly ? (
+                  <div className="h-10 border-b border-neutral-400 text-left w-full"></div>
+                ) : (
+                  <button onClick={() => setPlan(prev => ({...prev, doctorSignatureDate: new Date().toISOString()}))} className="h-10 text-sm font-medium text-neutral-500 hover:text-primary-600 border-b border-neutral-400 text-left w-full hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition duration-150">Click to Sign Form</button>
+                )
              )}
              <span className="text-sm font-medium text-neutral-600">Doctor Signature</span>
            </div>
@@ -237,6 +277,85 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, onSave
         </div>
 
       </div>
+    </div>
+  );
+}
+
+function SearchableDropdown({ options, value, onChange, placeholder, isReadOnly }: { 
+  options: string[], 
+  value: string, 
+  onChange: (val: string) => void, 
+  placeholder: string,
+  isReadOnly?: boolean
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(opt => 
+    opt.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <div className="relative">
+        <input 
+          type="text" 
+          value={isOpen ? search : value}
+          onChange={(e) => {
+            if (!isOpen) setIsOpen(true);
+            setSearch(e.target.value);
+            onChange(e.target.value);
+          }}
+          onFocus={() => {
+            if (!isReadOnly) {
+              setIsOpen(true);
+              setSearch("");
+            }
+          }}
+          placeholder={placeholder}
+          readOnly={isReadOnly}
+          className={`w-full px-4 py-2 border border-neutral-300 dark:border-neutral-700 rounded-lg text-sm bg-neutral-50 dark:bg-neutral-800 dark:text-white pr-10 ${isReadOnly ? 'focus:outline-none cursor-default' : 'focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500'}`}
+        />
+        {!isReadOnly && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
+            <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          </div>
+        )}
+      </div>
+
+      {isOpen && !isReadOnly && (
+        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-xl max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((opt, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => {
+                  onChange(opt);
+                  setIsOpen(false);
+                  setSearch("");
+                }}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 text-neutral-700 dark:text-neutral-300 border-b last:border-0 border-neutral-100 dark:border-neutral-800 transition-colors"
+              >
+                {opt}
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-2 text-sm text-neutral-500 italic">No matches found. Press enter to keep custom value.</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

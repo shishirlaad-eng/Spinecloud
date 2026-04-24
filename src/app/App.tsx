@@ -116,6 +116,7 @@ import { ClinicAdminSpineCloudDetailsScreen } from "@/app/components/clinic-admi
 import { ProviderSpineCloudIndexScreen } from "@/app/components/provider/ProviderSpineCloudIndexScreen";
 import { ProviderSpineCloudDetailsScreen } from "@/app/components/provider/ProviderSpineCloudDetailsScreen";
 import { SOAPMasterScreen } from "@/app/components/clinic-admin/soap-master/SOAPMasterScreen";
+import { CarePlanMasterScreen } from "@/app/components/clinic-admin/master/CarePlanMasterScreen";
 import { HolidaysListScreen } from "@/app/components/clinic-admin/holidays/HolidaysListScreen";
 import { LeaveManagementScreen } from "@/app/components/provider/LeaveManagementScreen";
 import { generateDummyAppointments } from "@/utils/appointmentGenerator";
@@ -224,7 +225,8 @@ type Screen =
   | "patientInvoices"
   | "patientTickets"
   | "holidaysList"
-  | "providerLeaveManagement";
+  | "providerLeaveManagement"
+  | "carePlanMaster";
 
 type PasswordContext = "signup" | "forgotPassword";
 
@@ -6189,6 +6191,8 @@ export default function App() {
       setCurrentScreen("ticketManagement");
     } else if (menu === "raise-ticket") {
       setCurrentScreen("raiseTicket");
+    } else if (menu === "carePlanMaster") {
+      setCurrentScreen("carePlanMaster");
     }
   };
 
@@ -7626,6 +7630,7 @@ export default function App() {
           return (
             <ProviderPatientDetailsScreen
               patient={fullPatientDetails}
+              soapCategories={soapCategories}
               onNavigate={(menu) => {
                 if (menu === "dashboard") {
                   setCurrentScreen("providerDashboard");
@@ -8491,6 +8496,17 @@ export default function App() {
       {/* Ticket Management */}
       {currentScreen === "ticketManagement" && (
         <TicketManagementScreen
+          onNavigate={handleClinicAdminNavigate}
+          onLogout={() => {
+            setCurrentEntity("patient");
+            setCurrentScreen("login");
+          }}
+        />
+      )}
+
+      {/* Care Plan Master */}
+      {currentScreen === "carePlanMaster" && (
+        <CarePlanMasterScreen
           onNavigate={handleClinicAdminNavigate}
           onLogout={() => {
             setCurrentEntity("patient");

@@ -226,6 +226,29 @@ export function ProviderSpineCloudDetailsScreen({
               result={latestResult}
               previousResults={previousResults}
             />
+            
+            {/* Structural Integrity Bridge */}
+            <div className="mt-8 p-6 bg-gradient-to-r from-primary-50 to-white dark:from-primary-950/20 dark:to-neutral-900 border border-primary-100 dark:border-primary-800 rounded-2xl flex items-center justify-between">
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-white dark:bg-neutral-800 rounded-xl shadow-sm flex items-center justify-center text-primary-600">
+                     <Activity className="w-6 h-6" />
+                  </div>
+                  <div>
+                     <h3 className="text-sm font-bold text-neutral-900 dark:text-white">Structural Integrity Assessment</h3>
+                     <p className="text-xs text-neutral-500 mt-0.5">Complement your SpineCloud index with detailed postural analysis.</p>
+                  </div>
+               </div>
+               <button 
+                 onClick={() => {
+                   // In a real app, this would route to patient details with SI builder open
+                   // For now, we'll suggest navigating to the Reports tab
+                   onNavigate("patients");
+                 }}
+                 className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-semibold transition-all shadow-sm"
+               >
+                 Start Assessment
+               </button>
+            </div>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { ProviderLayout } from "./layout/ProviderLayout";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, X, ChevronDown, List } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, X, ChevronDown, List, Check } from "lucide-react";
 import { AppointmentOverflowPopup } from "../clinic-admin/AppointmentOverflowPopup";
 import { AppointmentDetailDrawer, AppointmentStatus } from "../shared/AppointmentDetailDrawer";
 import { Pagination } from "../shared/Pagination";
@@ -278,7 +278,8 @@ export function ProviderCalendarScreen({
                         {apt.status}
                       </span>
                     </button>
-                  ))}
+                  );
+                  })}
                 </div>
               );
             })}
@@ -894,42 +895,48 @@ export function ProviderCalendarScreen({
         </div>
 
         {/* Active Filters Chips */}
-        {(selectedLocationId || selectedService || selectedStatus) && (
+        {(selectedLocationIds.length > 0 || selectedServices.length > 0 || selectedStatuses.length > 0) && (
           <div className="flex flex-wrap gap-2">
-            {selectedLocationId && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-100 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300 rounded-full text-sm font-medium">
-                <MapPin className="w-3.5 h-3.5" />
-                {locations.find((l) => l.id === selectedLocationId)?.name}
+            {selectedLocationIds.map(locId => {
+              const loc = locations.find(l => l.id === locId);
+              if (!loc) return null;
+              return (
+                <div key={locId} className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-100 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300 rounded-full text-sm font-medium">
+                  <MapPin className="w-3.5 h-3.5" />
+                  {loc.name}
+                  <button
+                    onClick={() => setSelectedLocationIds(prev => prev.filter(id => id !== locId))}
+                    className="hover:bg-primary-200 dark:hover:bg-primary-900/50 rounded-full p-0.5 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+            
+            {selectedServices.map(service => (
+              <div key={service} className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-100 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300 rounded-full text-sm font-medium">
+                {service}
                 <button
-                  onClick={() => setSelectedLocationId(null)}
+                  onClick={() => setSelectedServices(prev => prev.filter(s => s !== service))}
                   className="hover:bg-primary-200 dark:hover:bg-primary-900/50 rounded-full p-0.5 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            )}
-             {selectedService && (
-               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-100 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300 rounded-full text-sm font-medium">
-                 {selectedService}
-                 <button
-                   onClick={() => setSelectedService(null)}
-                   className="hover:bg-primary-200 dark:hover:bg-primary-900/50 rounded-full p-0.5 transition-colors"
-                 >
-                   <X className="w-3.5 h-3.5" />
-                 </button>
-               </div>
-             )}
-            {selectedStatus && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-100 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300 rounded-full text-sm font-medium">
-                {selectedStatus}
+            ))}
+
+            {selectedStatuses.map(status => (
+              <div key={status} className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-100 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300 rounded-full text-sm font-medium">
+                {status}
                 <button
-                  onClick={() => setSelectedStatus(null)}
+                  onClick={() => setSelectedStatuses(prev => prev.filter(s => s !== status))}
                   className="hover:bg-primary-200 dark:hover:bg-primary-900/50 rounded-full p-0.5 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            )}
+            ))}
           </div>
         )}
 

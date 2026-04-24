@@ -10,7 +10,7 @@ export interface ICDCPTCode {
 
 export interface LinkedCodeGroup {
   id: string;
-  icdCode: ICDCPTCode;
+  icdCodes: ICDCPTCode[];
   cptCodes: ICDCPTCode[];
 }
 
@@ -43,7 +43,7 @@ export function CumulativeICDCPTCodesSection({
     // Add new codes to unlinked arrays, avoiding duplicates
     const newICDCodes = icdCodes.filter(
       newCode => !unlinkedICDCodes.some(existing => existing.code === newCode.code) &&
-                 !linkedGroups.some(group => group.icdCode.code === newCode.code)
+                 !linkedGroups.some(group => group.icdCodes.some(icd => icd.code === newCode.code))
     );
     const newCPTCodes = cptCodes.filter(
       newCode => !unlinkedCPTCodes.some(existing => existing.code === newCode.code) &&
@@ -56,12 +56,19 @@ export function CumulativeICDCPTCodesSection({
   };
 
   const handleLinkCodes = (icdCode: ICDCPTCode, cptCode: ICDCPTCode) => {
-    // Check if the ICD code already has a group
-    const existingGroupIndex = linkedGroups.findIndex(g => g.icdCode.code === icdCode.code);
+    // Check if either code is already in a group
+    const existingGroupIndex = linkedGroups.findIndex(g => 
+      g.icdCodes.some(icd => icd.code === icdCode.code) || 
+      g.cptCodes.some(cpt => cpt.code === cptCode.code)
+    );
     
     if (existingGroupIndex >= 0) {
-      // Append to existing group avoiding duplicates
       const updatedGroups = [...linkedGroups];
+      // Add ICD if not present
+      if (!updatedGroups[existingGroupIndex].icdCodes.some(c => c.code === icdCode.code)) {
+        updatedGroups[existingGroupIndex].icdCodes.push(icdCode);
+      }
+      // Add CPT if not present
       if (!updatedGroups[existingGroupIndex].cptCodes.some(c => c.code === cptCode.code)) {
         updatedGroups[existingGroupIndex].cptCodes.push(cptCode);
       }
@@ -70,7 +77,7 @@ export function CumulativeICDCPTCodesSection({
       // Create new linked group
       const newGroup: LinkedCodeGroup = {
         id: `group-${Date.now()}`,
-        icdCode,
+        icdCodes: [icdCode],
         cptCodes: [cptCode],
       };
       setLinkedGroups([...linkedGroups, newGroup]);
@@ -81,29 +88,50 @@ export function CumulativeICDCPTCodesSection({
     setUnlinkedCPTCodes(prev => prev.filter(code => code.code !== cptCode.code));
   };
 
+  const handleUnlinkICD = (groupId: string, icdCodeCode: string) => {
+    const groupIndex = linkedGroups.findIndex(g => g.id === groupId);
+    if (groupIndex === -1) return;
+
+    const group = linkedGroups[groupIndex];
+    const icdCodeToUnlink = group.icdCodes.find(c => c.code === icdCodeCode);
+    if (!icdCodeToUnlink) return;
+
+    setUnlinkedICDCodes(prev => [...prev, icdCodeToUnlink]);
+    const updatedIcdCodes = group.icdCodes.filter(c => c.code !== icdCodeCode);
+
+    if (updatedIcdCodes.length === 0 && group.cptCodes.length > 0) {
+       // If no ICDs left but CPTs exist, move CPTs to unlinked and remove group
+       setUnlinkedCPTCodes(prev => [...prev, ...group.cptCodes]);
+       setLinkedGroups(prev => prev.filter(g => g.id !== groupId));
+    } else if (updatedIcdCodes.length === 0 && group.cptCodes.length === 0) {
+       setLinkedGroups(prev => prev.filter(g => g.id !== groupId));
+    } else {
+       const updatedGroups = [...linkedGroups];
+       updatedGroups[groupIndex] = { ...group, icdCodes: updatedIcdCodes };
+       setLinkedGroups(updatedGroups);
+    }
+  };
+
   const handleUnlinkCPT = (groupId: string, cptCodeCode: string) => {
     const groupIndex = linkedGroups.findIndex(g => g.id === groupId);
     if (groupIndex === -1) return;
 
     const group = linkedGroups[groupIndex];
     const cptCodeToUnlink = group.cptCodes.find(c => c.code === cptCodeCode);
-    
     if (!cptCodeToUnlink) return;
 
-    // Move CPT back to unlinked
     setUnlinkedCPTCodes(prev => [...prev, cptCodeToUnlink]);
-
     const updatedCptCodes = group.cptCodes.filter(c => c.code !== cptCodeCode);
 
-    if (updatedCptCodes.length === 0) {
-      // Move ICD back to unlinked and remove group
-      setUnlinkedICDCodes(prev => [...prev, group.icdCode]);
-      setLinkedGroups(prev => prev.filter(g => g.id !== groupId));
+    if (updatedCptCodes.length === 0 && group.icdCodes.length > 0) {
+       setUnlinkedICDCodes(prev => [...prev, ...group.icdCodes]);
+       setLinkedGroups(prev => prev.filter(g => g.id !== groupId));
+    } else if (updatedCptCodes.length === 0 && group.icdCodes.length === 0) {
+       setLinkedGroups(prev => prev.filter(g => g.id !== groupId));
     } else {
-      // Update group with remaining CPTs
-      const updatedGroups = [...linkedGroups];
-      updatedGroups[groupIndex] = { ...group, cptCodes: updatedCptCodes };
-      setLinkedGroups(updatedGroups);
+       const updatedGroups = [...linkedGroups];
+       updatedGroups[groupIndex] = { ...group, cptCodes: updatedCptCodes };
+       setLinkedGroups(updatedGroups);
     }
   };
 
@@ -149,8 +177,25 @@ export function CumulativeICDCPTCodesSection({
 
   const handleDropOnGroup = (group: LinkedCodeGroup) => {
     if (draggedCPT) {
-      handleLinkCodes(group.icdCode, draggedCPT);
+      const existingCPT = group.cptCodes.some(c => c.code === draggedCPT.code);
+      if (!existingCPT) {
+        const updatedGroups = linkedGroups.map(g => 
+          g.id === group.id ? { ...g, cptCodes: [...g.cptCodes, draggedCPT] } : g
+        );
+        setLinkedGroups(updatedGroups);
+        setUnlinkedCPTCodes(prev => prev.filter(c => c.code !== draggedCPT.code));
+      }
       setDraggedCPT(null);
+    } else if (draggedICD) {
+      const existingICD = group.icdCodes.some(c => c.code === draggedICD.code);
+      if (!existingICD) {
+        const updatedGroups = linkedGroups.map(g => 
+          g.id === group.id ? { ...g, icdCodes: [...g.icdCodes, draggedICD] } : g
+        );
+        setLinkedGroups(updatedGroups);
+        setUnlinkedICDCodes(prev => prev.filter(c => c.code !== draggedICD.code));
+      }
+      setDraggedICD(null);
     }
   };
 
@@ -168,7 +213,7 @@ export function CumulativeICDCPTCodesSection({
             ICD-CPT Codes
           </h3>
           <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-            Link ICD diagnosis codes to multiple CPT procedure codes
+            Link multiple ICD diagnosis codes to multiple CPT procedure codes
           </p>
         </div>
         <button
@@ -199,19 +244,31 @@ export function CumulativeICDCPTCodesSection({
                 onDrop={() => handleDropOnGroup(group)}
                 className="flex flex-col md:flex-row items-stretch md:items-center gap-3 p-4 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800/80"
               >
-                {/* ICD Code Container */}
-                <div className="md:w-1/2 flex items-center gap-2 px-3 py-3 bg-white dark:bg-neutral-950 border border-blue-200 dark:border-blue-800 rounded shadow-sm">
-                  <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400">
-                    ICD
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <span className="block text-sm font-mono font-medium text-neutral-900 dark:text-white truncate">
-                      {group.icdCode.code}
-                    </span>
-                    <span className="block text-xs text-neutral-600 dark:text-neutral-400 truncate">
-                      {group.icdCode.description}
-                    </span>
-                  </div>
+                {/* ICD Codes List */}
+                <div className="md:w-1/2 flex flex-col gap-2">
+                  {group.icdCodes.map((icd) => (
+                    <div key={icd.code} className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-950 border border-blue-200 dark:border-blue-800 rounded shadow-sm group/icd">
+                      <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400">
+                        ICD
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-mono font-medium text-neutral-900 dark:text-white mr-2">
+                          {icd.code}
+                        </span>
+                        <span className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-1">
+                          {icd.description}
+                        </span>
+                      </div>
+                      {/* Unlink Button */}
+                      <button
+                        onClick={() => handleUnlinkICD(group.id, icd.code)}
+                        className="p-1.5 opacity-0 group-hover/icd:opacity-100 hover:bg-red-50 dark:hover:bg-red-950/20 rounded transition-all focus:opacity-100"
+                        title="Unlink ICD code"
+                      >
+                        <X className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Link Icon */}

@@ -1,4 +1,4 @@
-import { Menu, LogOut, User, Bell, ChevronDown, Check, LayoutDashboard, Calendar, Users, Activity, CalendarClock, X } from "lucide-react";
+import { Menu, LogOut, User, Bell, ChevronDown, Check, LayoutDashboard, Calendar, Users, Activity, CalendarClock, X, Search } from "lucide-react";
 import { useState } from "react";
 import logo from "../../../../assets/spinecloud-logo.png";
 
@@ -38,6 +38,7 @@ export function ProviderHeader({
 }: ProviderHeaderProps) {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
 
   const formatTime = (ts: string) => {
     try {
@@ -90,7 +91,19 @@ export function ProviderHeader({
           </div>
 
           {/* Right side: Notifications, Profile, Mobile Menu */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
+            {/* Global Search */}
+            <div className="hidden lg:flex items-center relative group">
+              <Search className="absolute left-3 w-4 h-4 text-neutral-400 group-focus-within:text-primary-500 transition-colors" />
+              <input
+                type="text"
+                placeholder="Search patient, module..."
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+                className="w-64 h-9 pl-9 pr-4 bg-neutral-100 dark:bg-neutral-800 border border-transparent focus:border-primary-500/30 focus:bg-white dark:focus:bg-neutral-900 rounded-xl text-xs outline-none transition-all placeholder:text-neutral-500"
+              />
+            </div>
+
             {/* Notifications */}
             <div className="relative">
               <button

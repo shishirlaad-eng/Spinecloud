@@ -12,9 +12,17 @@ import {
   TrendingUp,
   Activity,
   ArrowRight,
-  UserPlus,
-  Lock,
+  ArrowUpRight,
+  TrendingDown,
+  ChevronDown,
+  ChevronUp,
+  Map,
+  Link,
+  Info,
+  ExternalLink,
+  PieChart,
   Search,
+  Zap
 } from "lucide-react";
 import { DashboardDateFilter, DateRange } from "../common/DashboardDateFilter";
 
@@ -83,29 +91,6 @@ function ProgressRing({ progress, size = 60 }: { progress: number; size?: number
   );
 }
 
-// Sparkline Component
-function Sparkline({ data }: { data: number[] }) {
-  const max = Math.max(...data, 1);
-  const width = 80;
-  const height = 24;
-  const points = data.map((d, i) => {
-    const x = (i / (data.length - 1)) * width;
-    const y = height - (d / max) * height;
-    return `${x},${y}`;
-  }).join(" ");
-
-  return (
-    <svg width={width} height={height} className="overflow-visible">
-      <polyline
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        className="text-primary-600 dark:text-primary-400"
-        points={points}
-      />
-    </svg>
-  );
-}
 
 export function ProviderDashboardScreen({
   appointments,
@@ -143,25 +128,21 @@ export function ProviderDashboardScreen({
   const totalToday = todaysAppointments.length || 1;
   const completionProgress = Math.round((completedTodayCount / totalToday) * 100);
 
-  const pendingSOAP = useMemo(
-    () => appointments.filter((a) => a.status === "Completed" && a.soapFinalized === false).length,
-    [appointments]
-  );
+  const totalPatientsCount = useMemo(() => 156, []);
+  
+  const appointmentStats = useMemo(() => {
+    const total = appointments.length;
+    const upcoming = appointments.filter(a => a.date > today).length;
+    const past = appointments.filter(a => a.date < today).length;
+    return { total, upcoming, past, today: todaysAppointments.length };
+  }, [appointments, today, todaysAppointments]);
 
-  const nextUp = useMemo(
-    () => {
-      const scheduled = todaysAppointments.filter(a => a.status === "Scheduled" || a.status === "Confirmed");
-      if (scheduled.length === 0) return undefined;
-      return scheduled.sort((a,b) => {
-        const timeA = a.time || a.startTime || "";
-        const timeB = b.time || b.startTime || "";
-        return timeA.localeCompare(timeB);
-      })[0];
-    },
-    [todaysAppointments]
-  );
-
-  const trendData = [4, 6, 5, 8, 7, 9, 10]; // Mock trend data
+  // Recent SpineCloud assessments
+  const recentScans = useMemo(() => [
+     { id: "1", name: "Sarah Johnson", score: 78.4, date: "2 Hours ago", trend: "up" },
+     { id: "2", name: "Michael Chen", score: 62.1, date: "Morning", trend: "down" },
+     { id: "3", name: "Lisa Anderson", score: 85.0, date: "Yesterday", trend: "stable" },
+  ], []);
 
   return (
     <ProviderLayout
@@ -172,142 +153,165 @@ export function ProviderDashboardScreen({
       onNavigateToNotifications={onNavigateToNotifications}
       unreadNotificationsCount={unreadNotificationsCount}
     >
-      <div className="p-6 space-y-8">
-        {/* Top Section: Welcome & Completion Ring */}
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="flex-1 bg-gradient-to-br from-primary-600 to-primary-800 dark:from-primary-900 dark:to-neutral-950 rounded-2xl p-8 relative overflow-hidden shadow-lg shadow-primary-900/10">
-            <div className="relative z-10 flex items-center justify-between">
-              <div className="space-y-2">
-                <h1 className="text-2xl font-bold text-white">Good Morning, Dr. Johnson</h1>
-                <p className="text-primary-100/80 max-w-sm">
-                  You have {scheduledTodayCount} more appointments today. Your first one starts in 15 minutes.
-                </p>
-                <div className="flex items-center gap-4 mt-6">
-                  <button 
+      <div className="p-6 space-y-6">
+        {/* Top Section: Redesigned Banner with Search */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           <div className="lg:col-span-2 bg-gradient-to-r from-primary-700 to-primary-800 dark:from-primary-900 rounded-3xl p-6 relative overflow-hidden shadow-xl shadow-primary-900/10 min-h-[170px] flex items-center">
+              <div className="relative z-10 w-full flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-1.5 focus-within:translate-x-1 transition-transform">
+                  <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                     Good Morning, Dr. Johnson
+                  </h1>
+                  <p className="text-primary-100/90 text-[13px] font-medium max-w-sm">
+                    Clinical Overview: You have <span className="bg-white/20 px-2 py-0.5 rounded text-white font-black">{scheduledTodayCount}</span> appointments confirmed for today.
+                  </p>
+                  
+                  <div className="pt-2" />
+                </div>
+                
+                <div className="flex flex-col items-end gap-3 shrink-0">
+                   <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 min-w-[140px] text-center">
+                      <p className="text-[10px] font-bold text-primary-200 uppercase tracking-widest mb-1">Total Appointments</p>
+                      <p className="text-3xl font-black text-white">{appointmentStats.total}</p>
+                   </div>
+                   <button 
                     onClick={() => onNavigate("calendar")}
-                    className="px-5 py-2.5 bg-white text-primary-700 rounded-lg text-sm font-semibold hover:bg-primary-50 transition-colors inline-flex items-center gap-2 shadow-sm"
+                    className="w-full h-10 bg-white text-primary-700 rounded-xl text-xs font-black hover:bg-primary-50 hover:scale-[1.02] active:scale-[0.98] transition-all inline-flex items-center justify-center gap-2 shadow-xl"
                   >
-                    View Schedule <ArrowRight className="w-4 h-4" />
+                    <Calendar className="w-4 h-4" /> View All Appointments
                   </button>
                 </div>
               </div>
-              <div className="hidden sm:flex flex-col items-center bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/20">
-                <span className="text-xs font-semibold text-primary-100 mb-3 uppercase tracking-wider">Today's Progress</span>
-                <ProgressRing progress={completionProgress} size={80} />
-                <span className="text-xs text-primary-50 mt-3">{completedTodayCount}/{totalToday} Completed</span>
-              </div>
-            </div>
-            
-            {/* Decorative element */}
-            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
-          </div>
+              
+              {/* Decorative Blur */}
+              <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
+           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:w-96">
-            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-9 h-9 bg-orange-50 dark:bg-orange-950/30 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                </div>
-                <Sparkline data={trendData} />
+           {/* KPI Grid Section */}
+           <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+                 <div className="w-8 h-8 bg-primary-50 dark:bg-primary-950/30 rounded-lg flex items-center justify-center">
+                    <Users className="w-4 h-4 text-primary-600" />
+                 </div>
+                 <div className="mt-3">
+                    <p className="text-2xl font-black text-neutral-900 dark:text-white leading-none">{totalPatientsCount}</p>
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">Total Patients</p>
+                 </div>
               </div>
-              <p className="text-2xl font-bold text-neutral-900 dark:text-white">{pendingSOAP}</p>
-              <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">Pending SOAP</p>
-              <button 
-                onClick={() => onNavigate("patients")}
-                className="mt-3 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline inline-flex items-center gap-1"
-              >
-                Review all <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
 
-            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-9 h-9 bg-purple-50 dark:bg-purple-950/30 rounded-lg flex items-center justify-center">
-                  <Plane className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div className="text-[10px] font-bold text-success-600 bg-success-50 dark:bg-success-950/30 px-2 py-0.5 rounded-full">3 APPR.</div>
+              <div className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+                 <div className="w-8 h-8 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-emerald-600" />
+                 </div>
+                 <div className="mt-3">
+                    <p className="text-2xl font-black text-neutral-900 dark:text-white leading-none">{appointmentStats.today}</p>
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">Present Today</p>
+                 </div>
               </div>
-              <p className="text-2xl font-bold text-neutral-900 dark:text-white">12-14</p>
-              <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">Next Leave (Apr)</p>
-              <button 
-                onClick={() => onNavigate("leaves")}
-                className="mt-3 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline inline-flex items-center gap-1"
-              >
-                Managed <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
+
+              <div className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+                 <div className="w-8 h-8 bg-amber-50 dark:bg-amber-950/30 rounded-lg flex items-center justify-center">
+                    <Calendar className="w-4 h-4 text-amber-600" />
+                 </div>
+                 <div className="mt-3">
+                    <p className="text-2xl font-black text-neutral-900 dark:text-white leading-none">{appointmentStats.upcoming}</p>
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">Upcoming</p>
+                 </div>
+              </div>
+
+              <div className="bg-white dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+                 <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg flex items-center justify-center">
+                    <Activity className="w-4 h-4 text-indigo-600" />
+                 </div>
+                 <div className="mt-3">
+                    <p className="text-2xl font-black text-neutral-900 dark:text-white leading-none">{appointmentStats.total}</p>
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">Total Appointments</p>
+                 </div>
+              </div>
+           </div>
         </div>
 
-        {/* Daily Workflow */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-              <Activity className="w-5 h-5 text-primary-600" />
-              Clinical Workflow
-            </h2>
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                <div className="w-2 h-2 rounded-full bg-success-500" /> Done
-              </span>
-              <span className="flex items-center gap-1.5 text-xs text-neutral-500 dark:text-neutral-400">
-                <div className="w-2 h-2 rounded-full bg-primary-500" /> Upcoming
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {todaysAppointments.length > 0 ? (
-              todaysAppointments.sort((a,b) => (a.time || a.startTime || "").localeCompare(b.time || b.startTime || "")).map((apt) => (
-                <div 
-                  key={apt.id}
-                  className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 hover:border-primary-500 transition-all cursor-pointer shadow-sm hover:shadow-md"
-                  onClick={() => onViewAppointment(apt.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 min-w-0">
-                      <div className="text-center w-14 border-r border-neutral-100 dark:border-neutral-800 pr-4">
-                        <p className="text-xs font-bold text-neutral-400 dark:text-neutral-600">
-                          {apt.time ? apt.time.split(" ")[1] : (apt.startTime ? apt.startTime.split(" ")[1] : "TBD")}
-                        </p>
-                        <p className="text-sm font-black text-neutral-900 dark:text-white">
-                          {apt.time ? apt.time.split(" ")[0] : (apt.startTime ? apt.startTime.split(" ")[0] : "TBD")}
-                        </p>
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-sm font-bold text-neutral-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                          {apt.patientName}
-                        </h3>
-                        <p className="text-xs text-neutral-600 dark:text-neutral-400 line-clamp-1 mt-0.5">
-                          {apt.service} · <span className="text-neutral-400">{apt.location}</span>
-                        </p>
-                      </div>
+        {/* Dashboard Body Grid: Asymmetrical */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           <div className="lg:col-span-2 space-y-6">
+               {/* Recent Activity: SpineCloud Scans */}
+              <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm">
+                 <div className="px-6 py-4 border-b border-neutral-100 dark:border-neutral-800 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-neutral-900 dark:text-white">Recent SpineCloud Assessments</h3>
+                      <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-widest">Latest Diagnostic Activity</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      {apt.status === "Completed" ? (
-                        <div className="flex items-center gap-2 text-success-600 dark:text-success-400 text-xs font-bold bg-success-50 dark:bg-success-950/30 px-3 py-1.5 rounded-lg border border-success-100 dark:border-success-800/50">
-                          <CheckCircle className="w-3.5 h-3.5" /> COMPLETED
+                    <button onClick={() => onNavigate("spineCloud")} className="text-xs font-bold text-primary-600 hover:underline">View All Assessments</button>
+                 </div>
+                 <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                    {recentScans.map((scan) => (
+                      <button 
+                        key={scan.id} 
+                        onClick={() => onNavigate("spineCloud")}
+                        className="w-full px-6 py-4 flex items-center justify-between hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                           <div className="w-9 h-9 bg-neutral-100 dark:bg-neutral-800 rounded-xl flex items-center justify-center font-bold text-neutral-600 dark:text-neutral-400">
+                              {scan.name[0]}
+                           </div>
+                           <div>
+                              <p className="text-[13px] font-bold text-neutral-900 dark:text-white">{scan.name}</p>
+                              <p className="text-[11px] text-neutral-500">{scan.date}</p>
+                           </div>
                         </div>
-                      ) : (
-                        <button className="px-4 py-2 bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400 text-xs font-bold rounded-lg border border-primary-200 dark:border-primary-800/50 group-hover:bg-primary-600 group-hover:text-white group-hover:border-primary-600 transition-all">
-                          START SESSION
-                        </button>
-                      )}
-                      <ChevronRight className="w-5 h-5 text-neutral-300 group-hover:text-primary-500 transition-colors" />
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="flex flex-col items-center justify-center p-12 bg-neutral-50 dark:bg-neutral-950 border-2 border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl text-center">
-                <div className="w-16 h-16 bg-white dark:bg-neutral-900 rounded-full flex items-center justify-center shadow-sm mb-4">
-                  <Calendar className="w-8 h-8 text-neutral-300" />
-                </div>
-                <h3 className="text-sm font-bold text-neutral-900 dark:text-white">All caught up!</h3>
-                <p className="text-xs text-neutral-500 mt-1 max-w-[200px]">No scheduled appointments for today.</p>
+                        <div className="flex items-center gap-6">
+                           <div className="text-right">
+                              <p className={`text-sm font-black ${scan.score > 80 ? 'text-emerald-600' : 'text-primary-600'}`}>{scan.score.toFixed(1)}</p>
+                              <p className="text-[9px] font-bold text-neutral-400 uppercase">Score</p>
+                           </div>
+                           <ChevronRight className="w-4 h-4 text-neutral-300" />
+                        </div>
+                      </button>
+                    ))}
+                 </div>
               </div>
-            )}
-          </div>
+           </div>
+
+           {/* Right Column: Demographics & Quick Actions */}
+           <div className="space-y-6">
+              {/* Demographic Insight Card */}
+              <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-6">
+                    <PieChart className="w-4 h-4 text-primary-600" />
+                    <h3 className="text-xs font-black text-neutral-900 dark:text-white uppercase tracking-wider">Demographic Profile</h3>
+                  </div>
+
+                  <div className="space-y-4">
+                     <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                           <span className="text-[11px] font-bold text-neutral-500">GENDER: MALE</span>
+                           <span className="text-[11px] font-black text-neutral-900 dark:text-white">58%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                           <div className="h-full bg-primary-600 rounded-full" style={{ width: '58%' }} />
+                        </div>
+                     </div>
+                     <div>
+                        <div className="flex items-center justify-between mb-1.5 text-rose-500">
+                           <span className="text-[11px] font-bold text-neutral-500">GENDER: FEMALE</span>
+                           <span className="text-[11px] font-black text-neutral-900 dark:text-white">42%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                           <div className="h-full bg-rose-500 rounded-full" style={{ width: '42%' }} />
+                        </div>
+                     </div>
+                     
+                     <div className="mt-8">
+                        <div className="flex items-center justify-between mb-1.5">
+                           <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-widest font-mono">Top Age Group</span>
+                           <span className="text-[11px] font-black text-primary-600">35 - 50</span>
+                        </div>
+                        <p className="text-[10px] text-neutral-400 italic">Majority clinical focus on postural correction.</p>
+                     </div>
+                  </div>
+              </div>
+
+           </div>
         </div>
       </div>
     </ProviderLayout>
