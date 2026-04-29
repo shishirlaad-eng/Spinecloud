@@ -14,8 +14,8 @@ interface Notification {
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  activeMenu: "dashboard" | "appointments" | "invoices" | "notifications" | "spineCloud" | "tickets" | "settings";
-  onNavigate: (menu: "dashboard" | "appointments" | "invoices" | "notifications" | "spineCloud" | "tickets" | "settings") => void;
+  activeMenu: "dashboard" | "appointments" | "invoices" | "notifications" | "spineCloud" | "tickets" | "settings" | "clinicalRecords";
+  onNavigate: (menu: "dashboard" | "appointments" | "invoices" | "notifications" | "spineCloud" | "tickets" | "settings" | "clinicalRecords") => void;
   onLogout?: () => void;
   onNavigateToProfile?: () => void;
   onNavigateToNotifications?: () => void;

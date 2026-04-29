@@ -10,6 +10,7 @@ interface TimeSlot {
 interface AppointmentBookingScreenProps {
   clinicName: string;
   providerName: string;
+  preselectedService?: string;
   onConfirm: (appointmentData: {
     type: string;
     date: string;
@@ -51,10 +52,11 @@ const generateTimeSlots = (date: string, type: string): TimeSlot[] => {
 export function AppointmentBookingScreen({
   clinicName,
   providerName,
+  preselectedService,
   onConfirm,
   onBack,
 }: AppointmentBookingScreenProps) {
-  const [serviceType, setServiceType] = useState("");
+  const [serviceType, setServiceType] = useState(preselectedService || "");
   const [appointmentDate, setAppointmentDate] = useState("");
   const [selectedTimeSlot, setSelectedTimeSlot] = useState("");
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
@@ -124,27 +126,36 @@ export function AppointmentBookingScreen({
 
           {/* Form */}
           <div className="p-6 space-y-6">
-            {/* Service Type */}
-            <div>
-              <label 
-                htmlFor="serviceType"
-                className="text-sm text-neutral-700 dark:text-neutral-300 block mb-3 font-medium"
-              >
-                Service type <span className="text-destructive">*</span>
-              </label>
-              <select
-                id="serviceType"
-                value={serviceType}
-                onChange={(e) => setServiceType(e.target.value)}
-                className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-1 text-sm text-neutral-900 dark:text-neutral-100 transition-[border-color,box-shadow] outline-none focus:border-primary-500 dark:focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 dark:focus:ring-primary-600/20 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {serviceTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Service Type - Only show if not preselected */}
+            {!preselectedService && (
+              <div>
+                <label 
+                  htmlFor="serviceType"
+                  className="text-sm text-neutral-700 dark:text-neutral-300 block mb-3 font-medium"
+                >
+                  Service type <span className="text-destructive">*</span>
+                </label>
+                <select
+                  id="serviceType"
+                  value={serviceType}
+                  onChange={(e) => setServiceType(e.target.value)}
+                  className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-1 text-sm text-neutral-900 dark:text-100 transition-[border-color,box-shadow] outline-none focus:border-primary-500 dark:focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 dark:focus:ring-primary-600/20 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {serviceTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {preselectedService && (
+              <div className="bg-neutral-50 dark:bg-neutral-800/50 p-4 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">Selected service</p>
+                <p className="text-sm font-semibold text-neutral-900 dark:text-white">{preselectedService}</p>
+              </div>
+            )}
 
             {/* Appointment Date */}
             <div>

@@ -20,6 +20,12 @@ interface Service {
   bookingEndTime: string;
   slotCapacity: number;
   isActive: boolean;
+  questionnaireId?: string; // Attached questionnaire
+}
+
+interface Questionnaire {
+  id: string;
+  categoryName: string;
 }
 
 interface Location {
@@ -49,6 +55,7 @@ interface AddEditServiceDrawerRedesignedProps {
   locations: Location[];
   providers: Provider[];
   rooms: Room[]; // New prop for rooms
+  questionnaires: Questionnaire[]; // New prop for questionnaires
   onClose: () => void;
   onSave: (service: Partial<Service>) => void;
 }
@@ -59,6 +66,7 @@ export function AddEditServiceDrawerRedesigned({
   locations,
   providers,
   rooms,
+  questionnaires,
   onClose,
   onSave,
 }: AddEditServiceDrawerRedesignedProps) {
@@ -74,6 +82,7 @@ export function AddEditServiceDrawerRedesigned({
     bookingEndTime: "17:00",
     slotCapacity: 1,
     isActive: true,
+    questionnaireId: "",
   });
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -103,6 +112,7 @@ export function AddEditServiceDrawerRedesigned({
         bookingEndTime: "17:00",
         slotCapacity: 1,
         isActive: true,
+        questionnaireId: "",
       });
     }
     setFormErrors({});
@@ -430,6 +440,28 @@ export function AddEditServiceDrawerRedesigned({
             {formErrors.locationIds && (
               <p className="text-xs text-destructive mt-1">{formErrors.locationIds}</p>
             )}
+          </div>
+
+          {/* Questionnaire */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+              Attached Questionnaire
+            </label>
+            <select
+              value={formData.questionnaireId || ""}
+              onChange={(e) => setFormData({ ...formData, questionnaireId: e.target.value })}
+              className="w-full h-10 px-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 outline-none transition-[border-color,box-shadow]"
+            >
+              <option value="">No questionnaire</option>
+              {questionnaires.map((q) => (
+                <option key={q.id} value={q.id}>
+                  {q.categoryName}
+                </option>
+              ))}
+            </select>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-2">
+              Select a questionnaire that patients must complete when booking this service.
+            </p>
           </div>
 
           {/* Providers */}

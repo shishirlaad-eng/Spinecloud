@@ -23,6 +23,7 @@ import { NotificationDetailScreen } from "@/app/components/notifications/Notific
 import { SettingsScreen } from "@/app/components/settings/SettingsScreen";
 import { PatientTicketManagementScreen } from "@/app/components/patient/tickets/PatientTicketManagementScreen";
 import { PatientSpineCloudIndexScreen } from "@/app/components/spinecloud/PatientSpineCloudIndexScreen";
+import { PatientClinicalRecordsScreen } from "@/app/components/patient/clinical-records/PatientClinicalRecordsScreen";
 import { SpineCloudQuestionnaireScreen } from "@/app/components/spinecloud/SpineCloudQuestionnaireScreen";
 import { SpineCloudResultsScreen } from "@/app/components/spinecloud/SpineCloudResultsScreen";
 import { ClinicAdminNotificationsScreen } from "@/app/components/clinic-admin/notifications/ClinicAdminNotificationsScreen";
@@ -117,6 +118,7 @@ import { ProviderSpineCloudIndexScreen } from "@/app/components/provider/Provide
 import { ProviderSpineCloudDetailsScreen } from "@/app/components/provider/ProviderSpineCloudDetailsScreen";
 import { SOAPMasterScreen } from "@/app/components/clinic-admin/soap-master/SOAPMasterScreen";
 import { CarePlanMasterScreen } from "@/app/components/clinic-admin/master/CarePlanMasterScreen";
+import { ClinicAdminClinicalRecordsScreen } from "@/app/components/clinic-admin/ClinicAdminClinicalRecordsScreen";
 import { HolidaysListScreen } from "@/app/components/clinic-admin/holidays/HolidaysListScreen";
 import { LeaveManagementScreen } from "@/app/components/provider/LeaveManagementScreen";
 import { generateDummyAppointments } from "@/utils/appointmentGenerator";
@@ -209,13 +211,7 @@ type Screen =
   | "activityLog"
   | "auditLog"
   | "spineCloudConfig"
-  | "clinicAdminSpineCloudList"
-  | "clinicAdminSpineCloudDetails"
-  | "providerSpineCloudList"
-  | "providerSpineCloudDetails"
-  | "patientSpineCloud"
-  | "patientSpineCloudQuestionnaire"
-  | "patientSpineCloudResults"
+  | "spineCloudConfig"
   | "soapMaster"
   | "emailManagement"
   | "editEmailTemplate"
@@ -226,7 +222,9 @@ type Screen =
   | "patientTickets"
   | "holidaysList"
   | "providerLeaveManagement"
-  | "carePlanMaster";
+  | "carePlanMaster"
+  | "patientClinicalRecords"
+  | "clinicAdminClinicalRecords";
 
 type PasswordContext = "signup" | "forgotPassword";
 
@@ -868,7 +866,9 @@ export default function App() {
   const [selectedPatientId, setSelectedPatientId] =
     useState<string>("");
   const [selectedAppointmentId, setSelectedAppointmentId] =
-    useState<string>("");
+    useState<string | null>(null);
+  const [reschedulingAppointmentId, setReschedulingAppointmentId] =
+    useState<string | null>(null);
   const [selectedTicketId, setSelectedTicketId] =
     useState<string>("");
   const [editingEmailTemplate, setEditingEmailTemplate] =
@@ -894,10 +894,20 @@ export default function App() {
   >([]);
   const [editingServiceType, setEditingServiceType] =
     useState<any>(null);
-  const [
-    isAddEditServiceTypeOpen,
-    setIsAddEditServiceTypeOpen,
-  ] = useState(false);
+  const [isAddEditServiceTypeOpen, setIsAddEditServiceTypeOpen] = useState(false);
+
+  // Clinic Settings state for patient portal visibility
+  const [clinicSettings, setClinicSettings] = useState({
+    patientPortal: {
+      showSOAPNotes: true,
+      showDICOMReports: true,
+      showWellnessIndex: true,
+      showKDTReports: true,
+      showCarePlans: true,
+      showFinancialPlans: true,
+      showStructuralIntegrity: true,
+    }
+  });
 
   // Rooms state
   const [rooms, setRooms] = useState<any[]>([
@@ -1313,6 +1323,7 @@ export default function App() {
       bookingEndTime: "17:00",
       slotCapacity: 2,
       isActive: true,
+      questionnaireId: "quest-1",
       createdAt: new Date(
         Date.now() - 30 * 24 * 60 * 60 * 1000,
       ).toISOString(),
@@ -1337,6 +1348,7 @@ export default function App() {
       bookingEndTime: "17:00",
       slotCapacity: 2,
       isActive: true,
+      questionnaireId: "quest-1",
       createdAt: new Date(
         Date.now() - 30 * 24 * 60 * 60 * 1000,
       ).toISOString(),
@@ -5885,16 +5897,8 @@ export default function App() {
   };
 
   const handleRescheduleAppointment = (appointmentId: string) => {
-    setAppointments(
-      appointments.map((apt) =>
-        apt.id === appointmentId ? { ...apt, status: "Rescheduled" } : apt
-      )
-    );
-    setPatientAppointments(
-      patientAppointments.map((apt) =>
-        apt.id === appointmentId ? { ...apt, status: "Rescheduled" } : apt
-      )
-    );
+    setReschedulingAppointmentId(appointmentId);
+    setCurrentScreen("clinicCalendar");
   };
 
   const handleMarkNoShowAppointment = (appointmentId: string) => {
@@ -6163,7 +6167,7 @@ export default function App() {
       setCurrentScreen("consentFormsList");
     } else if (menu === "patients") {
       setCurrentScreen("patientsList");
-    } else if (menu === "master") {
+    } else if (menu === "master" || menu === "services") {
       setCurrentScreen("servicesList");
     } else if (menu === "subscription") {
       setCurrentScreen("subscriptionManagement");
@@ -6179,8 +6183,8 @@ export default function App() {
       setCurrentScreen("auditLog");
     } else if (menu === "rooms") {
       setCurrentScreen("roomsList");
-    } else if (menu === "spineCloud") {
-      setCurrentScreen("clinicAdminSpineCloudList");
+    } else if (menu === "clinicalRecords") {
+      setCurrentScreen("clinicAdminClinicalRecords");
     } else if (menu === "soapMaster") {
       setCurrentScreen("soapMaster");
     } else if (menu === "email-management") {
@@ -6193,6 +6197,8 @@ export default function App() {
       setCurrentScreen("raiseTicket");
     } else if (menu === "carePlanMaster") {
       setCurrentScreen("carePlanMaster");
+    } else if (menu === "clinicalRecords") {
+      setCurrentScreen("clinicAdminClinicalRecords");
     }
   };
 
@@ -6331,6 +6337,10 @@ export default function App() {
           onComplete={handleOnboardingComplete}
           onBack={() => setCurrentScreen("otpPassword")}
           wizardData={wizardData}
+          services={services}
+          branches={branches}
+          providers={providers}
+          questionnaires={questionnaires}
         />
       )}
 
@@ -6486,10 +6496,12 @@ export default function App() {
           appointments={appointments}
           notifications={notifications}
           onNavigate={(menu) => {
-            if (menu === "spineCloud") {
-              setCurrentScreen("patientSpineCloud");
+            if (menu === "clinicalRecords") {
+              setCurrentScreen("patientClinicalRecords");
+            } else if (menu === "clinicalRecords") {
+              setCurrentScreen("patientClinicalRecords");
             } else {
-              setCurrentScreen(menu);
+              setCurrentScreen(menu as any);
             }
           }}
           onCancelAppointment={handleCancelAppointment}
@@ -6519,11 +6531,7 @@ export default function App() {
       {currentScreen === "myProfile" && (
         <MyProfileScreen
           onNavigate={(menu) => {
-            if (menu === "spineCloud") {
-              setCurrentScreen("patientSpineCloud");
-            } else {
-              setCurrentScreen(menu);
-            }
+            setCurrentScreen(menu as any);
           }}
           onBack={() => setCurrentScreen("dashboard")}
           onLogout={() => setCurrentScreen("login")}
@@ -6544,10 +6552,12 @@ export default function App() {
           appointments={appointments}
           services={services}
           onNavigate={(menu) => {
-            if (menu === "spineCloud") {
-              setCurrentScreen("patientSpineCloud");
+            if (menu === "clinicalRecords") {
+              setCurrentScreen("patientClinicalRecords");
+            } else if (menu === "clinicalRecords") {
+              setCurrentScreen("patientClinicalRecords");
             } else {
-              setCurrentScreen(menu);
+              setCurrentScreen(menu as any);
             }
           }}
           onReschedule={(id) => {
@@ -6575,10 +6585,12 @@ export default function App() {
         <PatientInvoicesListScreen
           invoices={invoices}
           onNavigate={(menu) => {
-            if (menu === "spineCloud") {
-              setCurrentScreen("patientSpineCloud");
+            if (menu === "clinicalRecords") {
+              setCurrentScreen("patientClinicalRecords");
+            } else if (menu === "clinicalRecords") {
+              setCurrentScreen("patientClinicalRecords");
             } else {
-              setCurrentScreen(menu);
+              setCurrentScreen(menu as any);
             }
           }}
           onLogout={() => setCurrentScreen("login")}
@@ -6659,108 +6671,33 @@ export default function App() {
       {currentScreen === "tickets" && (
         <PatientTicketManagementScreen
           onNavigate={(menu) => {
-            if (menu === "spineCloud") {
-              setCurrentScreen("patientSpineCloud");
+            if (menu === "clinicalRecords") {
+              setCurrentScreen("patientClinicalRecords");
+            } else if (menu === "clinicalRecords") {
+              setCurrentScreen("patientClinicalRecords");
             } else {
-              setCurrentScreen(menu);
+              setCurrentScreen(menu as any);
             }
           }}
           onLogout={() => setCurrentScreen("login")}
         />
       )}
 
-      {/* Patient SpineCloud Index List */}
-      {currentScreen === "patientSpineCloud" && (
-        <PatientSpineCloudIndexScreen
-          intakes={spineCloudResults}
+
+
+      {/* Patient Clinical Records */}
+      {currentScreen === "patientClinicalRecords" && (
+        <PatientClinicalRecordsScreen
+          patientName="John Smith"
           onNavigate={(menu) => {
-            if (menu === "spineCloud") {
-              setCurrentScreen("patientSpineCloud");
-            } else {
-              setCurrentScreen(menu);
-            }
-          }}
-          onStartNewIntake={() => {
-            setCurrentScreen("patientSpineCloudQuestionnaire");
-          }}
-          onViewResults={(intakeId) => {
-            setCurrentSpineCloudResultId(intakeId);
-            setCurrentScreen("patientSpineCloudResults");
+            setCurrentScreen(menu as any);
           }}
           onLogout={() => setCurrentScreen("login")}
+          onNavigateToProfile={() => setCurrentScreen("myProfile")}
+          clinicSettings={clinicSettings}
         />
       )}
 
-      {/* Patient SpineCloud Questionnaire */}
-      {currentScreen === "patientSpineCloudQuestionnaire" && (
-        <SpineCloudQuestionnaireScreen
-          onNavigate={(menu) => {
-            if (menu === "spineCloud") {
-              setCurrentScreen("patientSpineCloud");
-            } else {
-              setCurrentScreen(menu);
-            }
-          }}
-          onBack={() => setCurrentScreen("patientSpineCloud")}
-          onComplete={(responses) => {
-            // Calculate score based on responses
-            const totalScore = Object.values(responses).reduce((sum: number, value) => sum + (value as number), 0);
-            const maxScore = Object.keys(responses).length * 4; // Max 4 points per question
-            const normalizedScore = 100 - ((totalScore / maxScore) * 100); // Inverse: lower response = higher wellness
-
-            // Age-adjusted score (simplified)
-            const ageAdjustment = 1.0; // In real implementation, this would be based on age
-            const finalScore = normalizedScore * ageAdjustment;
-
-            // Calculate category scores (simplified)
-            const categoryScores = {
-              neuromuscular: Math.round(finalScore + Math.random() * 10 - 5),
-              autonomic: Math.round(finalScore + Math.random() * 10 - 5),
-              structural: Math.round(finalScore + Math.random() * 10 - 5),
-              metabolic: Math.round(finalScore + Math.random() * 10 - 5),
-              cognitive: Math.round(finalScore + Math.random() * 10 - 5),
-            };
-
-            // Create new result
-            const newResult = {
-              id: `scwi-${Date.now()}`,
-              patientId: "patient-123",
-              patientName: "John Smith",
-              patientAge: 35,
-              patientDateOfBirth: "1991-01-15",
-              completedAt: new Date().toISOString(),
-              score: Math.round(finalScore * 10) / 10,
-              categoryScores,
-              responses,
-            };
-
-            // Add to results
-            setSpineCloudResults([newResult, ...spineCloudResults]);
-            setCurrentSpineCloudResultId(newResult.id);
-            setCurrentScreen("patientSpineCloudResults");
-          }}
-          onLogout={() => setCurrentScreen("login")}
-        />
-      )}
-
-      {/* Patient SpineCloud Results */}
-      {currentScreen === "patientSpineCloudResults" && currentSpineCloudResultId && (
-        <SpineCloudResultsScreen
-          result={spineCloudResults.find((r) => r.id === currentSpineCloudResultId)!}
-          previousResults={spineCloudResults.filter((r) => r.id !== currentSpineCloudResultId)}
-          onNavigate={(menu) => {
-            if (menu === "spineCloud") {
-              setCurrentScreen("patientSpineCloud");
-            } else {
-              setCurrentScreen(menu);
-            }
-          }}
-          onBack={() => setCurrentScreen("patientSpineCloud")}
-          onLogout={() => setCurrentScreen("login")}
-        />
-      )}
-
-      {/* View Appointment Details */}
       {currentScreen === "viewAppointment" &&
         currentAppointmentId && (
           <ViewAppointmentDetailsScreen
@@ -6771,11 +6708,7 @@ export default function App() {
             }
             questionnaireData={questionnaireResponses}
             onNavigate={(menu) => {
-              if (menu === "spineCloud") {
-                setCurrentScreen("patientSpineCloud");
-              } else {
-                setCurrentScreen(menu);
-              }
+              setCurrentScreen(menu as any);
             }}
             onBack={() => setCurrentScreen("dashboard")}
             onReschedule={() => {
@@ -8380,6 +8313,8 @@ export default function App() {
               clinicAdminNotifications.filter((n) => !n.isRead)
                 .length
             }
+            appointments={patientAppointments}
+            patients={patients}
           />
         </>
       )}
@@ -8412,24 +8347,6 @@ export default function App() {
         />
       )}
 
-      {/* Clinic Admin SpineCloud Index List */}
-      {currentScreen === "clinicAdminSpineCloudList" && (
-        <ClinicAdminSpineCloudIndexScreen
-          onNavigate={handleClinicAdminNavigate}
-          onViewDetails={(patientId) => {
-            setSelectedSpineCloudPatientId(patientId);
-            setCurrentScreen("clinicAdminSpineCloudDetails");
-          }}
-          onNavigateToConfig={() => setCurrentScreen("spineCloudConfig")}
-          onLogout={() => {
-            setCurrentEntity("patient");
-            setCurrentScreen("login");
-          }}
-          onNavigateToProfile={() =>
-            setCurrentScreen("clinicAdminProfile")
-          }
-        />
-      )}
 
       {/* SOAP Master Configuration */}
       {currentScreen === "soapMaster" && (
@@ -8486,6 +8403,8 @@ export default function App() {
       {currentScreen === "clinicSettings" && (
         <ClinicSettingsScreen
           onNavigate={handleClinicAdminNavigate}
+          clinicSettings={clinicSettings}
+          setClinicSettings={setClinicSettings}
           onLogout={() => {
             setCurrentEntity("patient");
             setCurrentScreen("login");
@@ -8507,6 +8426,17 @@ export default function App() {
       {/* Care Plan Master */}
       {currentScreen === "carePlanMaster" && (
         <CarePlanMasterScreen
+          onNavigate={handleClinicAdminNavigate}
+          onLogout={() => {
+            setCurrentEntity("patient");
+            setCurrentScreen("login");
+          }}
+        />
+      )}
+
+      {/* Clinic Admin Clinical Records */}
+      {currentScreen === "clinicAdminClinicalRecords" && (
+        <ClinicAdminClinicalRecordsScreen
           onNavigate={handleClinicAdminNavigate}
           onLogout={() => {
             setCurrentEntity("patient");
@@ -8555,70 +8485,6 @@ export default function App() {
         );
       })()}
 
-      {/* Provider SpineCloud Index List */}
-      {currentScreen === "providerSpineCloudList" && (
-        <ProviderSpineCloudIndexScreen
-          onNavigate={(menu) => {
-            if (menu === "dashboard") {
-              setCurrentScreen("providerDashboard");
-            } else if (menu === "calendar") {
-              setCurrentScreen("providerCalendar");
-            } else if (menu === "leaves") {
-              setCurrentScreen("providerLeaveManagement");
-            } else if (menu === "patients") {
-              setCurrentScreen("providerPatients");
-            } else if (menu === "spineCloud") {
-              setCurrentScreen("providerSpineCloudList");
-            }
-          }}
-          onViewDetails={(patientId) => {
-            setSelectedSpineCloudPatientId(patientId);
-            setCurrentScreen("providerSpineCloudDetails");
-          }}
-          onLogout={() => {
-            setCurrentEntity("patient");
-            setCurrentScreen("login");
-          }}
-        />
-      )}
-
-      {/* Provider SpineCloud Index Details */}
-      {currentScreen === "providerSpineCloudDetails" && (() => {
-        // Mock patient data - in real app, fetch by selectedSpineCloudPatientId
-        const mockPatient = {
-          id: selectedSpineCloudPatientId,
-          name: "Sarah Johnson",
-          age: 42,
-          dateOfBirth: "1984-03-15",
-        };
-
-        return (
-          <ProviderSpineCloudDetailsScreen
-            patientId={mockPatient.id}
-            patientName={mockPatient.name}
-            patientAge={mockPatient.age}
-            patientDateOfBirth={mockPatient.dateOfBirth}
-            onNavigate={(menu) => {
-              if (menu === "dashboard") {
-                setCurrentScreen("providerDashboard");
-              } else if (menu === "calendar") {
-                setCurrentScreen("providerCalendar");
-              } else if (menu === "leaves") {
-                setCurrentScreen("providerLeaveManagement");
-              } else if (menu === "patients") {
-                setCurrentScreen("providerPatients");
-              } else if (menu === "spineCloud") {
-                setCurrentScreen("providerSpineCloudList");
-              }
-            }}
-            onBack={() => setCurrentScreen("providerSpineCloudList")}
-            onLogout={() => {
-              setCurrentEntity("patient");
-              setCurrentScreen("login");
-            }}
-          />
-        );
-      })()}
 
       {/* Clinic Admin Notifications */}
       {currentScreen === "clinicAdminNotifications" && (
@@ -8695,6 +8561,7 @@ export default function App() {
           patients={patients}
           services={services}
           rooms={rooms}
+          initialRescheduleId={reschedulingAppointmentId}
           onNavigate={handleClinicAdminNavigate}
           onViewAppointment={(appointmentId) => {
             setCurrentAppointmentId(appointmentId);
@@ -8722,23 +8589,30 @@ export default function App() {
             newProviderId,
           ) => {
             // Handle reschedule
-            const appointment = patientAppointments.find(
-              (a) => a.id === appointmentId,
+            const updatedAppointments = patientAppointments.map((a) =>
+              a.id === appointmentId
+                ? {
+                    ...a,
+                    date: newDate,
+                    startTime: newTime,
+                    providerId: newProviderId,
+                    status: "Confirmed" as const, // Reset status to confirmed if it was something else
+                  }
+                : a,
             );
-            if (appointment) {
-              const updatedAppointments =
-                patientAppointments.map((a) =>
-                  a.id === appointmentId
-                    ? {
-                        ...a,
-                        date: newDate,
-                        startTime: newTime,
-                        providerId: newProviderId,
-                      }
-                    : a,
-                );
-              setPatientAppointments(updatedAppointments);
-            }
+            setPatientAppointments(updatedAppointments);
+          }}
+          onCancelAppointment={(appointmentId) => {
+            // Handle cancellation
+            const updatedAppointments = patientAppointments.map((a) =>
+              a.id === appointmentId
+                ? {
+                    ...a,
+                    status: "Cancelled" as const,
+                  }
+                : a,
+            );
+            setPatientAppointments(updatedAppointments);
           }}
           onBookAppointment={(appointment) => {
             // Create new appointment from booking drawer
@@ -9362,6 +9236,9 @@ export default function App() {
                   ),
                 );
               }}
+              onRescheduleAppointment={handleRescheduleAppointment}
+              onCancelAppointment={handleCancelAppointment}
+              onNoShowAppointment={handleMarkNoShowAppointment}
               onLogout={() => {
                 setCurrentEntity("patient");
                 setCurrentScreen("login");
@@ -9448,6 +9325,7 @@ export default function App() {
             locations={branches}
             providers={providers}
             rooms={rooms}
+            questionnaires={questionnaires}
             onNavigate={handleClinicAdminNavigate}
             onAddService={() => {
               setEditingService(null);
@@ -9484,6 +9362,7 @@ export default function App() {
             locations={branches}
             providers={providers}
             rooms={rooms}
+            questionnaires={questionnaires}
             onClose={() => {
               setIsAddEditServiceRedesignedOpen(false);
               setEditingService(null);

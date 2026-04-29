@@ -1,44 +1,20 @@
-import { X, LayoutDashboard, Calendar, User, FileText, Bell, Settings, Activity, MessageSquare } from "lucide-react";
+import { X, LayoutDashboard, Calendar, FileText, Bell, Settings, MessageSquare, ClipboardList } from "lucide-react";
 
 interface SidebarProps {
   isExpanded: boolean;
   onClose: () => void;
-  activeMenu: "dashboard" | "appointments" | "invoices" | "notifications" | "settings" | "spineCloud" | "tickets";
-  onNavigate: (menu: "dashboard" | "appointments" | "invoices" | "notifications" | "settings" | "spineCloud" | "tickets") => void;
+  activeMenu: "dashboard" | "appointments" | "invoices" | "notifications" | "settings" | "tickets" | "clinicalRecords";
+  onNavigate: (menu: "dashboard" | "appointments" | "invoices" | "notifications" | "settings" | "tickets" | "clinicalRecords") => void;
 }
 
 export function Sidebar({ isExpanded, onClose, activeMenu, onNavigate }: SidebarProps) {
   const menuItems = [
-    {
-      id: "dashboard" as const,
-      label: "Dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      id: "appointments" as const,
-      label: "Appointments",
-      icon: Calendar,
-    },
-    {
-      id: "spineCloud" as const,
-      label: "SpineCloud Index",
-      icon: Activity,
-    },
-    {
-      id: "invoices" as const,
-      label: "Invoices",
-      icon: FileText,
-    },
-    {
-      id: "tickets" as const,
-      label: "Support tickets",
-      icon: MessageSquare,
-    },
-    {
-      id: "settings" as const,
-      label: "Settings",
-      icon: Settings,
-    },
+    { id: "dashboard" as const,       label: "Dashboard",         icon: LayoutDashboard },
+    { id: "appointments" as const,    label: "Appointments",       icon: Calendar        },
+    { id: "clinicalRecords" as const, label: "Clinical Records",   icon: ClipboardList   },
+    { id: "invoices" as const,        label: "Invoices",           icon: FileText        },
+    { id: "tickets" as const,         label: "Support tickets",    icon: MessageSquare   },
+    { id: "settings" as const,        label: "Settings",           icon: Settings        },
   ];
 
   return (
@@ -78,10 +54,7 @@ export function Sidebar({ isExpanded, onClose, activeMenu, onNavigate }: Sidebar
                 key={item.id}
                 onClick={() => {
                   onNavigate(item.id);
-                  // Close sidebar on mobile after navigation
-                  if (window.innerWidth < 768) {
-                    onClose();
-                  }
+                  if (window.innerWidth < 768) onClose();
                 }}
                 className={`w-full flex items-center gap-3 px-3 h-10 rounded-lg transition-colors ${
                   isActive

@@ -5,11 +5,25 @@ import { Upload, X, Save, Building2 } from "lucide-react";
 interface ClinicSettingsScreenProps {
   onNavigate: (menu: "dashboard" | "branches" | "questionnaires" | "roles" | "users" | "providers" | "consentForms" | "patients" | "master" | "subscription" | "calendar" | "appointment-categories" | "invoices" | "payments" | "email-management" | "clinic-settings") => void;
   onLogout?: () => void;
+  clinicSettings: {
+    patientPortal: {
+      showSOAPNotes: boolean;
+      showDICOMReports: boolean;
+      showWellnessIndex: boolean;
+      showKDTReports: boolean;
+      showCarePlans: boolean;
+      showFinancialPlans: boolean;
+      showStructuralIntegrity: boolean;
+    }
+  };
+  setClinicSettings: (settings: any) => void;
 }
 
 export function ClinicSettingsScreen({
   onNavigate,
   onLogout,
+  clinicSettings,
+  setClinicSettings,
 }: ClinicSettingsScreenProps) {
   // Form state
   const [clinicName, setClinicName] = useState("SpineCloudIQ");
@@ -389,6 +403,65 @@ export function ClinicSettingsScreen({
                   />
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Patient Portal Visibility Configuration */}
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-white uppercase tracking-wide">
+                Patient Portal Visibility
+              </h3>
+              <span className="px-2 py-0.5 bg-primary-100 dark:bg-primary-950 text-primary-700 dark:text-primary-300 text-[10px] font-bold rounded uppercase">
+                New
+              </span>
+            </div>
+            
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
+              Configure which clinical records and modules are visible to patients on their portal.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+              {[
+                { id: "showSOAPNotes", label: "SOAP Notes", description: "Clinical encounter notes" },
+                { id: "showDICOMReports", label: "DICOM Reports", description: "Diagnostic imaging findings" },
+                { id: "showWellnessIndex", label: "Wellness Index", description: "SpineCloud health metrics" },
+                { id: "showKDTReports", label: "KDT Reports", description: "Decompression therapy reports" },
+                { id: "showCarePlans", label: "Care Plans", description: "Active patient care strategies" },
+                { id: "showFinancialPlans", label: "Financial Plans", description: "Payment and agreement details" },
+                { id: "showStructuralIntegrity", label: "Structural Integrity", description: "Analysis and alignment reports" },
+              ].map((item) => (
+                <label 
+                  key={item.id}
+                  className="flex items-center justify-between p-4 border border-neutral-100 dark:border-neutral-800 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors cursor-pointer group"
+                >
+                  <div className="flex-1 pr-4">
+                    <p className="text-sm font-semibold text-neutral-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                      {item.label}
+                    </p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                      {item.description}
+                    </p>
+                  </div>
+                  <div className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox"
+                      checked={(clinicSettings.patientPortal as any)[item.id]}
+                      onChange={(e) => {
+                        setClinicSettings({
+                          ...clinicSettings,
+                          patientPortal: {
+                            ...clinicSettings.patientPortal,
+                            [item.id]: e.target.checked
+                          }
+                        });
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:after:border-neutral-600 peer-checked:bg-primary-600"></div>
+                  </div>
+                </label>
+              ))}
             </div>
           </div>
 

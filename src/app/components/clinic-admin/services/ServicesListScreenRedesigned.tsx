@@ -36,8 +36,14 @@ interface Service {
   bookingEndTime: string; // HH:MM format
   slotCapacity: number;
   isActive: boolean;
+  questionnaireId?: string; // Attached questionnaire
   createdAt: string;
   updatedAt: string;
+}
+
+interface Questionnaire {
+  id: string;
+  categoryName: string;
 }
 
 interface Location {
@@ -66,6 +72,7 @@ interface ServicesListScreenRedesignedProps {
   locations: Location[];
   providers: Provider[];
   rooms: Room[]; // Add rooms prop
+  questionnaires: Questionnaire[]; // New prop for questionnaires
   onNavigate: (menu: string) => void;
   onAddService: () => void;
   onEditService: (serviceId: string) => void;
@@ -78,6 +85,7 @@ export function ServicesListScreenRedesigned({
   locations,
   providers,
   rooms,
+  questionnaires,
   onNavigate,
   onAddService,
   onEditService,
@@ -169,7 +177,7 @@ export function ServicesListScreenRedesigned({
   };
 
   return (
-    <ClinicAdminLayout activeMenu="master" onNavigate={onNavigate} onLogout={onLogout}>
+    <ClinicAdminLayout activeMenu="services" onNavigate={onNavigate} onLogout={onLogout}>
       <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900">
         {/* Header */}
         <div className="bg-white dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 px-5 md:px-6 py-6">

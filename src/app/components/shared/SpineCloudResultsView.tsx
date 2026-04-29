@@ -28,7 +28,7 @@ interface SpineCloudResultsViewProps {
   onExport?: (format: "pdf" | "email" | "print") => void;
 }
 
-function getScoreCategory(score: number): {
+export function getScoreCategory(score: number): {
   label: string;
   color: string;
   bgColor: string;
@@ -80,7 +80,7 @@ function formatDate(dateString: string): string {
 }
 
 // SVG Spider/Radar Chart Component
-function SpiderChart({
+export function SpiderChart({
   categoryScores,
   previousScores,
 }: {

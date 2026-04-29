@@ -3,8 +3,8 @@ import { ProviderHeader } from "./ProviderHeader";
 
 interface ProviderLayoutProps {
   children: React.ReactNode;
-  activeMenu: "dashboard" | "calendar" | "patients" | "spineCloud" | "leaves";
-  onNavigate: (menu: "dashboard" | "calendar" | "patients" | "spineCloud" | "leaves") => void;
+  activeMenu: "dashboard" | "calendar" | "patients" | "leaves";
+  onNavigate: (menu: "dashboard" | "calendar" | "patients" | "leaves") => void;
   onLogout?: () => void;
   onNavigateToProfile?: () => void;
   onNavigateToNotifications?: () => void;

@@ -11,8 +11,8 @@ interface Notification {
 }
 
 interface ProviderHeaderProps {
-  activeMenu: "dashboard" | "calendar" | "patients" | "spineCloud" | "leaves";
-  onNavigate: (menu: "dashboard" | "calendar" | "patients" | "spineCloud" | "leaves") => void;
+  activeMenu: "dashboard" | "calendar" | "patients" | "leaves";
+  onNavigate: (menu: "dashboard" | "calendar" | "patients" | "leaves") => void;
   isMobileMenuOpen: boolean;
   onMobileMenuToggle: () => void;
   onLogout?: () => void;
@@ -53,7 +53,6 @@ export function ProviderHeader({
     { id: "dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
     { id: "calendar" as const, label: "Appointments", icon: Calendar },
     { id: "patients" as const, label: "Patients", icon: Users },
-    { id: "spineCloud" as const, label: "SpineCloud", icon: Activity },
     { id: "leaves" as const, label: "Leave", icon: CalendarClock }
   ];
 

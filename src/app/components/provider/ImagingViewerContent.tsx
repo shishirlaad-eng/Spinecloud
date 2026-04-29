@@ -11,8 +11,6 @@ import {
   ZoomIn,
   ZoomOut,
   Save,
-  Eye,
-  EyeOff,
   Lock,
   Circle,
   Palette,
@@ -106,7 +104,6 @@ export function ImagingViewerContent({
   const [activeTool, setActiveTool] = useState<AnnotationTool>(null);
   const [activeColor, setActiveColor] = useState<AnnotationColor>("#EF4444");
   const [zoomLevel, setZoomLevel] = useState(100);
-  const [patientVisible, setPatientVisible] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
@@ -777,36 +774,14 @@ export function ImagingViewerContent({
       {/* Bottom Utility Controls - Very Light */}
       {imagingFiles.length > 0 && (
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800">
-          {/* Patient Visibility Toggle */}
-          {!isReadOnly && (
-            <label className="flex items-start gap-2 cursor-pointer group">
-              <div className="flex items-center h-5">
-                <input
-                  type="checkbox"
-                  checked={patientVisible}
-                  onChange={(e) => setPatientVisible(e.target.checked)}
-                  className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-600 text-primary-600 focus:ring-2 focus:ring-primary-500/20 transition-all"
-                />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  {patientVisible ? (
-                    <Eye className="w-4 h-4 text-primary-600" />
-                  ) : (
-                    <EyeOff className="w-4 h-4 text-neutral-400" />
-                  )}
-                  Mark imaging as patient-visible
-                </div>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
-                  When enabled, this annotated image will be visible in patient portal
-                </p>
-              </div>
-            </label>
-          )}
-
-          {/* Save State */}
-          <div className="text-xs text-neutral-500 dark:text-neutral-400">
-            {hasUnsavedChanges ? "Unsaved changes" : "All changes saved"}
+          <div className="text-xs text-neutral-500 dark:text-neutral-400 italic">
+            * Selected image: {selectedImage?.filename}
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-neutral-500 dark:text-neutral-400">
+              {imagingFiles.length} images uploaded
+            </span>
           </div>
         </div>
       )}

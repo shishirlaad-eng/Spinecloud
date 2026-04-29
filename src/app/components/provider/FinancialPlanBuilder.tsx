@@ -31,6 +31,9 @@ export interface FinancialPlan {
 
   patientSignatureDate: string;
   staffSignatureDate: string;
+  patientName?: string;
+  patientEmail?: string;
+  branch?: string;
 }
 
 interface FinancialPlanBuilderProps {
@@ -84,8 +87,14 @@ export const FinancialPlanBuilder = ({ patientId, patientName, existingPlanId, i
   const financingPaymentDaily = financingPaymentMonthly / 30;
 
   const handleSave = () => {
-    localStorage.setItem(`financialPlan_${plan.id}`, JSON.stringify(plan));
-    onSave(plan);
+    const finalPlan = {
+      ...plan,
+      patientName: patientName,
+      patientEmail: "patient@example.com", // Fallback for mock environment
+      branch: "Main Branch", // Fallback
+    };
+    localStorage.setItem(`financialPlan_${plan.id}`, JSON.stringify(finalPlan));
+    onSave(finalPlan);
   };
 
   return (

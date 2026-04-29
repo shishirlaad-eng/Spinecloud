@@ -12,7 +12,7 @@ import { StructuralIntegrityBuilder } from "./imaging/StructuralIntegrityBuilder
 import { KDTReportsTabContent } from "./KDTReportsTabContent";
 import { KDTReportBuilder, type KDTReport } from "./KDTReportBuilder";
 import { StructuralIntegrityTabContent } from "./StructuralIntegrityTabContent";
-import { KDTReportPreview } from "./KDTReportPreview";
+import { UnifiedReportPreviewModal } from "../common/UnifiedReportPreviewModal";
 
 interface PatientDetails {
   id: string;
@@ -76,15 +76,45 @@ export function ProviderPatientDetailsScreen({
   onLogout,
   soapCategories = [], // Default to empty array
 }: ProviderPatientDetailsScreenProps) {
-  const [activePatientTab, setActivePatientTab] = useState<"overview" | "appointments" | "soap" | "reports" | "carePlan" | "financialPlans" | "kdtReports" | "structuralIntegrity">("overview");
+  const [activePatientTab, setActivePatientTab] = useState<"overview" | "appointments" | "soap" | "reports" | "carePlan" | "financialPlans" | "kdtReports" | "structuralIntegrity" | "spineCloud">("overview");
   const [isNewReportModalOpen, setIsNewReportModalOpen] = useState(false);
   const [selectedDicomIds, setSelectedDicomIds] = useState<string[]>([]);
   const [isComparingDicom, setIsComparingDicom] = useState(false);
   const [activeReportType, setActiveReportType] = useState<ReportType | null>(null);
-  const [diagnosticReports, setDiagnosticReports] = useState<Array<{id: string, type: string, date: string}>>([
-    { id: "mock-1", type: "posture", date: new Date().toISOString() },
-    { id: "mock-2", type: "cervical-drma", date: new Date(Date.now() - 86400000).toISOString() }
+  const [diagnosticReports, setDiagnosticReports] = useState<Array<{id: string, type: string, date: string, data?: any}>>([
+    { 
+      id: "dicom-admin-1", 
+      type: "Comprehensive Spinal Series", 
+      date: "2025-01-15T10:00:00",
+      data: { 
+        id: "dicom-admin-1", 
+        images: [
+          {
+            type: "Cervical Flexion",
+            imageUrl: "/assets/clinical/cervical_flexion.png",
+            findings: "ABNORMAL: Significant loss of cervical lordosis in flexion. Evidence of mild C5-C6 degenerative disc disease."
+          },
+          {
+            type: "Lumbar Lateral",
+            imageUrl: "/assets/clinical/lumbar_lateral.png",
+            findings: "NORMAL: Well-maintained lumbar lordosis. Vertebral body heights are preserved."
+          }
+        ]
+      }
+    },
+    { 
+      id: "mock-1", 
+      type: "posture", 
+      date: new Date().toISOString(),
+      data: {
+        id: "mock-1",
+        imageUrl: "/assets/clinical/ap_cervical.png",
+        type: "Posture Analysis",
+        findings: "NORMAL: Spinous processes are midline. No lateral tilt detected."
+      }
+    },
   ]);
+  const [comparisonNote, setComparisonNote] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [locationFilter, setLocationFilter] = useState<string>("all");
@@ -102,11 +132,22 @@ export function ProviderPatientDetailsScreen({
   const [savedSOAPNotes, setSavedSOAPNotes] = useState<any[]>([]);
   const [isPreviewingReport, setIsPreviewingReport] = useState(false);
   const [selectedReportData, setSelectedReportData] = useState<any>(null);
-  const [selectedReportType, setSelectedReportType] = useState<"kdt" | "carePlan" | "financialPlan" | "structuralIntegrity" | null>(null);
+  const [selectedReportType, setSelectedReportType] = useState<"kdt" | "carePlan" | "financialPlan" | "structuralIntegrity" | "soapNote" | "spineCloud" | null>(null);
 
-  const handleViewReport = (id: string, type: "kdt" | "carePlan" | "financialPlan" | "structuralIntegrity") => {
+  const handleViewReport = (id: string, type: "kdt" | "carePlan" | "financialPlan" | "structuralIntegrity" | "soapNote" | "dicom" | "spineCloud") => {
     let data = null;
-    if (type === "kdt") {
+    if (type === "dicom") {
+      const report = diagnosticReports.find(r => r.id === id);
+      if (report?.data) data = report.data;
+      else {
+        data = {
+          id: id,
+          type: report?.type || "DICOM Analysis",
+          imageUrl: "/assets/clinical/ap_cervical.png",
+          findings: "Standard clinical findings for this study."
+        };
+      }
+    } else if (type === "kdt") {
       const saved = localStorage.getItem(`kdtReport_${id}`);
       if (saved) data = JSON.parse(saved);
     } else if (type === "carePlan") {
@@ -118,6 +159,28 @@ export function ProviderPatientDetailsScreen({
     } else if (type === "structuralIntegrity") {
       const saved = localStorage.getItem(`structuralIntegrity_${id}`);
       if (saved) data = JSON.parse(saved);
+    } else if (type === "soapNote") {
+      const saved = localStorage.getItem(`soapNote_${id}`);
+      if (saved) data = JSON.parse(saved);
+    } else if (type === "spineCloud") {
+      const saved = localStorage.getItem(`spineCloud_${id}`);
+      if (saved) data = JSON.parse(saved);
+      else {
+        // Mock fallback
+        data = {
+          id: id,
+          score: 78.5,
+          completedAt: new Date().toISOString(),
+          categoryScores: {
+            neuromuscular: 82,
+            autonomic: 75,
+            structural: 88,
+            metabolic: 72,
+            cognitive: 76
+          },
+          recommendations: "Patient is showing good progress in structural stability. Continue with current protocols."
+        };
+      }
     }
     
     if (data) {
@@ -150,6 +213,24 @@ export function ProviderPatientDetailsScreen({
   const [savedKDTReports, setSavedKDTReports] = useState<KDTReport[]>([]);
   const [isBuildingKDTReport, setIsBuildingKDTReport] = useState(false);
   const [activeKDTReportId, setActiveKDTReportId] = useState<string | null>(null);
+  
+  // SpineCloud Wellness State
+  const [savedSpineCloudReports, setSavedSpineCloudReports] = useState<any[]>([
+    {
+      id: "sc-mock-1",
+      score: 82.4,
+      completedAt: new Date(Date.now() - 86400000 * 30).toISOString(),
+      status: "final"
+    },
+    {
+      id: "sc-mock-2",
+      score: 85.1,
+      completedAt: new Date().toISOString(),
+      status: "final"
+    }
+  ]);
+  const [spineCloudSearchQuery, setSpineCloudSearchQuery] = useState("");
+  const [isCreatingSpineCloud, setIsCreatingSpineCloud] = useState(false);
   
   const [activeFilterDropdown, setActiveFilterDropdown] = useState<string | null>(null);
   const [isBuildingStructuralIntegrity, setIsBuildingStructuralIntegrity] = useState(false);
@@ -370,16 +451,27 @@ export function ProviderPatientDetailsScreen({
           onBack={() => setActiveReportType(null)}
           onSave={() => {
             console.log("Report Saved!");
-            setDiagnosticReports(prev => [
-              {
+            const newReport = {
+              id: Math.random().toString(36).substring(7),
+              type: activeReportType || "x-ray",
+              date: new Date().toISOString(),
+              data: {
                 id: Math.random().toString(36).substring(7),
-                type: activeReportType,
-                date: new Date().toISOString()
-              },
-              ...prev
-            ]);
-            setActiveReportType(null); // return to dashboard
-            // Could add a toast here
+                type: activeReportType || "X-Ray Analysis",
+                imageUrl: activeReportType === "lumbar-lateral" 
+                  ? "/assets/clinical/lumbar_lateral.png" 
+                  : activeReportType === "cervical-drma"
+                  ? "/assets/clinical/cervical_flexion.png"
+                  : "/assets/clinical/ap_cervical.png",
+                findings: activeReportType === "lumbar-lateral"
+                  ? "NORMAL: Well-maintained lumbar lordosis. Vertebral body heights are preserved. Disc spaces are healthy."
+                  : activeReportType === "cervical-drma"
+                  ? "ABNORMAL: Significant loss of cervical lordosis in flexion. Evidence of mild C5-C6 degenerative disc disease."
+                  : "NORMAL: Spinous processes are midline. No lateral tilt or rotation detected."
+              }
+            };
+            setDiagnosticReports(prev => [newReport, ...prev]);
+            setActiveReportType(null);
           }}
         />
       </div>
@@ -579,12 +671,22 @@ export function ProviderPatientDetailsScreen({
                 <div className="p-6">
 
                   <div className="w-full">
-                    <SOAPNotesContent
+                     <SOAPNotesContent
                        appointmentId={activeSOAPNoteId || `new-${Date.now()}`} 
                        providerName="Dr. David Bohn" 
                        isReadOnly={false}
                        patientAppointments={patient.appointments}
                        soapCategories={soapCategories}
+                       patientInfo={{
+                         name: `${patient.firstName} ${patient.lastName}`,
+                         email: patient.email,
+                       }}
+                       appointmentInfo={{
+                         date: new Date().toISOString(),
+                         time: "10:00 AM",
+                         service: "Clinical Visit",
+                         branch: "Main Branch"
+                       }}
                     />
                   </div>
                 </div>
@@ -675,8 +777,9 @@ export function ProviderPatientDetailsScreen({
                                  {note.status === 'final' ? 'Finalized' : 'Draft'}
                                </span>
                              </td>
-                             <td className="px-5 py-4 text-right whitespace-nowrap">
-                               <button onClick={() => setActiveSOAPNoteId(note.id)} className="text-primary-600 dark:text-primary-400 font-medium hover:underline mr-4">Preview</button>
+                              <td className="px-5 py-4 text-right whitespace-nowrap">
+                               <button onClick={() => handleViewReport(note.id, "soapNote")} className="text-primary-600 dark:text-primary-400 font-medium hover:underline mr-4">Preview</button>
+                               <button onClick={() => setActiveSOAPNoteId(note.id)} className="text-neutral-600 dark:text-neutral-400 font-medium hover:underline mr-4">Edit</button>
                                <button className="text-primary-600 dark:text-primary-400 font-medium hover:underline" onClick={() => {
                                  const content = `SOAP NOTE\nPatient: ${patient.firstName} ${patient.lastName}\nDate: ${note.finalizedAt ? formatDate(note.finalizedAt) : "Draft"}\nStatus: ${note.status}\n\nSubjective:\n${note.subjective}\n\nObjective:\n${note.objective}\n\nAssessment:\n${note.assessment}\n\nPlan:\n${note.plan}`;
                                  const blob = new Blob([content], { type: 'text/plain' });
@@ -803,7 +906,7 @@ export function ProviderPatientDetailsScreen({
                           </span>
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <button onClick={() => { setSelectedDicomIds([report.id]); setIsComparingDicom(true); }} className="text-primary-600 dark:text-primary-400 font-medium hover:underline mr-4">Preview</button>
+                          <button onClick={() => handleViewReport(report.id, "dicom")} className="text-primary-600 dark:text-primary-400 font-medium hover:underline mr-4">Preview</button>
                           <button className="text-primary-600 dark:text-primary-400 font-medium hover:underline">Download</button>
                         </td>
                       </tr>
@@ -1072,6 +1175,94 @@ export function ProviderPatientDetailsScreen({
                />
             </div>
           )}
+
+          {/* TAB: SPINECLOUD WELLNESS */}
+          {activePatientTab === "spineCloud" && (
+            <div>
+              <div className="flex items-center gap-2 mb-5">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
+                  <input
+                    type="text"
+                    placeholder="Search wellness assessments..."
+                    value={spineCloudSearchQuery}
+                    onChange={(e) => setSpineCloudSearchQuery(e.target.value)}
+                    className="w-full h-10 pl-9 pr-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 outline-none"
+                  />
+                </div>
+                <button 
+                  onClick={() => setIsCreatingSpineCloud(true)} 
+                  className="px-4 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm whitespace-nowrap"
+                >
+                  New Wellness Assessment
+                </button>
+              </div>
+
+              <div className="border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-neutral-50 dark:bg-neutral-800/50 text-neutral-600 dark:text-neutral-400">
+                    <tr>
+                      <th className="px-5 py-3 font-medium">Date Completed</th>
+                      <th className="px-5 py-3 font-medium">Overall Score</th>
+                      <th className="px-5 py-3 font-medium">Status</th>
+                      <th className="px-5 py-3 font-medium text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+                    {savedSpineCloudReports.length > 0 ? (
+                      savedSpineCloudReports
+                        .filter(report => report.id.toLowerCase().includes(spineCloudSearchQuery.toLowerCase()))
+                        .map((report) => (
+                          <tr key={report.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                            <td className="px-5 py-4 font-medium flex items-center gap-2 text-neutral-900 dark:text-white">
+                              <Activity className="w-4 h-4 text-primary-500"/> 
+                              {formatDate(report.completedAt)}
+                            </td>
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm font-bold ${report.score >= 80 ? 'text-success-600' : 'text-primary-600'}`}>
+                                  {report.score.toFixed(1)}/100
+                                </span>
+                                <div className="w-24 h-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
+                                  <div 
+                                    className={`h-full ${report.score >= 80 ? 'bg-success-500' : 'bg-primary-500'}`} 
+                                    style={{ width: `${report.score}%` }} 
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-5 py-4">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold inline-block ${report.status === 'final' ? 'bg-success-50 text-success-700' : 'bg-warning-50 text-warning-700'}`}>
+                                {report.status === 'final' ? 'Finalized' : 'Draft'}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-right whitespace-nowrap">
+                              <button onClick={() => handleViewReport(report.id, "spineCloud")} className="text-primary-600 dark:text-primary-400 font-medium hover:underline mr-4">Preview</button>
+                              <button className="text-primary-600 dark:text-primary-400 font-medium hover:underline" onClick={() => {
+                                 const content = `SPINECLOUD WELLNESS ASSESSMENT\nID: ${report.id}\nPatient: ${patient.firstName} ${patient.lastName}\nDate: ${formatDate(report.completedAt)}\nScore: ${report.score}/100`;
+                                 const blob = new Blob([content], { type: 'text/plain' });
+                                 const url = URL.createObjectURL(blob);
+                                 const a = document.createElement('a');
+                                 a.href = url;
+                                 a.download = `Wellness_Index_${report.id}.txt`;
+                                 a.click();
+                                 URL.revokeObjectURL(url);
+                              }}>Download</button>
+                            </td>
+                          </tr>
+                        ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="px-5 py-8 text-center text-neutral-500">
+                          No wellness assessments found. Start a new evaluation for this patient.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
         </div>
 
@@ -1113,14 +1304,15 @@ export function ProviderPatientDetailsScreen({
 
            {/* Quick links */}
            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-2 shadow-sm flex flex-col gap-1">
-             {["overview", "appointments", "soap", "reports", "carePlan", "financialPlans", "kdtReports", "structuralIntegrity"].map((tab) => {
+              {["overview", "appointments", "soap", "reports", "carePlan", "financialPlans", "kdtReports", "structuralIntegrity", "spineCloud"].map((tab) => {
                let label = tab.charAt(0).toUpperCase() + tab.slice(1);
                if(tab === "carePlan") label = "Care Plans";
                if(tab === "financialPlans") label = "Financial Plans";
                if(tab === "soap") label = "SOAP Notes";
                if(tab === "reports") label = "DICOM Reports";
-               if(tab === "kdtReports") label = "KDT Reports";
-               if(tab === "structuralIntegrity") label = "Structural Integrity";
+                if(tab === "kdtReports") label = "KDT Reports";
+                if(tab === "structuralIntegrity") label = "Structural Integrity";
+                if(tab === "spineCloud") label = "SpineCloud Wellness";
                return (
                  <button
                    key={tab}
@@ -1153,9 +1345,9 @@ export function ProviderPatientDetailsScreen({
                   onClick={() => {
                     const content = selectedDicomIds.map((id, i) => {
                       const report = diagnosticReports.find(r => r.id === id);
-                      return `Report ${i + 1}: ${(report?.type || '').replace('-', ' ')} Report\nDate: ${new Date(report?.date || '').toLocaleDateString()}\n\n[DICOM Image: DICOM_${i + 1}.dcm]\n\nAnalysis: Automated analysis results for ${report?.type} DICOM scan.\n`;
+                      return `Report ${i + 1}: ${(report?.type || '').replace('-', ' ')} Report\nDate: ${new Date(report?.date || '').toLocaleDateString()}\n\nAnalysis: ${report?.data?.findings || "No findings recorded."}\n`;
                     }).join('\n---\n\n');
-                    const blob = new Blob([`DICOM Comparison Report\nPatient: ${patient.firstName} ${patient.lastName}\nGenerated: ${new Date().toLocaleDateString()}\n\n${content}`], { type: 'text/plain' });
+                    const blob = new Blob([`DICOM Comparison Report\nPatient: ${patient.firstName} ${patient.lastName}\nGenerated: ${new Date().toLocaleDateString()}\n\nComparison Notes:\n${comparisonNote}\n\n${content}`], { type: 'text/plain' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -1163,9 +1355,39 @@ export function ProviderPatientDetailsScreen({
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
+                  className="px-4 py-2 border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  Download TXT
+                </button>
+                <button
+                  onClick={() => {
+                    const selectedReports = selectedDicomIds.map(id => diagnosticReports.find(r => r.id === id)).filter(Boolean);
+                    const combinedTitle = selectedReports.map(r => r!.type.replace('-', ' ')).join(' + ');
+                    const newReport = {
+                      id: `comp-${Date.now()}`,
+                      type: "Comparison Report",
+                      date: new Date().toISOString(),
+                      data: {
+                        id: `comp-${Date.now()}`,
+                        type: combinedTitle,
+                        comparisonNotes: comparisonNote || "Clinical comparison of multiple studies.",
+                        images: selectedReports.map(r => ({
+                          type: r!.type,
+                          imageUrl: r!.data?.imageUrl || (r!.data?.images ? r!.data.images[0].imageUrl : ""),
+                          findings: r!.data?.findings || (r!.data?.images ? r!.data.images[0].findings : "")
+                        }))
+                      }
+                    };
+                    setDiagnosticReports(prev => [newReport, ...prev]);
+                    setIsComparingDicom(false);
+                    setSelectedDicomIds([]);
+                    setComparisonNote("");
+                    // Show the saved report immediately in preview
+                    handleViewReport(newReport.id, "dicom");
+                  }}
                   className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
                 >
-                  Download Report
+                  Save to Record
                 </button>
                 <button 
                   onClick={() => setIsComparingDicom(false)}
@@ -1176,31 +1398,52 @@ export function ProviderPatientDetailsScreen({
               </div>
             </div>
             <div className="flex-1 overflow-auto p-6 bg-neutral-100 dark:bg-neutral-950">
-               <div className={`grid gap-6 ${selectedDicomIds.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' : selectedDicomIds.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                  {selectedDicomIds.map((id, index) => {
-                     const report = diagnosticReports.find(r => r.id === id);
-                     return (
-                       <div key={id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm rounded-xl overflow-hidden flex flex-col">
-                          <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 flex justify-between items-center">
-                            <span className="font-semibold text-neutral-900 dark:text-white capitalize">{report?.type.replace("-", " ")} Report</span>
-                            <span className="text-xs text-neutral-500 font-medium">{new Date(report?.date || "").toLocaleDateString()}</span>
-                          </div>
-                          <div className="aspect-[3/4] bg-neutral-900 w-full relative group">
-                             <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-neutral-600 font-mono tracking-widest text-sm opacity-50">DICOM_{index + 1}.dcm</span>
-                             </div>
-                             <div className="absolute top-2 left-2 text-xs text-green-500 font-mono drop-shadow-md">
-                                <p>S</p>
-                                <p>P</p>
-                                <p>R</p>
-                             </div>
-                             <div className="absolute top-4 right-4 bg-primary-600/80 p-2 rounded transform rotate-12 cursor-pointer group-hover:scale-125 transition-transform backdrop-blur-sm">
-                                <div className="w-2 h-2 rounded-full bg-red-400 border border-white" />
-                             </div>
-                          </div>
-                       </div>
-                     );
-                  })}
+               <div className="space-y-6">
+                 <div className={`grid gap-6 ${selectedDicomIds.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' : selectedDicomIds.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                    {selectedDicomIds.map((id, index) => {
+                       const report = diagnosticReports.find(r => r.id === id);
+                       const mainImageUrl = report?.data?.imageUrl || (report?.data?.images ? report?.data.images[0].imageUrl : "");
+                       const findings = report?.data?.findings || (report?.data?.images ? report?.data.images[0].findings : "");
+                       
+                       return (
+                         <div key={id} className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm rounded-2xl overflow-hidden flex flex-col">
+                            <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 flex justify-between items-center">
+                              <span className="font-bold text-neutral-900 dark:text-white capitalize">{report?.type.replace("-", " ")}</span>
+                              <span className="text-xs text-neutral-500 font-medium">{new Date(report?.date || "").toLocaleDateString()}</span>
+                            </div>
+                            <div className="aspect-[4/3] bg-black w-full relative group">
+                               {mainImageUrl ? (
+                                 <img src={mainImageUrl} className="w-full h-full object-contain" alt="DICOM" />
+                               ) : (
+                                 <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-neutral-600 font-mono tracking-widest text-sm opacity-50">DICOM_{index + 1}.dcm</span>
+                                 </div>
+                               )}
+                            </div>
+                            <div className="p-4 bg-neutral-50 dark:bg-neutral-900 border-t border-neutral-100 dark:border-neutral-800">
+                               <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-2">Analysis Findings</h4>
+                               <p className="text-sm text-neutral-700 dark:text-neutral-300 italic font-medium leading-relaxed">
+                                 {findings || "No specific findings recorded."}
+                               </p>
+                            </div>
+                         </div>
+                       );
+                    })}
+                 </div>
+
+                 {/* Comparison Note Section */}
+                 <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6">
+                    <h3 className="text-sm font-bold text-neutral-900 dark:text-white mb-4 flex items-center gap-2">
+                       <FileText className="w-4 h-4 text-primary-500" />
+                       Clinical Comparison Notes
+                    </h3>
+                    <textarea
+                       value={comparisonNote}
+                       onChange={(e) => setComparisonNote(e.target.value)}
+                       placeholder="Enter your clinical summary comparing these studies..."
+                       className="w-full h-32 p-4 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl text-sm text-neutral-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none"
+                    />
+                 </div>
                </div>
             </div>
           </div>
@@ -1262,205 +1505,16 @@ export function ProviderPatientDetailsScreen({
         </div>
       )}
       </ProviderLayout>
+      {isPreviewingReport && selectedReportType && selectedReportData && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <UnifiedReportPreviewModal
+            type={selectedReportType}
+            data={selectedReportData}
+            patientName={`${patient.firstName} ${patient.lastName}`}
+            onClose={() => setIsPreviewingReport(false)}
+          />
+        </div>
+      )}
     </>
-  );
-}
-
-// Internal Modal Wrapper for Previews
-function UnifiedReportPreviewModal({ type, data, patientName, onClose }: { type: string, data: any, patientName: string, onClose: () => void }) {
-  if (type === "kdt") return <KDTReportPreview report={data} onClose={onClose} />;
-  
-  const handlePrint = () => window.print();
-
-  return (
-    <div className="bg-white dark:bg-neutral-900 w-full max-w-4xl max-h-[90vh] overflow-auto rounded-2xl p-8 relative flex flex-col">
-       <div className="flex justify-between items-center mb-8 border-b border-neutral-100 dark:border-neutral-800 pb-4 print:hidden">
-          <div className="flex gap-2">
-             <button onClick={handlePrint} className="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-neutral-200"><Printer className="w-4 h-4"/> Print Report</button>
-             <button className="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-neutral-200"><Download className="w-4 h-4"/> Download PDF</button>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full"><X className="w-5 h-5"/></button>
-       </div>
-
-       <div className="flex-1 print:p-0">
-          <div className="border-b-4 border-primary-600 pb-6 mb-8 flex justify-between items-end">
-             <div>
-                <h1 className="text-3xl font-black uppercase tracking-tight">{type.replace(/([A-Z])/g, ' $1').toUpperCase()}</h1>
-                <p className="text-neutral-500 font-bold tracking-widest uppercase text-xs">Official SpineCloudIQ Clinical Record</p>
-             </div>
-             <div className="text-right">
-                <p className="text-xl font-black text-neutral-900 dark:text-white">SpineCloudIQ</p>
-                <p className="text-[10px] font-black text-primary-600 uppercase tracking-widest">Medical Documentation</p>
-             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-8 mb-10 bg-neutral-50 dark:bg-neutral-800/50 p-6 rounded-2xl border border-neutral-200 dark:border-neutral-700">
-             <div>
-                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">Patient</span>
-                <p className="font-bold text-neutral-900 dark:text-white">{patientName}</p>
-             </div>
-             <div className="text-right">
-                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">Date Generated</span>
-                <p className="font-bold text-neutral-900 dark:text-white">{new Date().toLocaleDateString()}</p>
-             </div>
-          </div>
-
-          <div className="space-y-8">
-             {type === "carePlan" && data && (
-                <>
-                   <section className="space-y-4">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-primary-600">Recommended Action Plan</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                         <div className="p-4 border border-neutral-100 dark:border-neutral-800 rounded-xl">
-                            <span className="text-[10px] font-bold text-neutral-400 uppercase">Treatment Base</span>
-                            <p className="text-sm font-medium mt-1">{data.basedOn?.join(", ") || "Clinical Assessment"}</p>
-                         </div>
-                         <div className="p-4 border border-neutral-100 dark:border-neutral-800 rounded-xl">
-                            <span className="text-[10px] font-bold text-neutral-400 uppercase">Action Protocol</span>
-                            <p className="text-sm font-medium mt-1">{data.actionPlan?.join(", ") || "Standard Corrective Care"}</p>
-                         </div>
-                      </div>
-                   </section>
-                   <section className="space-y-4">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-primary-600">Treatment Schedule</h3>
-                      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden">
-                         <table className="w-full text-sm">
-                            <thead className="bg-neutral-50 dark:bg-neutral-800">
-                               <tr>
-                                  <th className="px-4 py-3 text-left">Frequency</th>
-                                  <th className="px-4 py-3 text-left">Duration</th>
-                                  <th className="px-4 py-3 text-right">Visits</th>
-                               </tr>
-                            </thead>
-                            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
-                               {data.scheduleRows?.map((row: any) => (
-                                  <tr key={row.id}>
-                                     <td className="px-4 py-3">{row.timesPerWeek}x per week</td>
-                                     <td className="px-4 py-3">{row.durationWeeks} weeks</td>
-                                     <td className="px-4 py-3 text-right font-bold">{row.timesPerWeek * row.durationWeeks}</td>
-                                  </tr>
-                               ))}
-                            </tbody>
-                         </table>
-                      </div>
-                   </section>
-                   <section className="space-y-4">
-                      <h3 className="text-sm font-black uppercase tracking-widest text-primary-600">Additional Recommendations</h3>
-                      <div className="grid grid-cols-1 gap-4">
-                         <div className="p-4 border border-neutral-100 dark:border-neutral-800 rounded-xl bg-neutral-50/30">
-                            <span className="text-[10px] font-bold text-neutral-400 uppercase">Nutritional Supplements</span>
-                            <p className="text-sm font-medium mt-1">{data.nutritionalSupplements || "None specified"}</p>
-                         </div>
-                         <div className="p-4 border border-neutral-100 dark:border-neutral-800 rounded-xl bg-neutral-50/30">
-                            <span className="text-[10px] font-bold text-neutral-400 uppercase">Patient Responsibility</span>
-                            <p className="text-sm font-medium mt-1">{data.patientResponsibility || "Standard protocols"}</p>
-                         </div>
-                      </div>
-                   </section>
-                </>
-             )}
-
-             {type === "financialPlan" && data && (
-                <div className="space-y-10">
-                   <div className="flex justify-between items-center p-8 bg-neutral-900 text-white rounded-3xl">
-                      <div>
-                         <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Total Investment</span>
-                         <h2 className="text-4xl font-black">${data.totalInvestment?.toLocaleString()}</h2>
-                      </div>
-                      <div className="text-right">
-                         <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Payment Option</span>
-                         <h2 className="text-xl font-bold uppercase tracking-tight">{data.selectedPaymentMode?.replace("-", " ")}</h2>
-                      </div>
-                   </div>
-                    <div className="grid grid-cols-2 gap-8">
-                       <div className="space-y-6">
-                          <div className="space-y-2">
-                             <h4 className="text-xs font-black uppercase tracking-widest text-neutral-400">Payment Terms</h4>
-                             <div className="p-4 border border-neutral-100 dark:border-neutral-800 rounded-xl bg-neutral-50/50">
-                                <p className="text-sm font-bold text-neutral-900 dark:text-white">
-                                   {data.selectedPaymentMode === 'one-time' ? (
-                                      `One-time payment with ${data.discountPercentage}% discount`
-                                   ) : data.selectedPaymentMode === 'monthly' ? (
-                                      `$${(data.totalInvestment / data.monthlyMonths).toFixed(2)} monthly for ${data.monthlyMonths} months`
-                                   ) : (
-                                      `Financing over ${data.financingMonths} months`
-                                   )}
-                                </p>
-                                {data.selectedPaymentMode === 'monthly' && data.autoChargeMethod && (
-                                   <div className="mt-2 flex items-center gap-2 text-xs text-neutral-500">
-                                      {data.autoChargeMethod === 'credit_card' ? (
-                                         <><CreditCard className="w-3.5 h-3.5" /> {data.ccType} ending in ****{data.ccNumberLast4}</>
-                                      ) : (
-                                         <><Building className="w-3.5 h-3.5" /> {data.bankName} ending in ****{data.accountNumberLast4}</>
-                                      )}
-                                   </div>
-                                )}
-                             </div>
-                          </div>
-
-                          {data.splitDetails && (
-                             <div className="space-y-2">
-                                <h4 className="text-xs font-black uppercase tracking-widest text-neutral-400">Split / Special Billing Notes</h4>
-                                <div className="p-4 border border-neutral-100 dark:border-neutral-800 rounded-xl bg-amber-50/30 text-sm italic text-neutral-700">
-                                   {data.splitDetails}
-                                </div>
-                             </div>
-                          )}
-
-                          <div className="space-y-2">
-                             <h4 className="text-xs font-black uppercase tracking-widest text-neutral-400">Agreement Clauses</h4>
-                             <ul className="text-xs space-y-2 text-neutral-600 dark:text-neutral-400">
-                                <li>• Automatic monthly bank debit / card charge</li>
-                                <li>• 30-day cancellation notice required</li>
-                                <li>• Non-refundable clinical setup fees</li>
-                             </ul>
-                          </div>
-                       </div>
-                       <div className="space-y-10">
-                          <div className="pt-10">
-                             <div className="h-16 border-b border-neutral-300 relative flex items-end justify-center pb-2">
-                                {data.patientSignatureDate && <span className="font-serif italic text-xl text-primary-700">Digitally Signed</span>}
-                             </div>
-                             <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mt-2 block text-center">Patient Authorization</span>
-                             {data.patientSignatureDate && <span className="text-[10px] text-neutral-400 block text-center mt-1">{new Date(data.patientSignatureDate).toLocaleDateString()}</span>}
-                          </div>
-                          
-                          <div>
-                             <div className="h-16 border-b border-neutral-300 relative flex items-end justify-center pb-2">
-                                {data.staffSignatureDate && <span className="font-serif italic text-lg text-neutral-600">Verified by Staff</span>}
-                             </div>
-                             <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mt-2 block text-center">Staff Verification</span>
-                             {data.staffSignatureDate && <span className="text-[10px] text-neutral-400 block text-center mt-1">{new Date(data.staffSignatureDate).toLocaleDateString()}</span>}
-                          </div>
-                       </div>
-                    </div>
-                </div>
-             )}
-
-             {type === "structuralIntegrity" && (
-                <div className="space-y-8">
-                   <div className="grid grid-cols-2 gap-6">
-                      <div className="aspect-[3/4] bg-neutral-100 dark:bg-neutral-800 rounded-3xl flex items-center justify-center text-neutral-400 font-bold border-2 border-dashed border-neutral-200">Front Profile Analysis</div>
-                      <div className="aspect-[3/4] bg-neutral-100 dark:bg-neutral-800 rounded-3xl flex items-center justify-center text-neutral-400 font-bold border-2 border-dashed border-neutral-200">Side Profile Analysis</div>
-                   </div>
-                   <div className="p-6 bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-800 rounded-2xl">
-                      <h4 className="text-xs font-black uppercase tracking-widest text-primary-600 mb-2">Clinical Findings</h4>
-                      <p className="text-sm text-primary-900 dark:text-primary-100 italic font-medium leading-relaxed">
-                         Initial postural screening indicates structural translation of the C-chain and pelvic unleveling within the frontal plane. Spinal corrective protocols recommended to restore sagittal balance.
-                      </p>
-                   </div>
-                </div>
-             )}
-          </div>
-       </div>
-
-       <div className="mt-12 pt-8 border-t border-neutral-100 dark:border-neutral-800 flex justify-between items-center shrink-0 print:hidden">
-          <p className="text-[10px] text-neutral-400 font-medium">DOCUMENT ID: {data?.id || "N/A"}</p>
-          <div className="flex gap-4">
-             <button className="px-8 py-3 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 font-bold rounded-xl text-sm" onClick={onClose}>Close</button>
-             <button className="px-8 py-3 bg-primary-600 text-white rounded-xl font-bold text-sm shadow-xl shadow-primary-600/20" onClick={handlePrint}>Print Official Copy</button>
-          </div>
-       </div>
-    </div>
   );
 }

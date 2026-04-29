@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Mic, Save, FileCheck, Upload, X, Download, Eye, EyeOff, MessageCircle, FileUp, Lock, Loader2, Pause, Square, Play, CheckCircle2, Sparkles, Clock, User, Activity, ChevronDown, ChevronUp, Calendar, Image as ImageIcon } from "lucide-react";
+import { Mic, Save, FileCheck, Upload, X, Download, MessageCircle, FileUp, Lock, Loader2, Pause, Square, Play, CheckCircle2, Sparkles, Clock, User, Activity, ChevronDown, ChevronUp, Calendar, Image as ImageIcon } from "lucide-react";
 import { exportSOAPNotes } from "@/utils/exportNotes";
 import { SOAPSection } from "./SOAPSection";
 import { ManualSOAPInterface } from "./ManualSOAPInterface";
@@ -25,6 +25,9 @@ interface SOAPNote {
   status: "draft" | "final";
   finalizedAt?: string;
   finalizedBy?: string;
+  patientName?: string;
+  patientEmail?: string;
+  branch?: string;
   audioRecordingDuration?: number;
 }
 
@@ -45,6 +48,7 @@ interface SOAPNotesContentProps {
     time: string;
     service: string;
     location?: string;
+    branch?: string;
   };
   patientAppointments?: any[];
 }
@@ -293,6 +297,9 @@ export function SOAPNotesContent({
       status: "final",
       finalizedAt: new Date().toISOString(),
       finalizedBy: providerName,
+      patientName: patientInfo?.name,
+      patientEmail: (patientInfo as any)?.email,
+      branch: appointmentInfo?.branch || appointmentInfo?.location,
     };
     
     setSOAPNote(finalizedNote);
@@ -554,41 +561,6 @@ export function SOAPNotesContent({
                     </div>
                   ))}
                 </div>
-              </div>
-
-              {/* Patient Visible Toggle */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  Visibility
-                </label>
-                <label className="flex items-start gap-3 p-4 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 cursor-pointer transition-colors">
-                  <div className="flex items-center h-5">
-                    <input
-                      type="checkbox"
-                      checked={soapNote.patientVisibleSummary}
-                      onChange={(e) =>
-                        setSOAPNote((prev) => ({
-                          ...prev,
-                          patientVisibleSummary: e.target.checked,
-                        }))
-                      }
-                      className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-600 text-primary-600 focus:ring-2 focus:ring-primary-500/20 transition-all"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 text-sm font-medium text-neutral-900 dark:text-white">
-                      {soapNote.patientVisibleSummary ? (
-                        <Eye className="w-4 h-4 text-primary-600" />
-                      ) : (
-                        <EyeOff className="w-4 h-4 text-neutral-400" />
-                      )}
-                      Patient-visible summary
-                    </div>
-                    <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
-                      Share this note with the patient
-                    </p>
-                  </div>
-                </label>
               </div>
             </div>
           )}

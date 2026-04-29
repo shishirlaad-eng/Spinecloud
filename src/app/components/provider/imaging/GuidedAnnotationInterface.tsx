@@ -105,12 +105,20 @@ export function GuidedAnnotationInterface({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                <div className="bg-neutral-100 dark:bg-neutral-900 rounded-xl overflow-hidden border border-neutral-200 dark:border-neutral-700 flex items-center justify-center p-4">
                  <div className="relative w-full aspect-[3/4] bg-neutral-800 border border-neutral-700 rounded-lg shadow-inner flex items-center justify-center">
-                    <Activity className="w-32 h-32 text-neutral-700 opacity-50" />
+                    <img 
+                      src={reportType === "lumbar-lateral" 
+                        ? "/assets/clinical/lumbar_lateral.png" 
+                        : reportType === "cervical-drma"
+                        ? "/assets/clinical/cervical_flexion.png"
+                        : "/assets/clinical/ap_cervical.png"} 
+                      className="w-full h-full object-contain" 
+                      alt="Annotated DICOM" 
+                    />
                     {steps.map((_, i) => (
                       <div key={i} className={`absolute w-2 h-2 bg-red-500 rounded-full border border-white`} style={{ top: `${25 + (i * 10)}%`, left: `${40 + (i % 2 === 0 ? 0 : 20)}%` }} />
                     ))}
                     <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                      <p className="text-white text-xs font-mono">Annotated X-Ray</p>
+                      <p className="text-white text-xs font-mono">Annotated {reportType.toUpperCase()} Study</p>
                     </div>
                  </div>
                </div>
@@ -177,19 +185,27 @@ export function GuidedAnnotationInterface({
               </button>
             </div>
            ) : (
-             <div className="flex-1 flex items-center justify-center p-6 relative group">
-               <div 
-                 onClick={() => {
-                   if (currentStep < steps.length) {
-                     setCurrentStep((prev) => prev + 1);
-                   }
-                 }}
-                 className="relative w-full max-w-lg aspect-[3/4] bg-neutral-800 border border-neutral-700 rounded-lg shadow-2xl flex items-center justify-center overflow-hidden cursor-crosshair hover:ring-2 hover:ring-primary-500/50 transition-all"
-               >
-                  <Activity className="w-32 h-32 text-neutral-700 opacity-50 pointer-events-none" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4 pointer-events-none">
-                    <p className="text-white text-xs font-mono">XRAY_IMAGE.DCM</p>
-                  </div>
+              <div className="flex-1 flex items-center justify-center p-6 relative group">
+                <div 
+                  onClick={() => {
+                    if (currentStep < steps.length) {
+                      setCurrentStep((prev) => prev + 1);
+                    }
+                  }}
+                  className="relative w-full max-w-lg aspect-[3/4] bg-neutral-800 border border-neutral-700 rounded-lg shadow-2xl flex items-center justify-center overflow-hidden cursor-crosshair hover:ring-2 hover:ring-primary-500/50 transition-all"
+                >
+                   <img 
+                     src={reportType === "lumbar-lateral" 
+                       ? "/assets/clinical/lumbar_lateral.png" 
+                       : reportType === "cervical-drma"
+                       ? "/assets/clinical/cervical_flexion.png"
+                       : "/assets/clinical/ap_cervical.png"} 
+                     className="w-full h-full object-contain opacity-80" 
+                     alt="DICOM" 
+                   />
+                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4 pointer-events-none">
+                     <p className="text-white text-xs font-mono">{reportType.toUpperCase()}_STUDY.DCM</p>
+                   </div>
                   
                   {Array.from({ length: currentStep }).map((_, i) => (
                     <div key={i} className="absolute w-3 h-3 bg-red-500 rounded-full border-2 border-white shadow-[0_0_10px_rgba(239,68,68,0.8)] pointer-events-none" style={{ top: `${25 + (i * 10)}%`, left: `${40 + (i % 2 === 0 ? 0 : 20)}%` }} />

@@ -4,34 +4,17 @@ import { Calendar, Users, DollarSign, XCircle, ChevronRight, TrendingUp } from "
 import { DashboardDateFilter, DateRange } from "@/app/components/common/DashboardDateFilter";
 
 interface ClinicAdminDashboardScreenProps {
-  onNavigate: (menu: "dashboard" | "branches" | "questionnaires" | "roles" | "users" | "providers" | "consentForms" | "patients" | "master" | "subscription" | "calendar" | "appointment-categories" | "invoices" | "payments" | "reports" | "activityLog" | "auditLog" | "spineCloud") => void;
+  onNavigate: (menu: any) => void;
   onLogout?: () => void;
   onNavigateToProfile?: () => void;
   onNavigateToNotifications?: () => void;
   unreadNotificationsCount?: number;
+  appointments: any[];
+  patients: any[];
 }
 
 // ─── Mock Data ────────────────────────────────────────────
-const mockAppointments = [
-  { id: "a1", date: "2026-03-01", status: "Completed", patientId: "p1", service: "Initial Consultation", revenue: 150 },
-  { id: "a2", date: "2026-03-02", status: "Completed", patientId: "p2", service: "Follow-up", revenue: 80 },
-  { id: "a3", date: "2026-03-03", status: "Cancelled", patientId: "p1", service: "Therapy Session", revenue: 0 },
-  { id: "a4", date: "2026-03-05", status: "Completed", patientId: "p3", service: "Initial Consultation", revenue: 150 },
-  { id: "a5", date: "2026-03-07", status: "Completed", patientId: "p4", service: "Therapy Session", revenue: 120 },
-  { id: "a6", date: "2026-03-08", status: "No-Show", patientId: "p2", service: "Follow-up", revenue: 0 },
-  { id: "a7", date: "2026-03-10", status: "Completed", patientId: "p5", service: "Initial Consultation", revenue: 150 },
-  { id: "a8", date: "2026-03-12", status: "Completed", patientId: "p3", service: "Follow-up", revenue: 80 },
-  { id: "a9", date: "2026-03-14", status: "Cancelled", patientId: "p6", service: "Therapy Session", revenue: 0 },
-  { id: "a10", date: "2026-03-15", status: "Completed", patientId: "p7", service: "Initial Consultation", revenue: 150 },
-  { id: "a11", date: "2026-03-17", status: "Completed", patientId: "p1", service: "Follow-up", revenue: 80 },
-  { id: "a12", date: "2026-03-18", status: "Completed", patientId: "p8", service: "Therapy Session", revenue: 120 },
-  { id: "a13", date: "2026-03-19", status: "Scheduled", patientId: "p4", service: "Follow-up", revenue: 0 },
-  { id: "a14", date: "2026-03-19", status: "Scheduled", patientId: "p5", service: "Initial Consultation", revenue: 0 },
-  { id: "a15", date: "2026-02-10", status: "Completed", patientId: "p9", service: "Spinal Decompression", revenue: 200 },
-  { id: "a16", date: "2026-02-14", status: "Completed", patientId: "p10", service: "Therapy Session", revenue: 120 },
-  { id: "a17", date: "2026-02-20", status: "Cancelled", patientId: "p3", service: "Follow-up", revenue: 0 },
-  { id: "a18", date: "2026-02-25", status: "Completed", patientId: "p1", service: "Initial Consultation", revenue: 150 },
-];
+// Removed static mock data to use live props
 
 // ─── Chart Components ──────────────────────────────────────
 
@@ -196,6 +179,8 @@ export function ClinicAdminDashboardScreen({
   onNavigateToProfile,
   onNavigateToNotifications,
   unreadNotificationsCount,
+  appointments,
+  patients,
 }: ClinicAdminDashboardScreenProps) {
   const [dateRange, setDateRange] = useState<DateRange>(() => {
     const end = new Date();
@@ -208,8 +193,14 @@ export function ClinicAdminDashboardScreen({
   const filtered = useMemo(() => {
     const startStr = dateRange.start.toISOString().split("T")[0];
     const endStr = dateRange.end.toISOString().split("T")[0];
-    return mockAppointments.filter((a) => a.date >= startStr && a.date <= endStr);
-  }, [dateRange]);
+    return appointments.map(a => {
+      const serviceName = a.service || a.type || "";
+      return {
+        ...a,
+        revenue: a.status === "Completed" ? (serviceName.includes("Initial") ? 150 : 80) : 0
+      };
+    }).filter((a) => a.date >= startStr && a.date <= endStr);
+  }, [dateRange, appointments]);
 
   // KPIs
   const totalAppointments = filtered.length;
@@ -227,14 +218,14 @@ export function ClinicAdminDashboardScreen({
       weekEnd.setDate(weekEnd.getDate() + 6);
       const ws = weekStart.toISOString().split("T")[0];
       const we = weekEnd.toISOString().split("T")[0];
-      const weekApts = mockAppointments.filter((a) => a.date >= ws && a.date <= we);
+      const weekApts = appointments.filter((a) => a.date >= ws && a.date <= we);
       return {
         label: `W${i + 1}`,
         total: weekApts.length,
         completed: weekApts.filter((a) => a.status === "Completed").length,
       };
     });
-  }, [dateRange]);
+  }, [dateRange, appointments]);
 
   // Revenue trend (last 6 months)
   const revenueTrend = useMemo(() => {
@@ -242,16 +233,19 @@ export function ClinicAdminDashboardScreen({
       const d = new Date();
       d.setMonth(d.getMonth() - (5 - i));
       const month = d.toLocaleDateString("en-US", { month: "short" });
-      const value = mockAppointments
+      const value = appointments
         .filter((a) => {
           const aptMonth = new Date(a.date).getMonth();
           const aptYear = new Date(a.date).getFullYear();
           return aptMonth === d.getMonth() && aptYear === d.getFullYear() && a.status === "Completed";
         })
-        .reduce((s, a) => s + a.revenue, 0);
+        .reduce((s, a) => {
+          const serviceName = a.service || a.type || "";
+          return s + (serviceName.includes("Initial") ? 150 : 80);
+        }, 0);
       return { label: month, value };
     });
-  }, []);
+  }, [appointments]);
 
   // Status breakdown
   const statusCounts = useMemo(() => {
@@ -270,7 +264,10 @@ export function ClinicAdminDashboardScreen({
   // Service type breakdown
   const serviceData = useMemo(() => {
     const counts: Record<string, number> = {};
-    filtered.forEach((a) => { counts[a.service] = (counts[a.service] || 0) + 1; });
+    filtered.forEach((a) => { 
+      const serviceName = a.service || a.type || "Other";
+      counts[serviceName] = (counts[serviceName] || 0) + 1; 
+    });
     return Object.entries(counts)
       .map(([label, value]) => ({ label, value }))
       .sort((a, b) => b.value - a.value)

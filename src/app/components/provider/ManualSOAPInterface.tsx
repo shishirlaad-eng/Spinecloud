@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, X, Download, Save, Lock, FileUp, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, X, Download, Save, Lock, FileUp } from "lucide-react";
 import type { SOAPCategory, SOAPSubcategory } from "@/app/components/clinic-admin/soap-master/SOAPMasterScreen";
 import { CumulativeICDCPTDrawer } from "./CumulativeICDCPTDrawer";
 import { CumulativeICDCPTCodesSection, ICDCPTCode, LinkedCodeGroup } from "./CumulativeICDCPTCodesSection";
@@ -30,7 +30,7 @@ export function ManualSOAPInterface({
   const [blocks, setBlocks] = useState<SOAPBlock[]>(initialBlocks);
   const [linkedCodeGroups, setLinkedCodeGroups] = useState<LinkedCodeGroup[]>([]);
   const [attachments, setAttachments] = useState<File[]>([]);
-  const [patientVisibleSummary, setPatientVisibleSummary] = useState(false);
+
 
   const handleAddBlockComplete = (newBlock: SOAPBlock) => {
     setBlocks([...blocks, newBlock]);
@@ -317,38 +317,6 @@ export function ManualSOAPInterface({
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
-
-            {/* Patient Visible Toggle */}
-            <div className="border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-950 p-5">
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                  Visibility
-                </label>
-                <label className="flex items-start gap-3 p-4 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 cursor-pointer transition-colors">
-                  <div className="flex items-center h-5">
-                    <input
-                      type="checkbox"
-                      checked={patientVisibleSummary}
-                      onChange={(e) => setPatientVisibleSummary(e.target.checked)}
-                      className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-600 text-primary-600 focus:ring-2 focus:ring-primary-500/20 transition-all"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 text-sm font-medium text-neutral-900 dark:text-white">
-                      {patientVisibleSummary ? (
-                        <Eye className="w-4 h-4 text-primary-600" />
-                      ) : (
-                        <EyeOff className="w-4 h-4 text-neutral-400" />
-                      )}
-                      Patient-visible summary
-                    </div>
-                    <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
-                      Share this note with the patient
-                    </p>
-                  </div>
-                </label>
               </div>
             </div>
 

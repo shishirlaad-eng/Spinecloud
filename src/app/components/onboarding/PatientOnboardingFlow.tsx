@@ -10,6 +10,10 @@ interface PatientOnboardingFlowProps {
   onComplete: (data: OnboardingData) => void;
   onBack?: () => void;
   wizardData?: any;
+  services: any[];
+  branches: any[];
+  providers: any[];
+  questionnaires: any[];
 }
 
 interface OnboardingData {
@@ -30,14 +34,23 @@ type Step = {
 const steps: Step[] = [
   { id: 1, title: "Profile", description: "Basic information" },
   { id: 2, title: "Insurance", description: "Insurance details" },
-  { id: 3, title: "Questionnaire", description: "Health assessment" },
-  { id: 4, title: "Consent Forms", description: "Review & accept" },
-  { id: 5, title: "Select Clinic", description: "Choose location" },
-  { id: 6, title: "Select Provider", description: "Choose provider" },
-  { id: 7, title: "Book Appointment", description: "Date and time" },
+  { id: 3, title: "Select Clinic", description: "Choose location" },
+  { id: 4, title: "Select Service", description: "Choose service" },
+  { id: 5, title: "Select Provider", description: "Choose provider" },
+  { id: 6, title: "Book Appointment", description: "Date and time" },
+  { id: 7, title: "Questionnaire", description: "Health assessment" },
+  { id: 8, title: "Consent Forms", description: "Review & accept" },
 ];
 
-export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: PatientOnboardingFlowProps) {
+export function PatientOnboardingFlow({ 
+  onComplete, 
+  onBack, 
+  wizardData,
+  services,
+  branches,
+  providers,
+  questionnaires
+}: PatientOnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
 
@@ -73,8 +86,9 @@ export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: Patien
   const [medicalImages, setMedicalImages] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Clinic and provider
+  // Clinic, service and provider
   const [selectedClinic, setSelectedClinic] = useState<any>(null);
+  const [selectedService, setSelectedService] = useState<any>(null);
   const [selectedProvider, setSelectedProvider] = useState<any>(null);
 
   // Appointment
@@ -90,12 +104,9 @@ export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: Patien
     "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"
   ];
 
-  const questionnaireCategories = [
-    { id: "neck-shoulder", name: "Neck / Shoulder", description: "Neck pain, shoulder discomfort, or stiffness" },
-    { id: "lower-back", name: "Lower Back", description: "Lower back pain or lumbar region issues" },
-    { id: "upper-extremity", name: "Upper Extremity", description: "Arm, elbow, wrist, or hand problems" },
-    { id: "posture-wellness", name: "Posture / Wellness", description: "General posture concerns or wellness" },
-  ];
+  const questionnaireCategories = selectedService?.questionnaireId 
+    ? questionnaires.filter(q => q.id === selectedService.questionnaireId)
+    : [];
 
   const functionalDifficultiesOptions = [
     "Housekeeping", "Climbing stairs", "Getting dressed", "Sitting for long periods",
@@ -123,51 +134,20 @@ export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: Patien
     "Numbness / tingling"
   ];
 
-  const mockClinics = [
-    {
-      id: "clinic-1",
-      name: "Downtown Medical Center",
-      address: "123 Main Street, Suite 400",
-      city: "New York, NY 10001",
-      phone: "+1 (555) 123-4567",
-    },
-    {
-      id: "clinic-2",
-      name: "Uptown Wellness Clinic",
-      address: "456 Park Avenue, 2nd Floor",
-      city: "New York, NY 10022",
-      phone: "+1 (555) 234-5678",
-    },
-  ];
-
-  const mockProviders = [
-    {
-      id: "provider-1",
-      name: "Dr. Sarah Johnson",
-      specialization: "Chiropractor",
-      availability: "Available Today",
-    },
-    {
-      id: "provider-2",
-      name: "Dr. Michael Chen",
-      specialization: "Physical Therapist",
-      availability: "Next available: Tomorrow",
-    },
-    {
-      id: "provider-3",
-      name: "Dr. Emily Rodriguez",
-      specialization: "Sports Medicine Specialist",
-      availability: "Available Today",
-    },
-  ];
 
   const isStep1Valid = () => dateOfBirth && gender;
   const isStep2Valid = () => true; // Insurance is optional
-  const isStep3Valid = () => questionnaireResponses.length > 0;
-  const isStep4Valid = () => true; // Consent forms are always auto-acceptable
-  const isStep5Valid = () => selectedClinic !== null;
-  const isStep6Valid = () => selectedProvider !== null;
-  const isStep7Valid = () => appointmentDetails !== null;
+  const isStep3Valid = () => selectedClinic !== null;
+  const isStep4Valid = () => selectedService !== null;
+  const isStep5Valid = () => selectedProvider !== null;
+  const isStep6Valid = () => appointmentDetails !== null;
+  const isStep7Valid = () => {
+    if (selectedService?.questionnaireId) {
+      return questionnaireResponses.length > 0;
+    }
+    return true;
+  };
+  const isStep8Valid = () => true; // Consent forms are always auto-acceptable
 
   const canProceed = () => {
     switch (currentStep) {
@@ -178,6 +158,7 @@ export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: Patien
       case 5: return isStep5Valid();
       case 6: return isStep6Valid();
       case 7: return isStep7Valid();
+      case 8: return isStep8Valid();
       default: return false;
     }
   };
@@ -187,8 +168,17 @@ export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: Patien
       if (!completedSteps.includes(currentStep)) {
         setCompletedSteps([...completedSteps, currentStep]);
       }
-      if (currentStep === 7) {
+      if (currentStep === 8) {
         handleComplete();
+      } else if (currentStep === 6) {
+        // After Booking Appointment, check for questionnaire
+        if (selectedService?.questionnaireId) {
+          setCurrentStep(7);
+        } else {
+          // Skip questionnaire, go to Consent (Step 8)
+          setCompletedSteps(prev => [...prev, currentStep, 7]);
+          setCurrentStep(8);
+        }
       } else {
         setCurrentStep(currentStep + 1);
       }
@@ -197,7 +187,11 @@ export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: Patien
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      if (currentStep === 8 && !selectedService?.questionnaireId) {
+        setCurrentStep(6);
+      } else {
+        setCurrentStep(currentStep - 1);
+      }
     }
   };
 
@@ -304,10 +298,10 @@ export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: Patien
   };
 
   const handleContinueFromQuestionnaire = () => {
-    if (!completedSteps.includes(3)) {
-      setCompletedSteps([...completedSteps, 3]);
+    if (!completedSteps.includes(7)) {
+      setCompletedSteps([...completedSteps, 7]);
     }
-    setCurrentStep(4);
+    setCurrentStep(8);
   };
 
   const handleInsuranceSubmit = (data: any) => {
@@ -319,43 +313,46 @@ export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: Patien
   };
 
   const handleClinicSelection = (clinicId: string) => {
-    const clinic = mockClinics.find(c => c.id === clinicId);
+    const clinic = branches.find(c => c.id === clinicId);
     setSelectedClinic(clinic);
+    if (!completedSteps.includes(3)) {
+      setCompletedSteps([...completedSteps, 3]);
+    }
+    setCurrentStep(4);
+  };
+
+  const handleServiceSelection = (serviceId: string) => {
+    const service = services.find(s => s.id === serviceId);
+    setSelectedService(service);
+    if (!completedSteps.includes(4)) {
+      setCompletedSteps([...completedSteps, 4]);
+    }
+    setCurrentStep(5);
+  };
+
+  const handleProviderSelection = (providerId: string) => {
+    const provider = providers.find(p => p.id === providerId);
+    setSelectedProvider(provider);
     if (!completedSteps.includes(5)) {
       setCompletedSteps([...completedSteps, 5]);
     }
     setCurrentStep(6);
   };
 
-  const handleProviderSelection = (providerId: string) => {
-    const provider = mockProviders.find(p => p.id === providerId);
-    setSelectedProvider(provider);
+  const handleAppointmentBooking = (details: any) => {
+    setAppointmentDetails(details);
     if (!completedSteps.includes(6)) {
       setCompletedSteps([...completedSteps, 6]);
     }
-    setCurrentStep(7);
-  };
-
-  const handleAppointmentBooking = (details: any) => {
-    setAppointmentDetails(details);
-    if (!completedSteps.includes(7)) {
-      setCompletedSteps([...completedSteps, 7]);
+    
+    // Check for questionnaire like in handleNext
+    if (selectedService?.questionnaireId) {
+      setCurrentStep(7);
+    } else {
+      // Skip questionnaire, go to Consent (Step 8)
+      setCompletedSteps(prev => [...prev, 7]);
+      setCurrentStep(8);
     }
-    // Call handleComplete with the appointment details directly
-    const onboardingData: OnboardingData = {
-      profile: {
-        dateOfBirth,
-        gender,
-        address: { street, city, state, zipCode, country },
-        emergencyContact: { name: emergencyName, phone: emergencyContact, countryCode: emergencyCountryCode },
-      },
-      insurance: insuranceData,
-      questionnaires: questionnaireResponses,
-      selectedClinic,
-      selectedProvider,
-      appointmentDetails: details, // Use the details directly instead of state
-    };
-    onComplete(onboardingData);
   };
 
   // File upload handlers
@@ -682,18 +679,95 @@ export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: Patien
           />
         )}
 
-        {/* Step 3: Questionnaire - Category Selection */}
-        {currentStep === 3 && !currentQuestionnaireCategory && (
+        {/* Step 3: Clinic Selection */}
+        {currentStep === 3 && (
+          <ClinicSelectionScreen
+            clinics={branches.map(b => ({
+              id: b.id,
+              name: b.name,
+              address: `${b.street}, ${b.city}`,
+              city: `${b.state} ${b.zip}`,
+              phone: b.phone
+            }))}
+            onContinue={handleClinicSelection}
+            onBack={() => setCurrentStep(2)}
+          />
+        )}
+
+        {/* Step 4: Service Selection */}
+        {currentStep === 4 && (
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-sm p-6">
+            <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-2">Select service</h2>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
+              What brings you to see us today?
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {services.filter(s => selectedClinic && s.locationIds?.includes(selectedClinic.id)).map(service => (
+                <button
+                  key={service.id}
+                  onClick={() => handleServiceSelection(service.id)}
+                  className={`p-4 border rounded-xl text-left transition-all ${
+                    selectedService?.id === service.id
+                      ? "border-primary-600 bg-primary-50 dark:bg-primary-950/30 ring-2 ring-primary-600/20"
+                      : "border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-neutral-900 dark:text-white">{service.name}</h3>
+                    <span className="text-xs font-medium px-2 py-1 bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400 rounded-full">
+                      ${service.price}
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutral-500 mt-2">
+                    {service.phases?.reduce((acc: number, p: any) => acc + p.duration, 0) || 30} mins
+                  </p>
+                </button>
+              ))}
+            </div>
+            <div className="mt-8 pt-4 border-t border-neutral-200 dark:border-neutral-800">
+               <button
+                  onClick={() => setCurrentStep(3)}
+                  className="inline-flex items-center gap-2 h-10 px-4 border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg font-medium transition-colors text-sm"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Back
+                </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Provider Selection */}
+        {currentStep === 5 && (
+          <ProviderSelectionScreen
+            providers={providers.filter(p => p.branchIds?.includes(selectedClinic.id))}
+            onContinue={handleProviderSelection}
+            onBack={() => setCurrentStep(4)}
+          />
+        )}
+
+        {/* Step 6: Book Appointment */}
+        {currentStep === 6 && (
+          <AppointmentBookingScreen
+            clinicName={selectedClinic.name}
+            providerName={selectedProvider.name}
+            preselectedService={selectedService.name}
+            onConfirm={handleAppointmentBooking}
+            onBack={() => setCurrentStep(5)}
+          />
+        )}
+
+        {/* Step 7: Questionnaire - Category Selection */}
+        {currentStep === 7 && !currentQuestionnaireCategory && (
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-sm">
             <div className="p-6">
               <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-2">Health questionnaire</h2>
               <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
-                Select areas of concern to complete health assessment
+                Based on your selected service, please complete the following assessment
               </p>
 
               <div className="space-y-4">
                 {/* Category Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   {questionnaireCategories.map((category) => {
                     const isCompleted = questionnaireResponses.some(r => r.categoryId === category.id);
                     return (
@@ -709,8 +783,8 @@ export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: Patien
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-1">{category.name}</h3>
-                            <p className="text-sm text-neutral-600 dark:text-neutral-400">{category.description}</p>
+                            <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-1">{category.categoryName}</h3>
+                            <p className="text-sm text-neutral-600 dark:text-neutral-400">Please fill out this form to help us understand your condition better.</p>
                             {isCompleted && (
                               <p className="text-sm text-success-600 dark:text-success-400 mt-2">✓ Completed</p>
                             )}
@@ -744,7 +818,7 @@ export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: Patien
             <div className="px-6 pb-6 pt-4 border-t border-neutral-200 dark:border-neutral-800">
               <div className="flex items-center justify-between">
                 <button
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => setCurrentStep(6)}
                   className="inline-flex items-center gap-2 h-10 px-4 border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-lg font-medium transition-colors text-sm"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -755,8 +829,8 @@ export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: Patien
           </div>
         )}
 
-        {/* Step 3: Questionnaire - Category Form (Multi-step) */}
-        {currentStep === 3 && currentQuestionnaireCategory && (
+        {/* Step 7: Questionnaire - Category Form (Multi-step) */}
+        {currentStep === 7 && currentQuestionnaireCategory && (
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-sm">
             <div className="p-6">
               {/* Progress indicator */}
@@ -1045,44 +1119,22 @@ export function PatientOnboardingFlow({ onComplete, onBack, wizardData }: Patien
           </div>
         )}
 
-        {/* Step 4: Consent Forms */}
-        {currentStep === 4 && (
+        {/* Step 8: Consent Forms */}
+        {currentStep === 8 && (
           <ConsentFormsScreen
-            onBack={() => setCurrentStep(3)}
-            onComplete={() => {
-              if (!completedSteps.includes(4)) {
-                setCompletedSteps([...completedSteps, 4]);
+            onBack={() => {
+              if (selectedService?.questionnaireId) {
+                setCurrentStep(7);
+              } else {
+                setCurrentStep(6);
               }
-              setCurrentStep(5);
             }}
-          />
-        )}
-
-        {/* Step 5: Clinic Selection */}
-        {currentStep === 5 && (
-          <ClinicSelectionScreen
-            clinics={mockClinics}
-            onContinue={handleClinicSelection}
-            onBack={() => setCurrentStep(4)}
-          />
-        )}
-
-        {/* Step 6: Provider Selection */}
-        {currentStep === 6 && (
-          <ProviderSelectionScreen
-            providers={mockProviders}
-            onContinue={handleProviderSelection}
-            onBack={() => setCurrentStep(5)}
-          />
-        )}
-
-        {/* Step 7: Appointment Booking */}
-        {currentStep === 7 && selectedProvider && (
-          <AppointmentBookingScreen
-            clinicName={selectedClinic?.name || ""}
-            providerName={selectedProvider?.name || ""}
-            onConfirm={handleAppointmentBooking}
-            onBack={() => setCurrentStep(6)}
+            onComplete={() => {
+              if (!completedSteps.includes(8)) {
+                setCompletedSteps([...completedSteps, 8]);
+              }
+              handleComplete();
+            }}
           />
         )}
       </div>

@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Search, Filter, X, Clock, FileText, ChevronRight, ArrowLeft, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Lock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Filter, X, Clock, FileText, ChevronRight, ArrowLeft, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Lock, Eye, Download, Printer } from "lucide-react";
 import { SOAPNotesContent } from "./SOAPNotesContent";
+import { UnifiedReportPreviewModal } from "../common/UnifiedReportPreviewModal";
 
 interface ClinicalNote {
   id: string;
@@ -17,7 +18,7 @@ interface ClinicalNotesTabContentProps {
   patientName: string;
   patientDateOfBirth: string;
   patientGender: string;
-  soapCategories?: any[]; // Add SOAP Master categories
+  soapCategories?: any[];
 }
 
 export function ClinicalNotesTabContent({
@@ -25,7 +26,7 @@ export function ClinicalNotesTabContent({
   patientName,
   patientDateOfBirth,
   patientGender,
-  soapCategories = [], // Default to empty array
+  soapCategories = [],
 }: ClinicalNotesTabContentProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -34,8 +35,9 @@ export function ClinicalNotesTabContent({
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [previewNoteId, setPreviewNoteId] = useState<string | null>(null);
+  const [previewNoteData, setPreviewNoteData] = useState<any | null>(null);
 
-  // Mock clinical notes data - In real app, fetch from backend based on patientId
   const mockClinicalNotes: ClinicalNote[] = [
     {
       id: "note-1",
@@ -75,7 +77,6 @@ export function ClinicalNotesTabContent({
     },
   ];
 
-  // Filter clinical notes
   const filteredNotes = mockClinicalNotes.filter((note) => {
     const matchesSearch =
       searchQuery === "" ||
@@ -119,18 +120,13 @@ export function ClinicalNotesTabContent({
     }
 
     return matchesSearch && matchesStatus && matchesDateFilter;
-  }).sort((a, b) => {
-    // Sort by appointment date (most recent first)
-    return new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime();
-  });
+  }).sort((a, b) => new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime());
 
-  // Pagination
   const totalPages = Math.ceil(filteredNotes.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   const paginatedNotes = filteredNotes.slice(startIndex, endIndex);
 
-  // Active filter count
   const activeFilterCount =
     (statusFilter !== "all" ? 1 : 0) +
     (dateFilter !== "all" ? 1 : 0);
@@ -141,8 +137,7 @@ export function ClinicalNotesTabContent({
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -150,8 +145,7 @@ export function ClinicalNotesTabContent({
   };
 
   const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
+    return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -171,6 +165,26 @@ export function ClinicalNotesTabContent({
     }
   };
 
+  const handlePreviewSOAP = (note: ClinicalNote) => {
+    // Try to load from localStorage first, otherwise use dummy finalized data
+    const saved = localStorage.getItem(`soapNote_${note.appointmentId}`);
+    const data = saved
+      ? JSON.parse(saved)
+      : {
+          id: note.appointmentId,
+          subjective: "Patient reports chronic lower back pain radiating to the left leg. Pain rated 7/10. Worsened over 2 weeks. Difficulty sleeping.",
+          objective: "BP 120/80, HR 72. Forward head carriage noted. ROM limited lumbar flexion 50%. Tenderness over L4-L5.",
+          assessment: "Chronic lumbar radiculopathy, L4-L5 disc involvement. Myofascial pain syndrome.",
+          plan: "Chiropractic adjustments 2x/week for 4 weeks. Therapeutic exercises. Patient education.",
+          linkedCodeGroups: [],
+          finalizedAt: note.createdDate,
+          finalizedBy: note.provider,
+          status: "final",
+        };
+    setPreviewNoteData(data);
+    setPreviewNoteId(note.id);
+  };
+
   // If a note is selected, show detail view
   if (selectedNoteId) {
     const selectedNote = mockClinicalNotes.find((n) => n.id === selectedNoteId);
@@ -181,7 +195,6 @@ export function ClinicalNotesTabContent({
 
     return (
       <div className="p-6">
-        {/* Back Button */}
         <button
           onClick={() => setSelectedNoteId(null)}
           className="inline-flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors group mb-6"
@@ -190,7 +203,6 @@ export function ClinicalNotesTabContent({
           Back to clinical notes
         </button>
 
-        {/* Note Header */}
         <div className="bg-neutral-50 dark:bg-neutral-800/50 rounded-lg p-4 mb-6">
           <div className="flex items-start justify-between">
             <div>
@@ -208,24 +220,44 @@ export function ClinicalNotesTabContent({
                 </div>
               </div>
             </div>
-            <span
-              className={`inline-block px-3 py-1 rounded-full text-xs font-medium border capitalize ${getStatusColor(
-                selectedNote.status
-              )}`}
-            >
-              {selectedNote.status === "final" ? (
+            <div className="flex items-center gap-2">
+              {selectedNote.status === "final" && (
                 <>
-                  <Lock className="w-3 h-3 inline mr-1" />
-                  Finalized
+                  <button
+                    onClick={() => handlePreviewSOAP(selectedNote)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800 rounded-lg text-xs font-semibold hover:bg-primary-100 transition-colors"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    Preview Report
+                  </button>
+                  <button
+                    onClick={() => {
+                      handlePreviewSOAP(selectedNote);
+                      setTimeout(() => window.print(), 500);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs font-semibold hover:bg-neutral-200 transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Download
+                  </button>
                 </>
-              ) : (
-                "Draft"
               )}
-            </span>
+              <span
+                className={`inline-block px-3 py-1 rounded-full text-xs font-medium border capitalize ${getStatusColor(selectedNote.status)}`}
+              >
+                {selectedNote.status === "final" ? (
+                  <>
+                    <Lock className="w-3 h-3 inline mr-1" />
+                    Finalized
+                  </>
+                ) : (
+                  "Draft"
+                )}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* SOAP Notes Content */}
         <SOAPNotesContent
           appointmentId={selectedNote.appointmentId}
           providerName={selectedNote.provider}
@@ -234,21 +266,33 @@ export function ClinicalNotesTabContent({
             name: patientName,
             dateOfBirth: patientDateOfBirth,
             gender: patientGender,
-          }}
+            email: "patient@example.com", // Fallback for mock environment
+          } as any}
           appointmentInfo={{
             date: selectedNote.appointmentDate,
-            time: "N/A", // Would come from appointment data
+            time: "N/A",
             service: selectedNote.service,
+            branch: "Main Branch",
           }}
           soapCategories={soapCategories}
-          onSave={(note) => {
-            console.log("SOAP note saved:", note);
-          }}
+          onSave={(note) => console.log("SOAP note saved:", note)}
           onFinalize={(note) => {
             console.log("SOAP note finalized:", note);
             setSelectedNoteId(null);
           }}
         />
+
+        {/* SOAP Preview Modal */}
+        {previewNoteId && previewNoteData && (
+          <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+            <UnifiedReportPreviewModal
+              type="soapNote"
+              data={previewNoteData}
+              patientName={patientName}
+              onClose={() => { setPreviewNoteId(null); setPreviewNoteData(null); }}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -258,7 +302,6 @@ export function ClinicalNotesTabContent({
     <div className="p-6">
       {/* Search and Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        {/* Search Input */}
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 dark:text-neutral-500" />
           <input
@@ -270,7 +313,6 @@ export function ClinicalNotesTabContent({
           />
         </div>
 
-        {/* Filter Button */}
         <div className="relative">
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -289,38 +331,25 @@ export function ClinicalNotesTabContent({
             )}
           </button>
 
-          {/* Filter Dropdown */}
           {showFilters && (
             <div className="absolute right-0 top-12 w-72 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-lg z-10">
               <div className="p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
-                    Filters
-                  </h3>
-                  <button
-                    onClick={() => setShowFilters(false)}
-                    className="p-1 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
-                  >
+                  <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Filters</h3>
+                  <button onClick={() => setShowFilters(false)} className="p-1 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-
                 <div className="space-y-4">
-                  {/* Status Filter */}
                   <div>
-                    <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">
-                      Status
-                    </label>
+                    <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">Status</label>
                     <div className="space-y-2">
                       {[
                         { value: "all", label: "All statuses" },
                         { value: "final", label: "Finalized" },
                         { value: "draft", label: "Draft" },
                       ].map((option) => (
-                        <label
-                          key={option.value}
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
+                        <label key={option.value} className="flex items-center gap-2 cursor-pointer">
                           <input
                             type="radio"
                             name="status"
@@ -328,19 +357,13 @@ export function ClinicalNotesTabContent({
                             onChange={() => setStatusFilter(option.value)}
                             className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
                           />
-                          <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                            {option.label}
-                          </span>
+                          <span className="text-sm text-neutral-700 dark:text-neutral-300">{option.label}</span>
                         </label>
                       ))}
                     </div>
                   </div>
-
-                  {/* Date Range Filter */}
                   <div>
-                    <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">
-                      Date range
-                    </label>
+                    <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">Date range</label>
                     <div className="space-y-2">
                       {[
                         { value: "all", label: "All dates" },
@@ -349,10 +372,7 @@ export function ClinicalNotesTabContent({
                         { value: "last-3-months", label: "Last 3 months" },
                         { value: "last-6-months", label: "Last 6 months" },
                       ].map((option) => (
-                        <label
-                          key={option.value}
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
+                        <label key={option.value} className="flex items-center gap-2 cursor-pointer">
                           <input
                             type="radio"
                             name="dateRange"
@@ -360,15 +380,11 @@ export function ClinicalNotesTabContent({
                             onChange={() => setDateFilter(option.value)}
                             className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
                           />
-                          <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                            {option.label}
-                          </span>
+                          <span className="text-sm text-neutral-700 dark:text-neutral-300">{option.label}</span>
                         </label>
                       ))}
                     </div>
                   </div>
-
-                  {/* Clear Filters Button */}
                   {activeFilterCount > 0 && (
                     <button
                       onClick={clearFilters}
@@ -388,56 +404,33 @@ export function ClinicalNotesTabContent({
       {filteredNotes.length === 0 ? (
         <div className="text-center py-12">
           <FileText className="w-12 h-12 text-neutral-400 dark:text-neutral-600 mx-auto mb-3" />
-          <p className="text-sm font-medium text-neutral-900 dark:text-white">
-            No clinical notes found
-          </p>
+          <p className="text-sm font-medium text-neutral-900 dark:text-white">No clinical notes found</p>
           <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-            {searchQuery || activeFilterCount > 0
-              ? "Try adjusting your search or filters"
-              : "This patient has no clinical notes"}
+            {searchQuery || activeFilterCount > 0 ? "Try adjusting your search or filters" : "This patient has no clinical notes"}
           </p>
         </div>
       ) : (
         <>
           <div className="space-y-3 mb-6">
             {paginatedNotes.map((note) => (
-              <button
+              <div
                 key={note.id}
-                onClick={() => setSelectedNoteId(note.id)}
-                className="w-full border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 hover:border-primary-300 dark:hover:border-primary-600 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-all group text-left"
+                className="border border-neutral-200 dark:border-neutral-800 rounded-lg p-5 hover:border-primary-300 dark:hover:border-primary-600 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-all"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    {/* Service & Status */}
+                  <button
+                    onClick={() => setSelectedNoteId(note.id)}
+                    className="flex-1 text-left"
+                  >
                     <div className="flex items-start justify-between mb-3">
-                      <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
-                        {note.service}
-                      </h3>
-                      <span
-                        className={`inline-block px-3 py-1 rounded-full text-xs font-medium border capitalize ${getStatusColor(
-                          note.status
-                        )}`}
-                      >
-                        {note.status === "final" ? (
-                          <>
-                            <Lock className="w-3 h-3 inline mr-1" />
-                            Finalized
-                          </>
-                        ) : (
-                          "Draft"
-                        )}
-                      </span>
+                      <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">{note.service}</h3>
                     </div>
-
-                    {/* Appointment Date */}
                     <div className="flex items-center gap-4 text-sm text-neutral-600 dark:text-neutral-400 mb-3">
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4" />
                         <span>{formatDate(note.appointmentDate)}</span>
                       </div>
                     </div>
-
-                    {/* Provider & Created Date */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
                         <FileText className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
@@ -447,42 +440,71 @@ export function ClinicalNotesTabContent({
                         <span>Created {formatDateTime(note.createdDate)}</span>
                       </div>
                     </div>
-                  </div>
+                  </button>
 
-                  {/* Arrow Icon */}
-                  <ChevronRight className="w-5 h-5 text-neutral-400 dark:text-neutral-500 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors shrink-0 mt-1" />
+                  <div className="flex items-center gap-2 shrink-0">
+                    {note.status === "final" && (
+                      <>
+                        <button
+                          onClick={() => handlePreviewSOAP(note)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-800 rounded-lg text-xs font-semibold hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+                          title="Preview SOAP Report"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Preview
+                        </button>
+                        <button
+                          onClick={() => {
+                            handlePreviewSOAP(note);
+                            setTimeout(() => window.print(), 800);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700 rounded-lg text-xs font-semibold hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
+                          title="Download SOAP Report"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium border capitalize ${getStatusColor(note.status)}`}
+                    >
+                      {note.status === "final" ? (
+                        <>
+                          <Lock className="w-3 h-3 inline mr-1" />
+                          Finalized
+                        </>
+                      ) : (
+                        "Draft"
+                      )}
+                    </span>
+                    <ChevronRight
+                      className="w-5 h-5 text-neutral-400 dark:text-neutral-500 cursor-pointer"
+                      onClick={() => setSelectedNoteId(note.id)}
+                    />
+                  </div>
                 </div>
-              </button>
-            ))}</div>
+              </div>
+            ))}
+          </div>
 
           {/* Pagination */}
           <div className="flex items-center justify-between border-t border-neutral-200 dark:border-neutral-800 pt-4">
-            {/* Rows per page */}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">
-                Rows per page:
-              </span>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">Rows per page:</span>
               <select
                 value={rowsPerPage}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
+                onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
                 className="h-8 px-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded text-sm text-neutral-900 dark:text-white focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 outline-none"
               >
                 <option value={5}>5</option>
                 <option value={10}>10</option>
                 <option value={15}>15</option>
                 <option value={20}>20</option>
-                <option value={50}>50</option>
               </select>
               <span className="text-sm text-neutral-600 dark:text-neutral-400 ml-4">
-                Showing {startIndex + 1}-{Math.min(endIndex, filteredNotes.length)} of{" "}
-                {filteredNotes.length}
+                Showing {startIndex + 1}–{Math.min(endIndex, filteredNotes.length)} of {filteredNotes.length}
               </span>
             </div>
-
-            {/* Page navigation */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -492,21 +514,19 @@ export function ClinicalNotesTabContent({
                 <ChevronLeftIcon className="w-4 h-4" />
                 Previous
               </button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
-                      currentPage === page
-                        ? "bg-primary-600 text-white"
-                        : "bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
+                    currentPage === page
+                      ? "bg-primary-600 text-white"
+                      : "bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
               <button
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
@@ -518,6 +538,18 @@ export function ClinicalNotesTabContent({
             </div>
           </div>
         </>
+      )}
+
+      {/* SOAP Preview Modal */}
+      {previewNoteId && previewNoteData && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <UnifiedReportPreviewModal
+            type="soapNote"
+            data={previewNoteData}
+            patientName={patientName}
+            onClose={() => { setPreviewNoteId(null); setPreviewNoteData(null); }}
+          />
+        </div>
       )}
     </div>
   );

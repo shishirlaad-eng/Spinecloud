@@ -18,6 +18,10 @@ export interface CarePlan {
   patientResponsibility: string;
   doctorSignatureDate: string;
   patientSignatureDate: string;
+  patientName?: string;
+  patientEmail?: string;
+  providerName?: string;
+  branch?: string;
 }
 
 interface CarePlanBuilderProps {
@@ -126,8 +130,15 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, isRead
   const totalMonths = (totalWeeks / 4).toFixed(2);
 
   const handleSave = () => {
-    localStorage.setItem(`carePlan_${plan.id}`, JSON.stringify(plan));
-    onSave(plan);
+    const finalPlan = {
+      ...plan,
+      patientName: patientName,
+      patientEmail: "patient@example.com", // Fallback for mock environment
+      providerName: "Dr. David Bohn", // Fallback
+      branch: "Main Branch", // Fallback
+    };
+    localStorage.setItem(`carePlan_${plan.id}`, JSON.stringify(finalPlan));
+    onSave(finalPlan);
   };
 
   return (

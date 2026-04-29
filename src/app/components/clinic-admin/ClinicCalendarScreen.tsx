@@ -47,6 +47,7 @@ interface ClinicCalendarScreenProps {
   onViewAppointment?: (appointmentId: string) => void;
   onCreateAppointment?: (date: string, time: string, providerId: string, locationId: string) => void;
   onRescheduleAppointment?: (appointmentId: string, newDate: string, newTime: string, newProviderId: string) => void;
+  onCancelAppointment?: (appointmentId: string) => void;
   onBookAppointment?: (appointment: {
     patientId: string;
     serviceId: string;
@@ -56,6 +57,7 @@ interface ClinicCalendarScreenProps {
     providerId: string;
   }) => void;
   onLogout?: () => void;
+  initialRescheduleId?: string | null;
 }
 
 type ViewMode = "day" | "week" | "month";
@@ -87,6 +89,7 @@ export function ClinicCalendarScreen({
   onRescheduleAppointment,
   onBookAppointment,
   onLogout,
+  initialRescheduleId,
 }: ClinicCalendarScreenProps) {
   const [viewType, setViewType] = useState<"calendar" | "list">("calendar");
   const [viewMode, setViewMode] = useState<ViewMode>("week");
@@ -100,11 +103,14 @@ export function ClinicCalendarScreen({
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["Confirmed", "Completed"]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [draggedAppointment, setDraggedAppointment] = useState<Appointment | null>(null);
+  const [draggedAppointment, setDraggedAppointment] = useState<Appointment | null>(
+    initialRescheduleId ? appointments.find(a => a.id === initialRescheduleId) || null : null
+  );
   const [hoveredOverflow, setHoveredOverflow] = useState<string | null>(null); // Track which overflow is being hovered
   const [showBookDrawer, setShowBookDrawer] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [showDetailDrawer, setShowDetailDrawer] = useState(false);
+  const [isRescheduling, setIsRescheduling] = useState(!!initialRescheduleId);
 
   // Assign colors to providers
   const providers = useMemo(() => {
@@ -1098,19 +1104,22 @@ export function ClinicCalendarScreen({
           }}
           onClose={() => setShowDetailDrawer(false)}
           onCancel={(id) => {
-            console.log("Cancel", id);
-            // Implement cancel logic or call prop
+            if (onCancelAppointment) {
+              onCancelAppointment(id);
+              setShowDetailDrawer(false);
+            }
           }}
           onReschedule={(id) => {
-            console.log("Reschedule", id);
-            // Implement reschedule logic
+            setIsRescheduling(true);
+            setDraggedAppointment(selectedAppointment);
+            setShowDetailDrawer(false);
           }}
           onMarkNoShow={(id) => {
             console.log("No-Show", id);
-            // Implement no-show logic
+            // Implement no-show logic if needed, or reuse cancel with status
           }}
           onNavigateToPatient={(patientId) => {
-            onNavigate("patients"); // Assuming navigation to patients list or specific patient
+            onNavigate("patients");
           }}
         />
       )}

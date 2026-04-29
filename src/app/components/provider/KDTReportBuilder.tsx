@@ -21,6 +21,9 @@ export interface KDTReport {
     angle: number;
     setupTitle: string;
   };
+  patientEmail?: string;
+  branch?: string;
+  providerName?: string;
 }
 
 interface KDTReportBuilderProps {
@@ -176,7 +179,10 @@ export const KDTReportBuilder = ({ patientId, patientName, existingReportId, isR
         position: selectedCondition.setup.position,
         angle: angulation,
         setupTitle: selectedCondition.setup.title
-      }
+      },
+      patientEmail: "patient@example.com", // Fallback
+      branch: "Main Branch", // Fallback
+      providerName: "Dr. David Bohn", // Fallback
     };
     
     onSave(report);

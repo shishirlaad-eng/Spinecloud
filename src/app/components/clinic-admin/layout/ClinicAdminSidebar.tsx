@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, X, Shield, Users, ClipboardList, UserCheck, FileText, UserCog, Settings, CreditCard, Calendar, Receipt, DollarSign, BarChart3, FileCheck, ShieldAlert, DoorClosed, Activity, Stethoscope, Mail, Building, Ticket, ChevronDown, ChevronRight, CalendarOff } from "lucide-react";
+import { LayoutDashboard, Building2, X, Shield, Users, ClipboardList, UserCheck, FileText, UserCog, Settings, CreditCard, Calendar, Receipt, DollarSign, BarChart3, FileCheck, ShieldAlert, DoorClosed, Activity, Stethoscope, Mail, Building, Ticket, ChevronDown, ChevronRight, CalendarOff, FolderOpen } from "lucide-react";
 import { useState } from "react";
 
 interface ClinicAdminSidebarProps {
@@ -113,14 +113,14 @@ export function ClinicAdminSidebar({
       icon: DoorClosed,
     },
     {
-      id: "spineCloud" as const,
-      label: "SpineCloud Index",
-      icon: Activity,
-    },
-    {
       id: "soapMaster" as const,
       label: "SOAP Master",
       icon: Stethoscope,
+    },
+    {
+      id: "clinicalRecords" as const,
+      label: "Clinical Records",
+      icon: FolderOpen,
     },
     {
       id: "email-management" as const,
