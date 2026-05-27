@@ -1,5 +1,6 @@
 import { Printer, Download, X, Link2 } from "lucide-react";
 import { KDTReportPreview } from "../provider/KDTReportPreview";
+import { DicomReportPreview } from "./DicomReportPreview";
 import type { LinkedCodeGroup } from "../provider/CumulativeICDCPTCodesSection";
 import { SpiderChart, getScoreCategory } from "../shared/SpineCloudResultsView";
 
@@ -20,10 +21,19 @@ interface UnifiedReportPreviewModalProps {
   data: any;
   patientName: string;
   onClose: () => void;
+  onSave?: () => void;
 }
 
-export function UnifiedReportPreviewModal({ type, data, patientName, onClose }: UnifiedReportPreviewModalProps) {
+export function UnifiedReportPreviewModal({ type, data, patientName, onClose, onSave }: UnifiedReportPreviewModalProps) {
   if (type === "kdt") return <KDTReportPreview report={data} onClose={onClose} />;
+  if (type === "dicom") return (
+    <DicomReportPreview
+      data={data}
+      patientName={patientName}
+      onClose={onClose}
+      onSave={onSave}
+    />
+  );
 
   const handlePrint = () => window.print();
 
@@ -369,45 +379,11 @@ export function UnifiedReportPreviewModal({ type, data, patientName, onClose }: 
           </div>
         )}
 
-        {/* DICOM / Imaging Report */}
-        {type === "dicom" && data && (
-          <div className="space-y-12">
-            {data.comparisonNotes && (
-              <div className="p-8 mb-8 bg-primary-50 dark:bg-primary-900/10 rounded-3xl border border-primary-100 dark:border-primary-800">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary-500" />
-                  <h4 className="text-xs font-black uppercase tracking-widest text-primary-600">Clinical Comparison Notes</h4>
-                </div>
-                <p className="text-lg text-primary-900 dark:text-primary-100 italic font-medium leading-relaxed">
-                  {data.comparisonNotes}
-                </p>
-              </div>
-            )}
 
-            {(data.images || [{ imageUrl: data.imageUrl, type: data.type, findings: data.findings }]).map((img: any, idx: number) => (
-              <div key={idx} className="space-y-6">
-                <div className="aspect-video bg-black rounded-3xl overflow-hidden border-4 border-neutral-200 dark:border-neutral-800 shadow-2xl relative group">
-                  <img 
-                    src={img.imageUrl || "https://images.unsplash.com/photo-1530210124550-912dc1381cb8?auto=format&fit=crop&q=80&w=1000"} 
-                    className="w-full h-full object-contain" 
-                    alt={`Clinical Imaging ${idx + 1}`} 
-                  />
-                  <div className="absolute top-6 left-6 px-4 py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/20 text-white text-[10px] font-black uppercase tracking-widest">
-                    {img.type || "X-RAY"}
-                  </div>
-                </div>
-
-                <div className="p-8 bg-neutral-50 dark:bg-neutral-800/50 rounded-3xl border border-neutral-200 dark:border-neutral-700">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary-500" />
-                    <h4 className="text-xs font-black uppercase tracking-widest text-neutral-400">Radiologist Findings – {img.type}</h4>
-                  </div>
-                  <p className="text-xl text-neutral-900 dark:text-white font-bold leading-relaxed">
-                    {img.findings || "No acute findings reported."}
-                  </p>
-                </div>
-              </div>
-            ))}
+        {/* Fallback for unknown types */}
+        {!["soapNote","carePlan","financialPlan","structuralIntegrity","spineCloud"].includes(type) && data && (
+          <div className="p-6 text-center text-neutral-500 text-sm">
+            No preview available for this report type.
           </div>
         )}
 

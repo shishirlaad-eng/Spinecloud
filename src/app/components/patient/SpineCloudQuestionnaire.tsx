@@ -223,7 +223,7 @@ export function SpineCloudQuestionnaire({
           {/* Progress Bar */}
           <div className="relative h-2 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
             <div
-              className="absolute left-0 top-0 h-full bg-primary-600 transition-all duration-300"
+              className="absolute left-0 top-0 h-full bg-[#1d77b4] transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -231,13 +231,13 @@ export function SpineCloudQuestionnaire({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          <div className="bg-primary-50 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800 rounded-lg p-4 mb-6 flex items-start gap-3">
-            <Info className="w-5 h-5 text-primary-600 dark:text-primary-400 shrink-0 mt-0.5" />
+          <div className="bg-[#eff4ff] dark:bg-primary-950/30 border border-[#c0c7d1] dark:border-primary-800 rounded-lg p-4 mb-6 flex items-start gap-3">
+            <Info className="w-5 h-5 text-[#1d77b4] dark:text-primary-400 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm text-primary-900 dark:text-primary-100 font-medium mb-1">
+              <p className="text-sm text-[#0b1c30] dark:text-primary-100 font-medium mb-1">
                 How to answer
               </p>
-              <p className="text-sm text-primary-700 dark:text-primary-300">
+              <p className="text-sm text-[#005e93] dark:text-primary-300">
                 Rate each question based on how frequently you experience these symptoms over the past 2-4 weeks.
               </p>
             </div>
@@ -256,7 +256,7 @@ export function SpineCloudQuestionnaire({
                       onClick={() => handleResponse(question.id, option.value)}
                       className={`p-3 border-2 rounded-lg transition-all text-center ${
                         responses[question.id] === option.value
-                          ? "border-primary-600 bg-primary-50 dark:bg-primary-950/30"
+                          ? "border-[#1d77b4] bg-[#eff4ff] dark:bg-primary-950/30"
                           : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700"
                       }`}
                     >
@@ -294,7 +294,7 @@ export function SpineCloudQuestionnaire({
             <button
               onClick={handleNext}
               disabled={!allQuestionsAnswered}
-              className="inline-flex items-center gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="inline-flex items-center gap-2 h-10 px-6 bg-[#1d77b4] hover:opacity-90 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               {isLastCategory ? "Complete" : "Next"}
               <ChevronRight className="w-4 h-4" />

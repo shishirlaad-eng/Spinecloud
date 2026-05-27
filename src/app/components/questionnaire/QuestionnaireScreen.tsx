@@ -195,12 +195,9 @@ export function QuestionnaireScreen({
   return (
     <div className="flex min-h-screen items-center justify-center p-5 md:p-6 bg-neutral-50 dark:bg-neutral-950">
       <div className="w-full max-w-2xl">
-        {/* Logo - Outside Card */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-neutral-900 dark:text-white">
-            SpineCloudIQ
-          </h1>
-          <div className="w-16 h-1 bg-primary-600 mx-auto mt-3 rounded-full"></div>
+        {/* Header Title Area */}
+        <div className="text-center mb-6">
+          <div className="w-16 h-1 bg-primary-600 mx-auto rounded-full"></div>
         </div>
 
         {/* Card */}

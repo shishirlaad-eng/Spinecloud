@@ -92,7 +92,6 @@ export function ClinicStaffPatientsScreen({
   const filteredPatients = patients.filter(
     (patient) =>
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -119,7 +118,7 @@ export function ClinicStaffPatientsScreen({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <input
               type="text"
-              placeholder="Search by name, patient ID, or email..."
+              placeholder="Search by name or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-10 pl-10 pr-3 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600"
@@ -140,9 +139,6 @@ export function ClinicStaffPatientsScreen({
             <table className="w-full">
               <thead className="bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                    Patient ID
-                  </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                     Name
                   </th>
@@ -168,9 +164,6 @@ export function ClinicStaffPatientsScreen({
                       onClick={() => onViewPatient(patient.id)}
                       className="hover:bg-neutral-50 dark:hover:bg-neutral-900 cursor-pointer transition-colors"
                     >
-                      <td className="px-6 py-4 text-sm font-medium text-primary-600 dark:text-primary-400">
-                        {patient.id}
-                      </td>
                       <td className="px-6 py-4 text-sm font-medium text-neutral-900 dark:text-white">
                         {patient.name}
                       </td>

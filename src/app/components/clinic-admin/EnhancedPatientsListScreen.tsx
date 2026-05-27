@@ -66,8 +66,7 @@ export function EnhancedPatientsListScreen({
         .toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
       patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.phone.includes(searchQuery) ||
-      patient.patientId.includes(searchQuery);
+      patient.phone.includes(searchQuery);
 
     const matchesStatus = statusFilter === "all" || patient.status === statusFilter;
     const matchesIntake = intakeFilter === "all" || patient.intakeStatus === intakeFilter;
@@ -182,7 +181,7 @@ export function EnhancedPatientsListScreen({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <input
               type="text"
-              placeholder="Search patients by name, email, phone, or ID..."
+              placeholder="Search patients by name, email, or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-10 pl-10 pr-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 outline-none focus:border-primary-500 dark:focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 dark:focus:ring-primary-600/20 transition-[border-color,box-shadow]"
@@ -478,9 +477,6 @@ export function EnhancedPatientsListScreen({
                                   </div>
                                 )}
                               </div>
-                              <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                                ID: {patient.patientId}
-                              </p>
                             </div>
                           </button>
                         </td>

@@ -655,15 +655,7 @@ function AddEditLeaveDrawer({
                         className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4"
                       >
                         <div className="space-y-3">
-                          <div className="grid grid-cols-4 gap-4">
-                            <div>
-                              <div className="text-xs text-neutral-600 dark:text-neutral-400 mb-1">
-                                Patient ID
-                              </div>
-                              <div className="text-sm font-medium text-neutral-900 dark:text-white">
-                                {appointment.patientId}
-                              </div>
-                            </div>
+                          <div className="grid grid-cols-3 gap-4">
                             <div>
                               <div className="text-xs text-neutral-600 dark:text-neutral-400 mb-1">
                                 Patient name

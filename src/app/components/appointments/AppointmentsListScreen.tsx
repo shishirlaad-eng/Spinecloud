@@ -1,6 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/app/components/layout/DashboardLayout";
-import { Calendar, Clock, MapPin, User, Search, ChevronRight, Plus, LayoutList, Calendar as CalendarIcon, ChevronLeft } from "lucide-react";
+import { 
+  Calendar, 
+  Clock, 
+  MapPin, 
+  User, 
+  Search, 
+  ChevronRight, 
+  Plus, 
+  LayoutList, 
+  Calendar as CalendarIcon, 
+  ChevronLeft, 
+  Filter, 
+  X, 
+  ChevronDown 
+} from "lucide-react";
 import { AppointmentDetailDrawer } from "@/app/components/shared/AppointmentDetailDrawer";
 
 interface Appointment {
@@ -41,7 +55,19 @@ export function AppointmentsListScreen({
   const [selectedAptId, setSelectedAptId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 6;
+  const [pageSize, setPageSize] = useState(10);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilterDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -52,7 +78,6 @@ export function AppointmentsListScreen({
     setIsDrawerOpen(true);
   };
 
-  // Helper function to check if date is in the past
   const isPast = (dateString: string) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -60,7 +85,6 @@ export function AppointmentsListScreen({
     return date < today;
   };
 
-  // Helper function to check if date is in the future or today
   const isUpcoming = (dateString: string) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -68,9 +92,7 @@ export function AppointmentsListScreen({
     return date >= today;
   };
 
-  // Filter appointments based on active filter
   const filteredAppointments = appointments.filter((apt) => {
-    // Apply search filter
     const matchesSearch =
       searchQuery === "" ||
       apt.provider.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -79,7 +101,6 @@ export function AppointmentsListScreen({
 
     if (!matchesSearch) return false;
 
-    // Apply date filter
     switch (activeFilter) {
       case "upcoming":
         return isUpcoming(apt.date);
@@ -102,20 +123,10 @@ export function AppointmentsListScreen({
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-    
     const days = [];
-    
-    // Add padding for start of month
     const startPadding = firstDay.getDay();
-    for (let i = 0; i < startPadding; i++) {
-        days.push(null);
-    }
-    
-    // Add actual days
-    for (let i = 1; i <= lastDay.getDate(); i++) {
-        days.push(new Date(year, month, i));
-    }
-    
+    for (let i = 0; i < startPadding; i++) days.push(null);
+    for (let i = 1; i <= lastDay.getDate(); i++) days.push(new Date(year, month, i));
     return days;
   };
 
@@ -128,328 +139,271 @@ export function AppointmentsListScreen({
     });
   };
 
-  const upcomingCount = appointments.filter((apt) => isUpcoming(apt.date)).length;
-  const pastCount = appointments.filter((apt) => isPast(apt.date)).length;
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    // Check if it's today
-    if (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    ) {
-      return "Today";
-    }
-
-    // Check if it's tomorrow
-    if (
-      date.getDate() === tomorrow.getDate() &&
-      date.getMonth() === tomorrow.getMonth() &&
-      date.getFullYear() === tomorrow.getFullYear()
-    ) {
-      return "Tomorrow";
-    }
-
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
   const formatAppointmentService = (serviceId: string) => {
-    const foundService = services.find(s => s.id === serviceId);
+    const foundService = services.find(s => (s.id === serviceId || s.name === serviceId));
     if (foundService) return foundService.name;
-    
-    // Fallback mapping for legacy mock data IDs
-    const legacyServices: Record<string, string> = {
-      initial: "Initial Consultation",
-      followup: "Follow-up Visit",
-      therapy: "Therapy Session",
-    };
-    return legacyServices[serviceId] || serviceId;
+    return serviceId;
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Confirmed":
-        return "bg-success-50 dark:bg-success-950/30 text-success-700 dark:text-success-400";
-      case "Cancelled":
-        return "bg-destructive/10 dark:bg-destructive/20 text-destructive";
-      case "Completed":
-        return "bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400";
-      default:
-        return "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400";
-    }
-  };
-
-  const AppointmentCard = ({ appointment }: { appointment: Appointment }) => (
-    <button
-      onClick={() => handleViewDetails(appointment.id)}
-      className="w-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-6 hover:border-primary-500 dark:hover:border-primary-600 hover:shadow-md transition-all text-left group"
-    >
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
-              {formatAppointmentService(appointment.service)}
-            </h3>
-            <div className={`px-2 py-1 rounded-md text-sm ${getStatusColor(appointment.status)}`}>
-              {appointment.status}
-            </div>
-          </div>
-          {appointment.appointmentId && (
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-2">
-              {appointment.appointmentId}
-            </p>
-          )}
-          <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-            <CalendarIcon className="w-4 h-4" />
-            <span className="font-medium">{formatDate(appointment.date)}</span>
-            <span>•</span>
-            <Clock className="w-4 h-4" />
-            <span>{appointment.timeSlot}</span>
-          </div>
-        </div>
-        <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors" />
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex items-start gap-3">
-          <User className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-neutral-900 dark:text-white">
-              {appointment.provider}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-start gap-3">
-          <MapPin className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-neutral-900 dark:text-white">
-              {appointment.clinic}
-            </p>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-0.5">
-              {appointment.clinicAddress}
-            </p>
-          </div>
-        </div>
-      </div>
-    </button>
-  );
-
-  const EmptyState = ({ message }: { message: string }) => (
-    <div className="text-center py-16">
-      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-        <CalendarIcon className="w-8 h-8 text-neutral-400" />
-      </div>
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">{message}</p>
-    </div>
-  );
+  const activeFilterCount = activeFilter !== "all" ? 1 : 0;
 
   return (
     <>
       <DashboardLayout activeMenu="appointments" onNavigate={onNavigate} onLogout={onLogout}>
       <div className="p-5 md:p-6">
-        <div className="max-w-5xl mx-auto">
-          {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-semibold text-neutral-900 dark:text-white mb-1">
-                Appointments
-              </h1>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                View and manage all your appointments
-              </p>
+        <div className="max-w-7xl mx-auto">
+          {/* Breadcrumbs & Header */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 text-sm text-neutral-500 mb-1.5 font-sans">
+              <span>Home</span>
+              <ChevronRight className="w-3 h-3" />
+              <span className="font-medium text-[#0b1c30]">Appointments</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center bg-neutral-100 dark:bg-neutral-800 p-1 rounded-lg">
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={`p-1.5 rounded-md transition-all ${
-                    viewMode === "list"
-                      ? "bg-white dark:bg-neutral-700 text-primary-600 dark:text-primary-400 shadow-sm"
-                      : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
-                  }`}
-                >
-                  <LayoutList className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode("calendar")}
-                  className={`p-1.5 rounded-md transition-all ${
-                    viewMode === "calendar"
-                      ? "bg-white dark:bg-neutral-700 text-primary-600 dark:text-primary-400 shadow-sm"
-                      : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
-                  }`}
-                >
-                  <CalendarIcon className="w-4 h-4" />
-                </button>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-semibold text-neutral-900 dark:text-white mb-0.5">
+                  Appointments
+                </h1>
+                <p className="text-sm text-neutral-500">
+                  View and manage all your appointments
+                </p>
               </div>
-              {onBookAppointment && (
-                <button
-                  onClick={onBookAppointment}
-                  className="inline-flex items-center gap-2 px-4 h-10 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  Book Appointment
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center bg-neutral-100 dark:bg-neutral-800 p-1 rounded-lg">
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={`p-1.5 rounded-md transition-all ${
+                      viewMode === "list"
+                        ? "bg-white dark:bg-neutral-700 text-primary-600 dark:text-primary-400 shadow-sm"
+                        : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+                    }`}
+                  >
+                    <LayoutList className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("calendar")}
+                    className={`p-1.5 rounded-md transition-all ${
+                      viewMode === "calendar"
+                        ? "bg-white dark:bg-neutral-700 text-primary-600 dark:text-primary-400 shadow-sm"
+                        : "text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300"
+                    }`}
+                  >
+                    <CalendarIcon className="w-4 h-4" />
+                  </button>
+                </div>
+                {onBookAppointment && (
+                  <button
+                    onClick={onBookAppointment}
+                    className="inline-flex items-center gap-2 px-4 h-10 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm shadow-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Book Appointment
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
           {viewMode === "list" ? (
             <>
-              {/* Search and Filters */}
-              <div className="mb-6 space-y-4">
-                {/* Search Bar */}
-                <div className="relative">
+              {/* Controls - Similar to Invoices */}
+              <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 mb-6">
+                <div className="relative w-full max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                   <input
                     type="text"
-                    placeholder="Search appointments..."
+                    placeholder="Search by service, provider, or branch..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-11 pl-10 pr-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 outline-none focus:border-primary-500 dark:focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 dark:focus:ring-primary-600/20 transition-[border-color,box-shadow]"
+                    className="w-full h-10 pl-10 pr-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1d77b4]/20 focus:border-[#1d77b4] transition-all text-neutral-900 dark:text-white placeholder:text-neutral-400"
                   />
                 </div>
+                <div className="relative" ref={filterRef}>
+                  <button
+                    onClick={() => setShowFilterDropdown(v => !v)}
+                    className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-all ${
+                      activeFilterCount > 0
+                        ? "bg-[#eff4ff] dark:bg-primary-950/30 border-[#1d77b4] text-[#005e93] dark:text-primary-300"
+                        : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    }`}
+                  >
+                    <Filter className="w-4 h-4" />
+                    {activeFilterCount > 0 && (
+                      <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-[#1d77b4] text-white text-[10px] font-bold">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </button>
 
-                {/* Filter Tabs */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setActiveFilter("all")}
-                    className={`px-4 h-9 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
-                      activeFilter === "all"
-                        ? "bg-primary-600 text-white shadow-sm"
-                        : "bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                    }`}
-                  >
-                    All
-                    <span className={`ml-2 px-2 py-0.5 rounded-full text-sm ${
-                      activeFilter === "all" 
-                        ? "bg-white/20" 
-                        : "bg-neutral-100 dark:bg-neutral-800"
-                    }`}>
-                      {appointments.length}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setActiveFilter("upcoming")}
-                    className={`px-4 h-9 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
-                      activeFilter === "upcoming"
-                        ? "bg-primary-600 text-white shadow-sm"
-                        : "bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                    }`}
-                  >
-                    Upcoming
-                    <span className={`ml-2 px-2 py-0.5 rounded-full text-sm ${
-                      activeFilter === "upcoming" 
-                        ? "bg-white/20" 
-                        : "bg-neutral-100 dark:bg-neutral-800"
-                    }`}>
-                      {upcomingCount}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setActiveFilter("past")}
-                    className={`px-4 h-9 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
-                      activeFilter === "past"
-                        ? "bg-primary-600 text-white shadow-sm"
-                        : "bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                    }`}
-                  >
-                    Past
-                    <span className={`ml-2 px-2 py-0.5 rounded-full text-sm ${
-                      activeFilter === "past" 
-                        ? "bg-white/20" 
-                        : "bg-neutral-100 dark:bg-neutral-800"
-                    }`}>
-                      {pastCount}
-                    </span>
-                  </button>
+                  {showFilterDropdown && (
+                    <div className="absolute right-0 top-12 w-64 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-30 p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-neutral-900 dark:text-white">Filters</span>
+                        <button onClick={() => setShowFilterDropdown(false)} className="p-1 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 rounded transition-colors">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block mb-2">Timeframe</label>
+                        <select
+                          value={activeFilter}
+                          onChange={e => setActiveFilter(e.target.value as any)}
+                          className="w-full h-9 px-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1d77b4]/20 focus:border-[#1d77b4]"
+                        >
+                          <option value="all">All Appointments</option>
+                          <option value="upcoming">Upcoming</option>
+                          <option value="past">Past</option>
+                        </select>
+                      </div>
+
+                      {activeFilter !== "all" && (
+                        <button
+                          onClick={() => setActiveFilter("all")}
+                          className="w-full h-9 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Clear filters
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Appointments Grid */}
-              {filteredAppointments.length > 0 ? (
-                <>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {paginatedAppointments.map((apt) => (
-                      <AppointmentCard key={apt.id} appointment={apt} />
-                    ))}
-                  </div>
+              {/* Table - Similar to Invoices */}
+              <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-800">
+                      <tr>
+                        {["Date", "Time", "Service", "Branch", "Provider", "Status"].map((col) => (
+                          <th
+                            key={col}
+                            className="px-6 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider"
+                          >
+                            <div className="flex items-center gap-1">
+                              {col}
+                              <div className="flex flex-col scale-75 opacity-40">
+                                <ChevronDown className="w-3 h-3 -mb-1 rotate-180" />
+                                <ChevronDown className="w-3 h-3" />
+                              </div>
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+                      {paginatedAppointments.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-12 text-center">
+                            <CalendarIcon className="w-12 h-12 text-neutral-400 mx-auto mb-3" />
+                            <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                              No appointments found matching your criteria
+                            </p>
+                          </td>
+                        </tr>
+                      ) : (
+                        paginatedAppointments.map((apt) => (
+                          <tr key={apt.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
+                            <td className="px-6 py-4 text-sm text-neutral-900 dark:text-white">
+                              {new Date(apt.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-neutral-900 dark:text-white">
+                              {apt.timeSlot.split(" - ")[0]}
+                            </td>
+                            <td className="px-6 py-4 text-sm">
+                              <button
+                                onClick={() => handleViewDetails(apt.id)}
+                                className="font-semibold text-[#1d77b4] hover:underline text-left"
+                              >
+                                {formatAppointmentService(apt.service)}
+                              </button>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400">
+                              {apt.clinic}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400 font-medium">
+                              {apt.provider}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={`inline-flex items-center px-2 py-1 rounded text-sm font-medium ${
+                                  apt.status === "Confirmed" || apt.status === "Rescheduled"
+                                    ? "bg-success-50 dark:bg-success-950/30 text-success-700 dark:text-success-400"
+                                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300"
+                                }`}
+                              >
+                                {apt.status === "Rescheduled" ? "Confirmed" : apt.status === "No-Show" ? "Cancelled" : apt.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-                  {/* Pagination UI */}
-                  {totalPages > 1 && (
-                    <div className="mt-8 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-800 pt-6">
-                      <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                        Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to{" "}
-                        <span className="font-medium">
-                          {Math.min(currentPage * pageSize, filteredAppointments.length)}
-                        </span>{" "}
-                        of <span className="font-medium">{filteredAppointments.length}</span> appointments
-                      </p>
-                      <div className="flex items-center gap-2">
+              {/* Pagination - Replicated from Invoices */}
+              {filteredAppointments.length > 0 && (
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-neutral-600 dark:text-neutral-400">Rows per page:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                      className="h-9 px-2 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white focus:outline-none focus:border-[#1d77b4] focus:ring-1 focus:ring-[#1d77b4]"
+                    >
+                      <option value={8}>8</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                    </select>
+                    <span className="text-sm text-neutral-600 dark:text-neutral-400 ml-2">
+                      Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredAppointments.length)} of {filteredAppointments.length} appointments
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="px-4 h-9 flex items-center justify-center bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-sans"
+                    >
+                      Previous
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }).map((_, i) => (
                         <button
-                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                          disabled={currentPage === 1}
-                          className="px-4 h-9 flex items-center justify-center bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          key={i}
+                          onClick={() => setCurrentPage(i + 1)}
+                          className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-all ${
+                            currentPage === i + 1
+                              ? "bg-[#1d77b4] text-white shadow-sm"
+                              : "bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                          }`}
                         >
-                          Previous
+                          {i + 1}
                         </button>
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: totalPages }).map((_, i) => (
-                            <button
-                              key={i}
-                              onClick={() => setCurrentPage(i + 1)}
-                              className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-all ${
-                                currentPage === i + 1
-                                  ? "bg-primary-600 text-white shadow-sm"
-                                  : "bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                              }`}
-                            >
-                              {i + 1}
-                            </button>
-                          ))}
-                        </div>
-                        <button
-                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                          disabled={currentPage === totalPages}
-                          className="px-4 h-9 flex items-center justify-center bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          Next
-                        </button>
-                      </div>
+                      ))}
                     </div>
-                  )}
-                </>
-              ) : (
-                <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg">
-                  <EmptyState
-                    message={
-                      searchQuery
-                        ? "No appointments found matching your search"
-                        : activeFilter === "upcoming"
-                        ? "No upcoming appointments"
-                        : activeFilter === "past"
-                        ? "No past appointments"
-                        : "No appointments found"
-                    }
-                  />
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-4 h-9 flex items-center justify-center bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-sans"
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               )}
             </>
           ) : (
-            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden">
-                <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-neutral-900 dark:text-white">
+            /* Calendar View - Maintaining original clean style but with updated layout */
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden shadow-sm">
+                <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800">
+                    <h3 className="text-base font-semibold text-neutral-900 dark:text-white">
                         {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                    </h2>
+                    </h3>
                     <div className="flex items-center gap-2">
                         <button 
                             onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
@@ -459,7 +413,7 @@ export function AppointmentsListScreen({
                         </button>
                         <button 
                             onClick={() => setCurrentDate(new Date())}
-                            className="px-3 py-1 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors"
+                            className="px-3 py-1 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
                         >
                             Today
                         </button>
@@ -473,7 +427,7 @@ export function AppointmentsListScreen({
                 </div>
                 <div className="grid grid-cols-7 border-b border-neutral-200 dark:border-neutral-800">
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                        <div key={day} className="py-2 text-center text-xs font-medium text-neutral-500 dark:text-neutral-400 border-r border-neutral-200 dark:border-neutral-800 last:border-r-0">
+                        <div key={day} className="py-2 text-center text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider border-r border-neutral-200 dark:border-neutral-800 last:border-r-0">
                             {day}
                         </div>
                     ))}
@@ -522,20 +476,39 @@ export function AppointmentsListScreen({
       </div>
     </DashboardLayout>
 
-    <AppointmentDetailDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        appointmentId={selectedAptId}
-        onReschedule={(id: string) => {
-            setIsDrawerOpen(false);
-            onReschedule(id);
-        }}
-        onCancel={(id: string) => {
-            setIsDrawerOpen(false);
-            onCancel(id);
-        }}
-        userRole="patient"
-    />
+    {(() => {
+        const selectedApt = appointments.find(a => a.id === selectedAptId);
+        if (!selectedApt) return null;
+        
+        // Map list fields to drawer fields
+        const timeParts = selectedApt.timeSlot.split(" - ");
+        const mappedApt = {
+            ...selectedApt,
+            startTime: timeParts[0] || selectedApt.timeSlot,
+            endTime: timeParts[1] || selectedApt.timeSlot,
+            providerName: selectedApt.provider,
+            branchName: selectedApt.clinic
+        };
+
+        return (
+            <AppointmentDetailDrawer
+                isOpen={isDrawerOpen}
+                onClose={() => setIsDrawerOpen(false)}
+                appointment={mappedApt}
+                onReschedule={(id: string) => {
+                    setIsDrawerOpen(false);
+                    onReschedule(id);
+                }}
+                onCancel={(id: string) => {
+                    setIsDrawerOpen(false);
+                    onCancel(id);
+                }}
+                onMarkNoShow={() => {}}
+                onNavigateToPatient={() => {}}
+                userRole="patient"
+            />
+        );
+    })()}
     </>
   );
 }

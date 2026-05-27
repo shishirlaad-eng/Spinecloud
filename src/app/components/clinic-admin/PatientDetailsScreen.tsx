@@ -1,8 +1,15 @@
 import { ClinicAdminLayout } from "./layout/ClinicAdminLayout";
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, User, Shield, FileText, Edit2, Save, X, ChevronRight, Activity, Search, Filter, Eye, Download, FolderOpen, ChevronDown, ClipboardList, Heart, Wallet, Scan, Dumbbell, Brain, ExternalLink, UserX } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, User, Shield, FileText, Edit2, Save, X, ChevronRight, ChevronLeft, Activity, Search, Filter, Eye, Download, FolderOpen, ChevronDown, ClipboardList, Heart, Wallet, Scan, Dumbbell, Brain, ExternalLink, UserX, Upload, Send, CheckCircle, Clock, AlertCircle, PenLine, ShieldCheck, Copy, Plus, RotateCcw } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { AppointmentDetailsView } from "./AppointmentDetailsView";
 import { SpineCloudResultsView } from "@/app/components/shared/SpineCloudResultsView";
+import { 
+  PatientClinicalRecordsTab, 
+  PatientReferralsTab, 
+  PatientDocumentsTab, 
+  PatientFormsTab, 
+  PatientAgreementsTab 
+} from "../shared/PatientDetailTabs";
 
 interface Patient {
   id: string;
@@ -57,7 +64,7 @@ interface Appointment {
 interface PatientDetailsScreenProps {
   patient: Patient;
   appointments: Appointment[];
-  onNavigate: (menu: "dashboard" | "branches" | "questionnaires" | "roles" | "users" | "providers" | "consentForms" | "patients") => void;
+  onNavigate: (menu: "dashboard" | "branches" | "questionnaires" | "roles" | "users" | "providers" | "consentForms" | "patients" | "referrals") => void;
   onBack: () => void;
   onUpdatePatient: (updatedPatient: Patient) => void;
   onLogout?: () => void;
@@ -77,7 +84,24 @@ export function PatientDetailsScreen({
   onCancelAppointment,
   onNoShowAppointment,
 }: PatientDetailsScreenProps) {
-  const [activeTab, setActiveTab] = useState<"basic" | "insurance" | "appointments" | "clinicalRecords" | "referrals">("basic");
+  const [activeTab, setActiveTab] = useState<"basic" | "insurance" | "appointments" | "clinicalRecords" | "referrals" | "documents" | "patientForms" | "agreements">("basic");
+  const tabScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft]   = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const updateScrollButtons = () => {
+    const el = tabScrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  };
+
+  const scrollTabs = (dir: "left" | "right") => {
+    const el = tabScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -160 : 160, behavior: "smooth" });
+    setTimeout(updateScrollButtons, 300);
+  };
   const [isEditingBasic, setIsEditingBasic] = useState(false);
   const [isEditingInsurance, setIsEditingInsurance] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
@@ -222,7 +246,6 @@ export function PatientDetailsScreen({
 
   const renderBasicDetails = () => (
     <div className="space-y-5">
-      {/* Header row - REMOVED redundant header as requested */}
       <div className="flex items-center justify-end mb-1">
         {!isEditingBasic ? (
           <button onClick={() => setIsEditingBasic(true)} className="inline-flex items-center gap-2 px-4 h-9 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors text-sm font-medium">
@@ -236,10 +259,7 @@ export function PatientDetailsScreen({
         )}
       </div>
 
-      {/* Cards grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-        {/* Personal Info */}
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-7 h-7 rounded-lg bg-primary-50 dark:bg-primary-950/30 flex items-center justify-center"><User className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" /></div>
@@ -276,7 +296,6 @@ export function PatientDetailsScreen({
           )}
         </div>
 
-        {/* Contact Info */}
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center"><Mail className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /></div>
@@ -337,7 +356,6 @@ export function PatientDetailsScreen({
           )}
         </div>
 
-        {/* Address */}
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center"><MapPin className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /></div>
@@ -425,7 +443,6 @@ export function PatientDetailsScreen({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Policy Details */}
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-7 h-7 rounded-lg bg-primary-50 dark:bg-primary-950/30 flex items-center justify-center">
@@ -481,7 +498,6 @@ export function PatientDetailsScreen({
           )}
         </div>
 
-        {/* Policyholder Details */}
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center">
@@ -547,7 +563,6 @@ export function PatientDetailsScreen({
   );
 
   const renderAppointments = () => {
-    // If an appointment is selected, show only the questionnaire (as requested)
     if (selectedAppointmentId) {
       const selectedAppointment = sortedAppointments.find(apt => apt.id === selectedAppointmentId);
       if (selectedAppointment) {
@@ -580,15 +595,14 @@ export function PatientDetailsScreen({
     }
 
     const filteredAppointments = sortedAppointments.filter(apt => {
-      const matchesSearch = apt.service.toLowerCase().includes(appointmentSearch.toLowerCase()) || 
-                           apt.provider.toLowerCase().includes(appointmentSearch.toLowerCase());
+      const matchesSearch = (apt.service?.toLowerCase() || "").includes(appointmentSearch.toLowerCase()) || 
+                           (apt.provider?.toLowerCase() || "").includes(appointmentSearch.toLowerCase());
       const matchesStatus = appointmentStatusFilter === "all" || apt.status.toLowerCase() === appointmentStatusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     });
 
     return (
       <div className="space-y-6">
-        {/* Search & Filter Bar */}
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
@@ -721,7 +735,6 @@ export function PatientDetailsScreen({
   return (
     <ClinicAdminLayout activeMenu="patients" onNavigate={onNavigate} onLogout={onLogout}>
       <div className="p-6">
-        {/* Breadcrumb Navigation */}
         {selectedAppointmentId ? (
           <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400 mb-6">
             <button
@@ -752,7 +765,6 @@ export function PatientDetailsScreen({
           </button>
         )}
 
-        {/* Header */}
         <div className="mb-6">
           <div className="flex items-start justify-between mb-4">
             <div>
@@ -771,28 +783,44 @@ export function PatientDetailsScreen({
                 >
                   {patient.status}
                 </span>
-                <span className="text-sm text-neutral-600 dark:text-neutral-400">
-                  Patient ID: {patient.id}
-                </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="border-b border-neutral-200 dark:border-neutral-800 mb-6 overflow-x-auto">
-          <div className="flex gap-6 min-w-max">
+        {/* ── Tab bar with scroll arrows ── */}
+        <div className="relative mb-6">
+          {/* Left scroll arrow */}
+          {canScrollLeft && (
+            <button
+              onClick={() => scrollTabs("left")}
+              className="absolute left-0 top-0 bottom-1 z-10 flex items-center px-1 bg-gradient-to-r from-white dark:from-neutral-950 via-white/90 dark:via-neutral-950/90 to-transparent pr-4"
+            >
+              <ChevronLeft className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+            </button>
+          )}
+
+          {/* Scrollable tab list */}
+          <div
+            ref={tabScrollRef}
+            onScroll={updateScrollButtons}
+            className="flex gap-1 overflow-x-auto scrollbar-hide border-b border-neutral-200 dark:border-neutral-800"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
             {([
-              { key: "basic",           label: "Basic details"     },
-              { key: "insurance",       label: "Insurance details" },
+              { key: "basic",           label: "Overview"          },
+              { key: "insurance",       label: "Insurance"         },
               { key: "appointments",    label: "Appointments"      },
               { key: "clinicalRecords", label: "Clinical Records"  },
               { key: "referrals",       label: "Referrals"         },
+              { key: "documents",       label: "Documents"         },
+              { key: "patientForms",    label: "Patient Forms"     },
+              { key: "agreements",      label: "Agreements"        },
             ] as const).map(tab => (
               <button
                 key={tab.key}
                 onClick={() => { setActiveTab(tab.key); setSelectedAppointmentId(null); }}
-                className={`pb-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+                className={`px-4 pb-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors flex-shrink-0 ${
                   activeTab === tab.key
                     ? "border-primary-600 text-primary-600 dark:text-primary-400"
                     : "border-transparent text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
@@ -802,244 +830,30 @@ export function PatientDetailsScreen({
               </button>
             ))}
           </div>
+
+          {/* Right scroll arrow */}
+          {canScrollRight && (
+            <button
+              onClick={() => scrollTabs("right")}
+              className="absolute right-0 top-0 bottom-1 z-10 flex items-center px-1 bg-gradient-to-l from-white dark:from-neutral-950 via-white/90 dark:via-neutral-950/90 to-transparent pl-4"
+            >
+              <ChevronRight className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />
+            </button>
+          )}
         </div>
 
-        {/* Tab Content */}
         {activeTab === "basic" && renderBasicDetails()}
         {activeTab === "insurance" && renderInsuranceDetails()}
         {activeTab === "appointments" && renderAppointments()}
         {activeTab === "clinicalRecords" && <PatientClinicalRecordsTab patientName={`${patient.firstName} ${patient.lastName}`} />}
         {activeTab === "referrals" && <PatientReferralsTab patientName={`${patient.firstName} ${patient.lastName}`} />}
+        {activeTab === "documents" && <PatientDocumentsTab patientId={patient.id} />}
+        {activeTab === "patientForms" && <PatientFormsTab patientEmail={patient.email} patientName={`${patient.firstName} ${patient.lastName}`} />}
+        {activeTab === "agreements" && <PatientAgreementsTab patientEmail={patient.email} patientName={`${patient.firstName} ${patient.lastName}`} />}
       </div>
     </ClinicAdminLayout>
   );
 }
 
-// ── Patient-scoped Clinical Records table ─────────────────────────────────────
 
-const RECORD_TYPES = [
-  { value: "all",                 label: "All types"           },
-  { value: "soapNote",            label: "SOAP Notes"          },
-  { value: "carePlan",            label: "Care Plans"          },
-  { value: "financialPlan",       label: "Financial Plans"     },
-  { value: "structuralIntegrity", label: "Structural Integrity"},
-  { value: "kdt",                 label: "KDT Reports"         },
-  { value: "dicom",               label: "DICOM / Imaging"     },
-  { value: "spineCloud",          label: "SpineCloud Wellness" },
-];
-
-const TYPE_ICONS: Record<string, any> = {
-  soapNote: ClipboardList, carePlan: Heart, financialPlan: Wallet,
-  structuralIntegrity: Scan, kdt: Dumbbell, dicom: Activity, spineCloud: Brain,
-};
-
-function loadPatientRecords(patientName: string) {
-  const all: any[] = [];
-  const add = (type: string, id: string, date: string, title: string, provider: string, data: any) =>
-    all.push({ id, type, date, title, provider, data });
-
-  Object.keys(localStorage).filter(k => k.startsWith("soapNote_")).forEach(k => {
-    try { const d = JSON.parse(localStorage.getItem(k)!); if (d?.id && d.status === "final") add("soapNote", d.id, d.finalizedAt || new Date().toISOString(), "SOAP Clinical Note", d.finalizedBy || "Provider", d); } catch {}
-  });
-  Object.keys(localStorage).filter(k => k.startsWith("carePlan_") && !k.startsWith("carePlan_master")).forEach(k => {
-    try { const d = JSON.parse(localStorage.getItem(k)!); if (d?.id) add("carePlan", d.id, d.datePrepared || new Date().toISOString(), "Care Plan", d.providerName || "Provider", d); } catch {}
-  });
-  Object.keys(localStorage).filter(k => k.startsWith("financialPlan_")).forEach(k => {
-    try { const d = JSON.parse(localStorage.getItem(k)!); if (d?.id) add("financialPlan", d.id, d.datePrepared || new Date().toISOString(), "Financial Agreement", d.providerName || "Provider", d); } catch {}
-  });
-  Object.keys(localStorage).filter(k => k.startsWith("structuralIntegrity_")).forEach(k => {
-    try { const d = JSON.parse(localStorage.getItem(k)!); if (d?.id) add("structuralIntegrity", d.id, d.date || new Date().toISOString(), "Structural Integrity Analysis", d.provider || "Provider", d); } catch {}
-  });
-  Object.keys(localStorage).filter(k => k.startsWith("kdtReport_")).forEach(k => {
-    try { const d = JSON.parse(localStorage.getItem(k)!); if (d?.id) add("kdt", d.id, d.dateCreated || new Date().toISOString(), `KDT – ${d.protocolType || "Lumbar"}`, d.providerName || "Provider", d); } catch {}
-  });
-
-  // Mock DICOM + SpineCloud
-  all.push(
-    { 
-      id: "dicom-1", 
-      type: "dicom", 
-      date: "2025-01-15T10:00:00", 
-      title: "Comprehensive Spinal X-Ray Series", 
-      provider: "Radiology", 
-      data: { 
-        id: "dicom-1", 
-        images: [
-          {
-            type: "Cervical Flexion",
-            imageUrl: "/assets/clinical/cervical_flexion.png",
-            findings: "ABNORMAL: Significant loss of cervical lordosis in flexion. Evidence of mild C5-C6 degenerative disc disease with anterior osteophyte formation. Spinal alignment shows early signs of structural instability."
-          },
-          {
-            type: "Lumbar Lateral",
-            imageUrl: "/assets/clinical/lumbar_lateral.png",
-            findings: "NORMAL: Well-maintained lumbar lordosis. Vertebral body heights are preserved. Disc spaces are healthy at all levels. No evidence of spondylolisthesis or acute bony injury."
-          },
-          {
-            type: "AP Cervical",
-            imageUrl: "/assets/clinical/ap_cervical.png",
-            findings: "NORMAL: Spinous processes are midline. No lateral tilt or rotation detected in the cervical vertebrae. Paraspinal soft tissues are within normal limits."
-          }
-        ]
-      } 
-    },
-    { id: "sc-1", type: "spineCloud", date: "2025-02-10T09:00:00", title: "SpineCloud Wellness Assessment", provider: "SpineCloud AI", data: { id: "sc-1", overallScore: 72 } }
-  );
-
-  return all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-}
-
-function PatientClinicalRecordsTab({ patientName }: { patientName: string }) {
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("all");
-  const [showFilter, setShowFilter] = useState(false);
-  const records = loadPatientRecords(patientName);
-  const filterRef = useState<HTMLDivElement | null>(null);
-
-  const filtered = records.filter(r => {
-    const q = search.toLowerCase();
-    const matchSearch = !q || r.title.toLowerCase().includes(q) || r.provider.toLowerCase().includes(q);
-    const matchType = typeFilter === "all" || r.type === typeFilter;
-    let matchDate = true;
-    if (dateFilter !== "all") {
-      const d = new Date(r.date);
-      if (dateFilter === "7d")  { const x = new Date(); x.setDate(x.getDate()-7);   matchDate = d >= x; }
-      if (dateFilter === "30d") { const x = new Date(); x.setDate(x.getDate()-30);  matchDate = d >= x; }
-      if (dateFilter === "3m")  { const x = new Date(); x.setMonth(x.getMonth()-3); matchDate = d >= x; }
-      if (dateFilter === "6m")  { const x = new Date(); x.setMonth(x.getMonth()-6); matchDate = d >= x; }
-    }
-    return matchSearch && matchType && matchDate;
-  });
-
-  const activeFilters = (typeFilter !== "all" ? 1 : 0) + (dateFilter !== "all" ? 1 : 0);
-  const fmt = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-
-  return (
-    <div>
-      <div className="flex flex-col md:flex-row gap-3 mb-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-          <input type="text" placeholder="Search records..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full h-10 pl-10 pr-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-neutral-900 dark:text-white placeholder:text-neutral-400" />
-        </div>
-        <div className="flex gap-2">
-          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-            className="h-10 px-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20">
-            {RECORD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-          <select value={dateFilter} onChange={e => setDateFilter(e.target.value)}
-            className="h-10 px-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20">
-            <option value="all">All time</option>
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="3m">Last 3 months</option>
-            <option value="6m">Last 6 months</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-800">
-            <tr>
-              {["Date", "Type", "Title", "Provider", "Actions"].map(col => (
-                <th key={col} className={`px-5 py-3 text-left text-sm font-semibold text-neutral-900 dark:text-white ${col==="Actions"?"text-right":""}`}>{col}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-            {filtered.length === 0 ? (
-              <tr><td colSpan={5} className="px-5 py-12 text-center">
-                <FolderOpen className="w-10 h-10 text-neutral-300 dark:text-neutral-700 mx-auto mb-2" />
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">No records found</p>
-              </td></tr>
-            ) : filtered.map(rec => {
-              const Icon = TYPE_ICONS[rec.type] || FileText;
-              const typeLabel = RECORD_TYPES.find(t => t.value === rec.type)?.label || rec.type;
-              return (
-                <tr key={rec.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                  <td className="px-5 py-3 text-sm text-neutral-900 dark:text-white whitespace-nowrap">{fmt(rec.date)}</td>
-                  <td className="px-5 py-3">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                      <Icon className="w-3 h-3" />{typeLabel}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-sm font-medium text-neutral-900 dark:text-white">{rec.title}</td>
-                  <td className="px-5 py-3 text-sm text-neutral-600 dark:text-neutral-400">{rec.provider}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <button className="w-8 h-8 flex items-center justify-center rounded-lg text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/20 transition-colors" title="Preview"><Eye className="w-4 h-4" /></button>
-                      <button onClick={() => { const b=new Blob([JSON.stringify(rec.data,null,2)],{type:"application/json"}); const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download=`${rec.type}_${rec.id}.json`; a.click(); URL.revokeObjectURL(u); }} className="w-8 h-8 flex items-center justify-center rounded-lg text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors" title="Download"><Download className="w-4 h-4" /></button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// ── Referrals tab ──────────────────────────────────────────────────────────────
-
-const MOCK_REFERRALS = [
-  { id: "ref-1", date: "2025-01-10", referredTo: "Dr. Michael Chen", specialty: "Orthopedic Surgery", reason: "Lumbar disc herniation evaluation", status: "Completed", notes: "Patient evaluated. Conservative management recommended." },
-  { id: "ref-2", date: "2025-02-15", referredTo: "Advanced Imaging Center", specialty: "Radiology", reason: "MRI – Cervical spine", status: "Pending", notes: "Appointment scheduled for next week." },
-  { id: "ref-3", date: "2024-11-20", referredTo: "Dr. Lisa Park", specialty: "Pain Management", reason: "Chronic lower back pain management", status: "Completed", notes: "Epidural steroid injection performed. Follow-up in 6 weeks." },
-];
-
-function PatientReferralsTab({ patientName }: { patientName: string }) {
-  const [search, setSearch] = useState("");
-  const filtered = MOCK_REFERRALS.filter(r => {
-    const q = search.toLowerCase();
-    return !q || r.referredTo.toLowerCase().includes(q) || r.specialty.toLowerCase().includes(q) || r.reason.toLowerCase().includes(q);
-  });
-  const fmt = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-
-  return (
-    <div>
-      <div className="mb-4 max-w-sm">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-          <input type="text" placeholder="Search referrals..." value={search} onChange={e => setSearch(e.target.value)}
-            className="w-full h-10 pl-10 pr-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-neutral-900 dark:text-white placeholder:text-neutral-400" />
-        </div>
-      </div>
-      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-800">
-            <tr>
-              {["Date", "Referred To", "Specialty", "Reason", "Status", "Notes"].map(col => (
-                <th key={col} className="px-5 py-3 text-left text-sm font-semibold text-neutral-900 dark:text-white">{col}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-            {filtered.length === 0 ? (
-              <tr><td colSpan={6} className="px-5 py-12 text-center">
-                <FolderOpen className="w-10 h-10 text-neutral-300 dark:text-neutral-700 mx-auto mb-2" />
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">No referrals found</p>
-              </td></tr>
-            ) : filtered.map(ref => (
-              <tr key={ref.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors">
-                <td className="px-5 py-3 text-sm text-neutral-900 dark:text-white whitespace-nowrap">{fmt(ref.date)}</td>
-                <td className="px-5 py-3 text-sm font-medium text-neutral-900 dark:text-white">{ref.referredTo}</td>
-                <td className="px-5 py-3 text-sm text-neutral-600 dark:text-neutral-400">{ref.specialty}</td>
-                <td className="px-5 py-3 text-sm text-neutral-600 dark:text-neutral-400 max-w-xs">{ref.reason}</td>
-                <td className="px-5 py-3">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    ref.status === "Completed" ? "bg-success-50 dark:bg-success-950/30 text-success-700 dark:text-success-300" : "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300"
-                  }`}>{ref.status}</span>
-                </td>
-                <td className="px-5 py-3 text-sm text-neutral-600 dark:text-neutral-400 max-w-xs">{ref.notes}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
+// Local tab definitions removed in favor of shared components.

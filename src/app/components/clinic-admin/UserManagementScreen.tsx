@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ClinicAdminLayout } from "./layout/ClinicAdminLayout";
-import { Search, Plus, Users as UsersIcon, Mail, Clock, CheckCircle, XCircle, Filter, X, Download } from "lucide-react";
+import { Search, Plus, Users as UsersIcon, Mail, Clock, CheckCircle, XCircle, Filter, X, Download, Link2, RotateCcw, ChevronDown, CheckCircle2, HelpCircle, BookOpen, ChevronUp } from "lucide-react";
 import { Pagination } from "../shared/Pagination";
 
 interface User {
@@ -9,7 +9,8 @@ interface User {
   lastName: string;
   email: string;
   role: string;
-  status: "Pending" | "Accepted" | "Expired";
+  status: "Active" | "Inactive";
+  tag: "Invited" | "Accepted" | "Link Expired" | "Pending";
   invitedAt: string;
   acceptedAt?: string;
 }
@@ -35,16 +36,23 @@ export function UserManagementScreen({
 }: UserManagementScreenProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [tagFilter, setTagFilter] = useState<string>("all");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<"name" | "role" | "status">("name");
+  const [sortBy, setSortBy] = useState<"name" | "role" | "status" | "tag" | "invitedAt">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [userToResend, setUserToResend] = useState<User | null>(null);
+  const [showResendModal, setShowResendModal] = useState(false);
+  const [resentId, setResentId] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, roleFilter]);
+  }, [searchQuery, statusFilter, tagFilter, roleFilter, dateFrom, dateTo]);
 
   // Get unique roles
   const roles = Array.from(new Set((users || []).map((u) => u.role)));
@@ -60,9 +68,24 @@ export function UserManagementScreen({
     const matchesStatus =
       statusFilter === "all" || user.status === statusFilter;
 
+    const matchesTag =
+      tagFilter === "all" || user.tag === tagFilter;
+
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
 
-    return matchesSearch && matchesStatus && matchesRole;
+    const matchesDate = (() => {
+      if (!dateFrom && !dateTo) return true;
+      const invitedDate = new Date(user.invitedAt).getTime();
+      if (dateFrom && invitedDate < new Date(dateFrom).getTime()) return false;
+      if (dateTo) {
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999);
+        if (invitedDate > toDate.getTime()) return false;
+      }
+      return true;
+    })();
+
+    return matchesSearch && matchesStatus && matchesTag && matchesRole && matchesDate;
   });
 
   // Sort users
@@ -77,14 +100,26 @@ export function UserManagementScreen({
       return sortOrder === "asc"
         ? a.role.localeCompare(b.role)
         : b.role.localeCompare(a.role);
+    } else if (sortBy === "status") {
+      const statusA = a.status || "";
+      const statusB = b.status || "";
+      return sortOrder === "asc"
+        ? statusA.localeCompare(statusB)
+        : statusB.localeCompare(statusA);
+    } else if (sortBy === "tag") {
+      const tagA = a.tag || "";
+      const tagB = b.tag || "";
+      return sortOrder === "asc"
+        ? tagA.localeCompare(tagB)
+        : tagB.localeCompare(tagA);
     } else {
       return sortOrder === "asc"
-        ? a.status.localeCompare(b.status)
-        : b.status.localeCompare(a.status);
+        ? new Date(a.invitedAt).getTime() - new Date(b.invitedAt).getTime()
+        : new Date(b.invitedAt).getTime() - new Date(a.invitedAt).getTime();
     }
   });
 
-  const handleSort = (field: "name" | "role" | "status") => {
+  const handleSort = (field: "name" | "role" | "status" | "tag" | "invitedAt") => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -95,27 +130,64 @@ export function UserManagementScreen({
 
   const activeFilterCount = 
     (statusFilter !== "all" ? 1 : 0) +
-    (roleFilter !== "all" ? 1 : 0);
+    (tagFilter !== "all" ? 1 : 0) +
+    (roleFilter !== "all" ? 1 : 0) +
+    (dateFrom || dateTo ? 1 : 0);
 
-  const getStatusBadge = (status: "Pending" | "Accepted" | "Expired") => {
+  const handleCopyLink = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setCopiedId(id);
+    // In a real app, copy actual link to clipboard
+    navigator.clipboard.writeText(`https://spinecloud.iq/invite/${id}`);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleResendClick = (e: React.MouseEvent, user: User) => {
+    e.stopPropagation();
+    setUserToResend(user);
+    setShowResendModal(true);
+  };
+
+  const confirmResend = () => {
+    if (userToResend) {
+      onResendInvite(userToResend.id);
+      setResentId(userToResend.id);
+      setTimeout(() => setResentId(null), 2000);
+      setShowResendModal(false);
+      setUserToResend(null);
+    }
+  };
+
+  const getStatusBadge = (status: "Active" | "Inactive") => {
     const styles = {
-      Pending: "bg-yellow-100 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400",
-      Accepted: "bg-success-100 dark:bg-success-950/30 text-success-700 dark:text-success-400",
-      Expired: "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400",
+      Active: "bg-success-50 dark:bg-success-950/30 text-success-700 dark:text-success-400 border-success-200 dark:border-success-800",
+      Inactive: "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700",
     };
 
-    const icons = {
-      Pending: Clock,
-      Accepted: CheckCircle,
-      Expired: XCircle,
-    };
-
-    const Icon = icons[status];
+    const style = styles[status] || styles.Inactive;
+    const label = status || "Inactive";
 
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm ${styles[status]}`}>
-        <Icon className="w-3.5 h-3.5" />
-        {status}
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${style}`}>
+        {label}
+      </span>
+    );
+  };
+
+  const getTagBadge = (tag: "Invited" | "Accepted" | "Link Expired" | "Pending") => {
+    const styles = {
+      Invited: "bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400 border-primary-200 dark:border-primary-800",
+      Accepted: "bg-success-50 dark:bg-success-950/30 text-success-700 dark:text-success-400 border-success-200 dark:border-success-800",
+      "Link Expired": "bg-destructive-50 dark:bg-destructive-950/30 text-destructive-700 dark:text-destructive-400 border-destructive-200 dark:border-destructive-800",
+      Pending: "bg-warning-50 dark:bg-warning-950/30 text-warning-700 dark:text-warning-400 border-warning-200 dark:border-warning-800",
+    };
+
+    const style = styles[tag] || "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700";
+    const label = tag || "Pending";
+
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${style}`}>
+        {label}
       </span>
     );
   };
@@ -137,26 +209,18 @@ export function UserManagementScreen({
     <ClinicAdminLayout activeMenu="users" onNavigate={onNavigate} onLogout={onLogout}>
       <div className="p-6">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-1">
-              User Management
-            </h1>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              Invite and manage clinic staff members
-            </p>
-          </div>
-          <button
-            onClick={onAddUser}
-            className="inline-flex items-center gap-2 px-4 h-10 bg-primary-600 text-white rounded-lg hover:bg-primary-700 active:bg-primary-800 transition-colors font-medium text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Invite User
-          </button>
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-1">
+            User Management
+          </h1>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            Invite and manage clinic staff members
+          </p>
         </div>
 
         {/* Search and Filters */}
-        <div className="mb-6 flex gap-3">
+        <div className="mb-6 flex gap-3 items-center">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <input
@@ -168,33 +232,25 @@ export function UserManagementScreen({
             />
           </div>
 
-          {/* Export Button */}
-          <button
-            onClick={() => console.log("Exporting users...")}
-            className="inline-flex items-center gap-2 px-4 h-10 border rounded-lg transition-colors text-sm font-medium border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-          >
-            <Download className="w-4 h-4" />
-            Export
-          </button>
-
-          {/* Filter Button */}
-          <div className="relative">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`inline-flex items-center gap-2 px-4 h-10 border rounded-lg transition-colors text-sm font-medium ${
-                activeFilterCount > 0
-                  ? "border-primary-500 dark:border-primary-600 bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400"
-                  : "border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-              }`}
-            >
-              <Filter className="w-4 h-4" />
-              Filters
-              {activeFilterCount > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-600 dark:bg-primary-500 text-white text-xs">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
+          <div className="flex items-center gap-2">
+            {/* Filter Button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-colors ${
+                  activeFilterCount > 0
+                    ? "border-primary-500 dark:border-primary-600 bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400"
+                    : "border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                }`}
+                title="Filters"
+              >
+                <Filter className="w-4 h-4" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-600 dark:bg-primary-500 text-white text-[10px] font-bold border-2 border-white dark:border-neutral-950">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
 
             {/* Filter Dropdown */}
             {showFilters && (
@@ -217,29 +273,37 @@ export function UserManagementScreen({
                       <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">
                         Status
                       </label>
-                      <div className="space-y-2">
-                        {[
-                          { value: "all", label: "All Statuses" },
-                          { value: "Accepted", label: "Accepted" },
-                          { value: "Pending", label: "Pending" },
-                          { value: "Expired", label: "Expired" },
-                        ].map((option) => (
-                          <label
-                            key={option.value}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              name="status"
-                              checked={statusFilter === option.value}
-                              onChange={() => setStatusFilter(option.value)}
-                              className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
-                            />
-                            <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                              {option.label}
-                            </span>
-                          </label>
-                        ))}
+                      <div className="relative">
+                        <select
+                          value={statusFilter}
+                          onChange={(e) => setStatusFilter(e.target.value)}
+                          className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
+                        >
+                          <option value="all">All statuses</option>
+                          <option value="Active">Active</option>
+                          <option value="Inactive">Inactive</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">
+                        Tag
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={tagFilter}
+                          onChange={(e) => setTagFilter(e.target.value)}
+                          className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
+                        >
+                          <option value="all">All tags</option>
+                          <option value="Invited">Invited</option>
+                          <option value="Accepted">Accepted</option>
+                          <option value="Link Expired">Link Expired</option>
+                          <option value="Pending">Pending</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
                       </div>
                     </div>
 
@@ -247,36 +311,43 @@ export function UserManagementScreen({
                       <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">
                         Role
                       </label>
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="role"
-                            checked={roleFilter === "all"}
-                            onChange={() => setRoleFilter("all")}
-                            className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
-                          />
-                          <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                            All Roles
-                          </span>
-                        </label>
-                        {roles.map((role) => (
-                          <label
-                            key={role}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              name="role"
-                              checked={roleFilter === role}
-                              onChange={() => setRoleFilter(role)}
-                              className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
-                            />
-                            <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                      <div className="relative">
+                        <select
+                          value={roleFilter}
+                          onChange={(e) => setRoleFilter(e.target.value)}
+                          className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
+                        >
+                          <option value="all">All roles</option>
+                          {roles.map((role) => (
+                            <option key={role} value={role}>
                               {role}
-                            </span>
-                          </label>
-                        ))}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">
+                        Invited Date
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          value={dateFrom}
+                          onChange={(e) => setDateFrom(e.target.value)}
+                          className="flex-1 h-10 px-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-xs text-neutral-900 dark:text-white focus:border-primary-600 outline-none min-w-0"
+                          title="From Date"
+                        />
+                        <span className="text-neutral-500">-</span>
+                        <input
+                          type="date"
+                          value={dateTo}
+                          onChange={(e) => setDateTo(e.target.value)}
+                          className="flex-1 h-10 px-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-xs text-neutral-900 dark:text-white focus:border-primary-600 outline-none min-w-0"
+                          title="To Date"
+                        />
                       </div>
                     </div>
                   </div>
@@ -285,7 +356,10 @@ export function UserManagementScreen({
                     <button
                       onClick={() => {
                         setStatusFilter("all");
+                        setTagFilter("all");
                         setRoleFilter("all");
+                        setDateFrom("");
+                        setDateTo("");
                       }}
                       className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
                     >
@@ -295,6 +369,15 @@ export function UserManagementScreen({
                 </div>
               </div>
             )}
+          </div>
+
+          <button
+              onClick={onAddUser}
+              className="inline-flex items-center gap-2 px-4 h-10 bg-primary-600 text-white rounded-lg hover:bg-primary-700 active:bg-primary-800 transition-colors font-medium text-sm whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" />
+              Invite User
+            </button>
           </div>
         </div>
 
@@ -347,8 +430,34 @@ export function UserManagementScreen({
                         )}
                       </div>
                     </th>
-                    <th className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                      Invited
+                    <th
+                      className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                      onClick={() => handleSort("tag")}
+                    >
+                      <div className="flex items-center gap-2">
+                        Tag
+                        {sortBy === "tag" && (
+                          <span className="text-neutral-400">
+                            {sortOrder === "asc" ? "↑" : "↓"}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                      onClick={() => handleSort("invitedAt")}
+                    >
+                      <div className="flex items-center gap-2">
+                        Invited
+                        {sortBy === "invitedAt" && (
+                          <span className="text-neutral-400">
+                            {sortOrder === "asc" ? "↑" : "↓"}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                    <th className="text-right px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                      Actions
                     </th>
                   </tr>
                 </thead>
@@ -356,23 +465,21 @@ export function UserManagementScreen({
                   {currentItems.map((user) => (
                     <tr
                       key={user.id}
-                      className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition-colors"
+                      className="group hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition-colors cursor-pointer"
+                      onClick={() => onEditUser(user.id)}
                     >
                       <td className="px-6 py-4">
-                        <button
-                          onClick={() => onEditUser(user.id)}
-                          className="flex items-center gap-3 text-left hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                        >
+                        <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-950/30 flex items-center justify-center shrink-0">
                             <span className="text-sm font-semibold text-primary-600 dark:text-primary-400">
                               {user.firstName[0]}
                               {user.lastName[0]}
                             </span>
                           </div>
-                          <span className="text-sm font-medium text-neutral-900 dark:text-white">
+                          <span className="text-sm font-medium text-neutral-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                             {user.firstName} {user.lastName}
                           </span>
-                        </button>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-sm text-neutral-600 dark:text-neutral-400">
@@ -384,11 +491,51 @@ export function UserManagementScreen({
                           {user.role}
                         </span>
                       </td>
-                      <td className="px-6 py-4">{getStatusBadge(user.status)}</td>
+                      <td className="px-6 py-4">
+                        {getStatusBadge(user.status)}
+                      </td>
+                      <td className="px-6 py-4">
+                        {getTagBadge(user.tag)}
+                      </td>
                       <td className="px-6 py-4">
                         <p className="text-sm text-neutral-600 dark:text-neutral-400">
                           {formatDate(user.invitedAt)}
                         </p>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          <div className="relative group/tooltip">
+                            <button
+                              onClick={(e) => handleCopyLink(e, user.id)}
+                              className="text-neutral-400 hover:text-primary-600 transition-colors p-1"
+                            >
+                              {copiedId === user.id ? (
+                                <CheckCircle className="w-4 h-4 text-success-500" />
+                              ) : (
+                                <Link2 className="w-4 h-4" />
+                              )}
+                            </button>
+                            <div className="absolute bottom-full right-0 mb-2 hidden group-hover/tooltip:block px-2 py-1 bg-neutral-800 text-white text-[10px] rounded whitespace-nowrap z-10">
+                              {copiedId === user.id ? "Copied!" : "Copy Link"}
+                            </div>
+                          </div>
+
+                          <div className="relative group/tooltip">
+                            <button
+                              onClick={(e) => handleResendClick(e, user)}
+                              className="text-neutral-400 hover:text-primary-600 transition-colors p-1"
+                            >
+                              {resentId === user.id ? (
+                                <CheckCircle className="w-4 h-4 text-success-500" />
+                              ) : (
+                                <RotateCcw className="w-4 h-4" />
+                              )}
+                            </button>
+                            <div className="absolute bottom-full right-0 mb-2 hidden group-hover/tooltip:block px-2 py-1 bg-neutral-800 text-white text-[10px] rounded whitespace-nowrap z-10">
+                              {resentId === user.id ? "Resent!" : "Resend Link"}
+                            </div>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -433,6 +580,62 @@ export function UserManagementScreen({
           />
         )}
       </div>
+
+      {/* Resend Confirmation Modal */}
+      {showResendModal && userToResend && (
+        <div className="fixed inset-0 bg-neutral-950/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-neutral-900 dark:text-white">
+                  Resend Invitation
+                </h3>
+                <button
+                  onClick={() => setShowResendModal(false)}
+                  className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="bg-neutral-50 dark:bg-neutral-800/50 rounded-lg p-4 mb-6 space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-neutral-500 dark:text-neutral-400">User Name</span>
+                  <span className="text-sm font-medium text-neutral-900 dark:text-white">
+                    {userToResend.firstName} {userToResend.lastName}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-neutral-500 dark:text-neutral-400">Email</span>
+                  <span className="text-sm font-medium text-neutral-900 dark:text-white">
+                    {userToResend.email}
+                  </span>
+                </div>
+                <div className="pt-3 border-t border-neutral-200 dark:border-neutral-700">
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 italic">
+                    A new invitation link will be generated and sent to this email address. The previous link will be invalidated.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowResendModal(false)}
+                  className="flex-1 h-10 px-4 border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors font-medium text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmResend}
+                  className="flex-1 h-10 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 active:bg-primary-800 transition-colors font-medium text-sm"
+                >
+                  Confirm Resend
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </ClinicAdminLayout>
   );
 }

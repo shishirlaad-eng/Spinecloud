@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ClinicAdminLayout } from "./layout/ClinicAdminLayout";
-import { ArrowLeft, Shield, Check, Building2, Users, FileText, UserCog, FileCheck, Settings, CreditCard, LayoutDashboard, Stethoscope, Lock, ChevronRight, Database, ChevronDown, X, Search, Activity, Mail, SearchCode } from "lucide-react";
+import { ArrowLeft, Shield, Check, Building2, Users, FileText, UserCog, FileCheck, Settings, CreditCard, LayoutDashboard, Stethoscope, Lock, ChevronRight, Database, ChevronDown, X, Search, Activity, Mail, SearchCode, Calendar, CalendarOff, Receipt, DollarSign, BarChart3, ShieldAlert, DoorClosed, ClipboardList, FolderOpen, Building, Ticket } from "lucide-react";
 import { completeStep, isStepCompleted } from "../shared/walkthroughUtils";
 
 // Permission types for each module
@@ -13,6 +13,8 @@ type PermissionActions = {
 
 type ModulePermissions = {
   dashboard: { view: boolean };
+  calendar: PermissionActions;
+  holidays: PermissionActions;
   branches: PermissionActions;
   patients: PermissionActions;
   questionnaires: PermissionActions;
@@ -22,12 +24,25 @@ type ModulePermissions = {
   roles: PermissionActions;
   users: PermissionActions;
   subscription: PermissionActions;
+  invoices: PermissionActions;
+  payments: PermissionActions;
+  reports: PermissionActions;
+  activityLog: { view: boolean };
+  auditLog: { view: boolean };
+  rooms: PermissionActions;
+  soapMaster: PermissionActions;
+  clinicalRecords: PermissionActions;
+  emailManagement: PermissionActions;
+  clinicSettings: PermissionActions;
+  tickets: PermissionActions;
+  carePlanMaster: PermissionActions;
 };
 
 interface Role {
   id?: string;
   name: string;
   description: string;
+  status: "Active" | "Inactive";
   permissions: ModulePermissions;
   branchIds?: string[];
 }
@@ -55,6 +70,20 @@ const modules = [
     icon: LayoutDashboard,
     actions: ["view"] as const,
     description: "View analytics and metrics"
+  },
+  { 
+    key: "calendar" as const, 
+    name: "Appointments", 
+    icon: Calendar,
+    actions: ["view", "create", "edit", "delete"] as const,
+    description: "Manage patient appointments"
+  },
+  { 
+    key: "holidays" as const, 
+    name: "Holidays", 
+    icon: CalendarOff,
+    actions: ["view", "create", "edit", "delete"] as const,
+    description: "Manage clinic holidays"
   },
   { 
     key: "branches" as const, 
@@ -119,6 +148,90 @@ const modules = [
     actions: ["view", "create", "edit", "delete"] as const,
     description: "Manage subscription and billing"
   },
+  { 
+    key: "invoices" as const, 
+    name: "Invoices", 
+    icon: Receipt,
+    actions: ["view", "create", "edit", "delete"] as const,
+    description: "Manage billing invoices"
+  },
+  { 
+    key: "payments" as const, 
+    name: "Payments", 
+    icon: DollarSign,
+    actions: ["view", "create", "edit", "delete"] as const,
+    description: "Manage patient payments"
+  },
+  { 
+    key: "reports" as const, 
+    name: "Reports", 
+    icon: BarChart3,
+    actions: ["view", "create", "edit", "delete"] as const,
+    description: "Access administrative reports"
+  },
+  { 
+    key: "activityLog" as const, 
+    name: "Activity Log", 
+    icon: Activity,
+    actions: ["view"] as const,
+    description: "View system activity logs"
+  },
+  { 
+    key: "auditLog" as const, 
+    name: "Audit Log", 
+    icon: ShieldAlert,
+    actions: ["view"] as const,
+    description: "Access security audit logs"
+  },
+  { 
+    key: "rooms" as const, 
+    name: "Rooms", 
+    icon: DoorClosed,
+    actions: ["view", "create", "edit", "delete"] as const,
+    description: "Manage clinic rooms"
+  },
+  { 
+    key: "soapMaster" as const, 
+    name: "SOAP Master", 
+    icon: ClipboardList,
+    actions: ["view", "create", "edit", "delete"] as const,
+    description: "Configure SOAP note templates"
+  },
+  { 
+    key: "clinicalRecords" as const, 
+    name: "Clinical Records", 
+    icon: FolderOpen,
+    actions: ["view", "create", "edit", "delete"] as const,
+    description: "Manage patient clinical documentation"
+  },
+  { 
+    key: "emailManagement" as const, 
+    name: "Email Management", 
+    icon: Mail,
+    actions: ["view", "create", "edit", "delete"] as const,
+    description: "Manage automated email templates"
+  },
+  { 
+    key: "clinicSettings" as const, 
+    name: "Clinic Settings", 
+    icon: Building,
+    actions: ["view", "create", "edit", "delete"] as const,
+    description: "Configure global clinic settings"
+  },
+  { 
+    key: "tickets" as const, 
+    name: "Ticket Management", 
+    icon: Ticket,
+    actions: ["view", "create", "edit", "delete"] as const,
+    description: "Manage support and internal tickets"
+  },
+  { 
+    key: "carePlanMaster" as const, 
+    name: "Care Plan Master", 
+    icon: Database,
+    actions: ["view", "create", "edit", "delete"] as const,
+    description: "Manage care plan templates"
+  },
 ];
 
 export function AddEditRoleScreen({
@@ -136,6 +249,8 @@ export function AddEditRoleScreen({
   // Initialize permissions with default structure
   const getDefaultPermissions = (): ModulePermissions => ({
     dashboard: { view: false },
+    calendar: { view: false, create: false, edit: false, delete: false },
+    holidays: { view: false, create: false, edit: false, delete: false },
     branches: { view: false, create: false, edit: false, delete: false },
     patients: { view: false, create: false, edit: false, delete: false },
     questionnaires: { view: false, create: false, edit: false, delete: false },
@@ -145,11 +260,24 @@ export function AddEditRoleScreen({
     roles: { view: false, create: false, edit: false, delete: false },
     users: { view: false, create: false, edit: false, delete: false },
     subscription: { view: false, create: false, edit: false, delete: false },
+    invoices: { view: false, create: false, edit: false, delete: false },
+    payments: { view: false, create: false, edit: false, delete: false },
+    reports: { view: false, create: false, edit: false, delete: false },
+    activityLog: { view: false },
+    auditLog: { view: false },
+    rooms: { view: false, create: false, edit: false, delete: false },
+    soapMaster: { view: false, create: false, edit: false, delete: false },
+    clinicalRecords: { view: false, create: false, edit: false, delete: false },
+    emailManagement: { view: false, create: false, edit: false, delete: false },
+    clinicSettings: { view: false, create: false, edit: false, delete: false },
+    tickets: { view: false, create: false, edit: false, delete: false },
+    carePlanMaster: { view: false, create: false, edit: false, delete: false },
   });
 
   const [permissions, setPermissions] = useState<ModulePermissions>(
     role?.permissions || getDefaultPermissions()
   );
+  const [status, setStatus] = useState<"Active" | "Inactive">(role?.status || "Active");
   const [assignBranches, setAssignBranches] = useState<"all" | "selected" | "none">(
     role?.branchIds ? (role.branchIds.length === availableBranches.length ? "all" : "selected") : "all"
   );
@@ -266,6 +394,7 @@ export function AddEditRoleScreen({
       ...(role?.id && { id: role.id }),
       name,
       description,
+      status,
       permissions,
       branchIds: branchIdsToSave,
     };
@@ -369,6 +498,33 @@ export function AddEditRoleScreen({
                   {errors.description && (
                     <p className="text-xs text-destructive mt-1">{errors.description}</p>
                   )}
+                </div>
+
+                <div className="pt-4 border-t border-neutral-200 dark:border-neutral-800">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Role Status</h3>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">Control if this role can currently be assigned to users</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-sm font-medium ${status === "Active" ? "text-success-600" : "text-neutral-500"}`}>
+                        {status}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setStatus(status === "Active" ? "Inactive" : "Active")}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                          status === "Active" ? "bg-primary-600" : "bg-neutral-300 dark:bg-neutral-700"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            status === "Active" ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

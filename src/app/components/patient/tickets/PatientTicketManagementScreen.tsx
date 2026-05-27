@@ -1,191 +1,126 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { DashboardLayout } from "../../layout/DashboardLayout";
-import { Plus, Search, Eye } from "lucide-react";
+import { Plus, Search, Filter, ChevronRight, X } from "lucide-react";
 import { CreatePatientTicketDrawer } from "./CreatePatientTicketDrawer";
-import { PatientTicketDetailsDrawer } from "./PatientTicketDetailsDrawer";
 
 interface Ticket {
   id: string;
-  ticketNumber: string;
+  ticketId: string;
   subject: string;
   category: string;
   priority: "Low" | "Medium" | "High";
   status: "Open" | "In Progress" | "Resolved" | "Closed";
-  createdDate: string;
-  lastUpdated: string;
+  createdAt: string;
+  updatedAt: string;
   description: string;
-  responses: {
+  messages: {
     id: string;
-    message: string;
+    content: string;
     author: string;
     role: "Staff" | "Patient";
     timestamp: string;
+    isYou: boolean;
   }[];
 }
 
 interface PatientTicketManagementScreenProps {
-  onNavigate: (screen: "dashboard" | "appointments" | "invoices" | "notifications" | "spineCloud" | "tickets") => void;
+  onNavigate: (screen: any) => void;
+  onViewTicket: (ticketId: string) => void;
   onLogout?: () => void;
+  currentEntity?: "patient" | "clinicAdmin" | "provider" | "clinic-staff";
+  onEntitySwitch?: (entity: "patient" | "clinicAdmin" | "provider" | "clinic-staff") => void;
+  onNavigateToProfile?: () => void;
+  tickets: Ticket[];
+  onCreateTicket?: (ticket: any) => void;
 }
 
 export function PatientTicketManagementScreen({
   onNavigate,
+  onViewTicket,
   onLogout,
+  currentEntity,
+  onEntitySwitch,
+  onNavigateToProfile,
+  tickets,
+  onCreateTicket
 }: PatientTicketManagementScreenProps) {
-  // Mock tickets data
-  const [tickets, setTickets] = useState<Ticket[]>([
-    {
-      id: "ticket-001",
-      ticketNumber: "TKT-2026-001",
-      subject: "Issue with appointment booking",
-      category: "Appointment",
-      priority: "High",
-      status: "Resolved",
-      createdDate: "2026-02-15",
-      lastUpdated: "2026-02-18",
-      description: "I'm unable to book an appointment for next week. The calendar doesn't show any available slots even though I was told there are openings.",
-      responses: [
-        {
-          id: "resp-001",
-          message: "Thank you for reaching out. We're looking into the calendar availability issue. In the meantime, I've checked manually and we do have slots available next Tuesday and Thursday.",
-          author: "Sarah Johnson",
-          role: "Staff",
-          timestamp: "2026-02-15T10:30:00",
-        },
-        {
-          id: "resp-002",
-          message: "Thank you! I can see the slots now. I've booked Tuesday at 2 PM.",
-          author: "John Smith",
-          role: "Patient",
-          timestamp: "2026-02-15T14:45:00",
-        },
-        {
-          id: "resp-003",
-          message: "Perfect! We've confirmed your appointment. The calendar issue has been fixed. Thank you for your patience!",
-          author: "Sarah Johnson",
-          role: "Staff",
-          timestamp: "2026-02-18T09:15:00",
-        },
-      ],
-    },
-    {
-      id: "ticket-002",
-      ticketNumber: "TKT-2026-002",
-      subject: "Question about insurance coverage",
-      category: "Billing",
-      priority: "Medium",
-      status: "In Progress",
-      createdDate: "2026-02-18",
-      lastUpdated: "2026-02-19",
-      description: "I wanted to check if my insurance plan covers the imaging services that were recommended during my last visit.",
-      responses: [
-        {
-          id: "resp-004",
-          message: "Thank you for your inquiry. Our billing team is reviewing your insurance plan details. We'll get back to you within 24 hours with specific coverage information for the recommended imaging services.",
-          author: "Michael Chen",
-          role: "Staff",
-          timestamp: "2026-02-18T16:20:00",
-        },
-      ],
-    },
-    {
-      id: "ticket-003",
-      ticketNumber: "TKT-2026-003",
-      subject: "Unable to access clinical reports",
-      category: "Technical",
-      priority: "Low",
-      status: "Open",
-      createdDate: "2026-02-20",
-      lastUpdated: "2026-02-20",
-      description: "I'm trying to download my recent lab reports but the download button doesn't seem to work. Can you please help?",
-      responses: [],
-    },
-  ]);
-
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "updated">("newest");
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+  
   const [showCreateDrawer, setShowCreateDrawer] = useState(false);
-  const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
-  // Filter tickets
-  const filteredTickets = tickets.filter((ticket) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, priorityFilter, dateFrom, dateTo]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilterDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  let filteredTickets = tickets.filter((ticket) => {
     const matchesSearch =
-      ticket.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ticket.ticketId.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ticket.category.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = statusFilter === "all" || ticket.status === statusFilter;
+    const matchesPriority = priorityFilter === "all" || ticket.priority === priorityFilter;
 
-    return matchesSearch && matchesStatus;
+    let matchesDate = true;
+    if (dateFrom || dateTo) {
+      const d = new Date(ticket.createdAt);
+      d.setHours(0, 0, 0, 0);
+      if (dateFrom) {
+        const from = new Date(dateFrom);
+        from.setHours(0, 0, 0, 0);
+        if (d < from) matchesDate = false;
+      }
+      if (dateTo) {
+        const to = new Date(dateTo);
+        to.setHours(23, 59, 59, 999);
+        if (d > to) matchesDate = false;
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesPriority && matchesDate;
   });
 
-  const handleCreateTicket = (ticketData: { category: string; subject: string; description: string; priority: "Low" | "Medium" | "High" }) => {
-    const newTicket: Ticket = {
-      id: `ticket-${Date.now()}`,
-      ticketNumber: `TKT-2026-${String(tickets.length + 1).padStart(3, "0")}`,
-      subject: ticketData.subject,
-      category: ticketData.category,
-      priority: ticketData.priority,
-      status: "Open",
-      createdDate: new Date().toISOString().split("T")[0],
-      lastUpdated: new Date().toISOString().split("T")[0],
-      description: ticketData.description,
-      responses: [],
-    };
+  filteredTickets.sort((a, b) => {
+    if (sortBy === "newest") {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    } else if (sortBy === "oldest") {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    } else {
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    }
+  });
 
-    setTickets([newTicket, ...tickets]);
+  const activeFilterCount = (statusFilter !== "all" ? 1 : 0) + (priorityFilter !== "all" ? 1 : 0) + (dateFrom || dateTo ? 1 : 0);
+
+  const handleCreateTicketSubmit = (ticketData: any) => {
+    if (onCreateTicket) {
+      onCreateTicket(ticketData);
+    }
     setShowCreateDrawer(false);
   };
 
-  const handleViewDetails = (ticket: Ticket) => {
-    setSelectedTicket(ticket);
-    setShowDetailsDrawer(true);
-  };
-
-  const handleAddResponse = (ticketId: string, message: string) => {
-    setTickets(
-      tickets.map((ticket) => {
-        if (ticket.id === ticketId) {
-          return {
-            ...ticket,
-            responses: [
-              ...ticket.responses,
-              {
-                id: `resp-${Date.now()}`,
-                message,
-                author: "John Smith",
-                role: "Patient" as const,
-                timestamp: new Date().toISOString(),
-              },
-            ],
-            lastUpdated: new Date().toISOString().split("T")[0],
-          };
-        }
-        return ticket;
-      })
-    );
-
-    // Update selected ticket if it's the one being updated
-    if (selectedTicket?.id === ticketId) {
-      const updatedTicket = tickets.find((t) => t.id === ticketId);
-      if (updatedTicket) {
-        setSelectedTicket({
-          ...updatedTicket,
-          responses: [
-            ...updatedTicket.responses,
-            {
-              id: `resp-${Date.now()}`,
-              message,
-              author: "John Smith",
-              role: "Patient" as const,
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        });
-      }
-    }
-  };
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / pageSize));
+  const paginatedTickets = filteredTickets.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -202,129 +137,173 @@ export function PatientTicketManagementScreen({
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "High":
-        return "text-destructive";
-      case "Medium":
-        return "text-amber-600 dark:text-amber-500";
-      case "Low":
-        return "text-neutral-500";
-      default:
-        return "text-neutral-500";
-    }
-  };
-
   return (
     <>
-      <DashboardLayout activeMenu="tickets" onNavigate={onNavigate} onLogout={onLogout}>
-        <div className="p-6">
+      <DashboardLayout 
+        activeMenu="tickets" 
+        onNavigate={onNavigate as any} 
+        onLogout={onLogout}
+        currentEntity={currentEntity}
+        onEntitySwitch={onEntitySwitch}
+        onNavigateToProfile={onNavigateToProfile}
+      >
+        <div className="max-w-6xl">
           {/* Header */}
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 text-sm text-neutral-500 mb-1.5 font-sans">
+              <span>Home</span>
+              <ChevronRight className="w-3 h-3" />
+              <span className="font-medium text-[#0b1c30]">Support Tickets</span>
+            </div>
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-semibold text-neutral-900 dark:text-white">
-                  My tickets
+                <h1 className="text-xl font-semibold text-neutral-900 dark:text-white mb-0.5">
+                  Support tickets
                 </h1>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+                <p className="text-sm text-neutral-500">
                   View and manage your support tickets
                 </p>
               </div>
-
               <button
                 onClick={() => setShowCreateDrawer(true)}
-                className="inline-flex items-center gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors text-sm"
+                className="inline-flex items-center gap-2 px-4 h-10 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm shadow-sm"
               >
                 <Plus className="w-4 h-4" />
                 Create ticket
               </button>
             </div>
+          </div>
 
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Search */}
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by ticket number, subject, or category"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-10 pl-10 pr-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 outline-none transition-[border-color,box-shadow]"
-                  />
-                </div>
-              </div>
+          {/* Controls */}
+          <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 mb-6">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+              <input
+                type="text"
+                placeholder="Search by ticket number, subject, or category"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-10 pl-10 pr-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all shadow-sm"
+              />
+            </div>
 
-              {/* Status Filter */}
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-10 px-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 outline-none transition-[border-color,box-shadow]"
+            <div className="relative" ref={filterRef}>
+              <button
+                onClick={() => setShowFilterDropdown(v => !v)}
+                className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-all ${
+                  activeFilterCount > 0
+                    ? "bg-[#eff4ff] dark:bg-primary-950/30 border-[#1d77b4] text-[#005e93] dark:text-primary-300"
+                    : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                }`}
               >
-                <option value="all">All status</option>
-                <option value="Open">Open</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Resolved">Resolved</option>
-                <option value="Closed">Closed</option>
-              </select>
+                <Filter className="w-4 h-4" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-[#1d77b4] text-white text-[10px] font-bold">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
+              {showFilterDropdown && (
+                <div className="absolute right-0 top-12 w-72 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-30 p-4 space-y-4 font-sans">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-neutral-900 dark:text-white">Filters</span>
+                    <button onClick={() => setShowFilterDropdown(false)} className="p-1 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 rounded transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block mb-2">Status</label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full h-9 px-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="Open">Open</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Resolved">Resolved</option>
+                      <option value="Closed">Closed</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block mb-2">Priority</label>
+                    <select
+                      value={priorityFilter}
+                      onChange={(e) => setPriorityFilter(e.target.value)}
+                      className="w-full h-9 px-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    >
+                      <option value="all">All Priorities</option>
+                      <option value="High">High</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                    </select>
+                  </div>
+
+                  {activeFilterCount > 0 && (
+                    <button
+                      onClick={() => {
+                        setStatusFilter("all");
+                        setPriorityFilter("all");
+                        setDateFrom("");
+                        setDateTo("");
+                      }}
+                      className="w-full h-9 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Clear all filters
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Tickets Table */}
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-neutral-50 dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
-                      Ticket #
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
-                      Subject
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
-                      Category
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
-                      Priority
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
-                      Last updated
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
-                      Actions
-                    </th>
+                    {["Created Date", "Ticket #", "Subject", "Category", "Status"].map((col) => (
+                      <th
+                        key={col}
+                        className="px-6 py-3 text-left text-xs font-semibold text-neutral-500 uppercase tracking-wider"
+                      >
+                        {col}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                  {filteredTickets.length > 0 ? (
-                    filteredTickets.map((ticket) => (
+                  {paginatedTickets.length > 0 ? (
+                    paginatedTickets.map((ticket) => (
                       <tr
                         key={ticket.id}
-                        className="hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
+                        className="hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors cursor-pointer"
+                        onClick={() => onViewTicket(ticket.id)}
                       >
+                        <td className="px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400 whitespace-nowrap">
+                          {new Date(ticket.createdAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </td>
                         <td className="px-6 py-4">
-                          <span className="text-sm font-medium text-neutral-900 dark:text-white">
-                            {ticket.ticketNumber}
+                          <span className="text-sm font-semibold text-[#1d77b4]">
+                            {ticket.ticketId}
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-sm text-neutral-900 dark:text-white">
+                          <span className="text-sm text-neutral-900 dark:text-white font-medium">
                             {ticket.subject}
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-sm text-neutral-600 dark:text-neutral-400">
                             {ticket.category}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`text-sm font-medium ${getPriorityColor(ticket.priority)}`}>
-                            {ticket.priority}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -336,33 +315,13 @@ export function PatientTicketManagementScreen({
                             {ticket.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-neutral-600 dark:text-neutral-400">
-                            {new Date(ticket.lastUpdated).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-center">
-                            <button
-                              onClick={() => handleViewDetails(ticket)}
-                              className="inline-flex items-center gap-1.5 px-3 h-8 border border-neutral-300 dark:border-neutral-700 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 text-sm font-medium text-neutral-700 dark:text-neutral-300 transition-colors"
-                            >
-                              <Eye className="w-4 h-4" />
-                              View
-                            </button>
-                          </div>
-                        </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center">
+                      <td colSpan={5} className="px-6 py-12 text-center">
                         <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                          No tickets found
+                          No tickets found matching your criteria
                         </p>
                       </td>
                     </tr>
@@ -371,23 +330,65 @@ export function PatientTicketManagementScreen({
               </table>
             </div>
           </div>
+
+          {/* Pagination UI */}
+          {filteredTickets.length > 0 && (
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 font-sans">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-neutral-600 dark:text-neutral-400">Rows per page:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                  className="h-9 px-2 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white focus:outline-none focus:border-[#1d77b4] focus:ring-1 focus:ring-[#1d77b4]"
+                >
+                  <option value={8}>8</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+                <span className="text-sm text-neutral-600 dark:text-neutral-400 ml-2">
+                  Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredTickets.length)} of {filteredTickets.length} tickets
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 h-9 flex items-center justify-center bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-all ${
+                        currentPage === i + 1
+                          ? "bg-[#1d77b4] text-white shadow-sm"
+                          : "bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 h-9 flex items-center justify-center bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </DashboardLayout>
-
-      {/* Create Ticket Drawer */}
       {showCreateDrawer && (
         <CreatePatientTicketDrawer
           onClose={() => setShowCreateDrawer(false)}
-          onSubmit={handleCreateTicket}
-        />
-      )}
-
-      {/* Ticket Details Drawer */}
-      {showDetailsDrawer && selectedTicket && (
-        <PatientTicketDetailsDrawer
-          ticket={selectedTicket}
-          onClose={() => setShowDetailsDrawer(false)}
-          onAddResponse={handleAddResponse}
+          onSubmit={handleCreateTicketSubmit}
         />
       )}
     </>

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Eye, EyeOff, Calendar, Clock } from "lucide-react";
+import { Eye, EyeOff, Shield } from "lucide-react";
+import logo from "@/assets/spinecloud-logo.png";
 
 interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -17,133 +18,169 @@ export function LoginScreen({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [activeInput, setActiveInput] = useState<"email" | "password" | null>(null);
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
-  const validateEmail = (value: string) => {
-    if (!value.trim()) {
-      return "Email is required";
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      return "Enter a valid email address";
-    }
+  const validateEmail = (val: string) => {
+    if (!val.trim()) return "Email address is required";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return "Please enter a valid email address";
     return "";
   };
 
-  const handleEmailBlur = () => {
-    const error = validateEmail(email);
-    setErrors((prev) => ({ ...prev, email: error }));
-  };
-
-  const handlePasswordBlur = () => {
-    if (!password) {
-      setErrors((prev) => ({ ...prev, password: "Password is required" }));
-    } else {
-      setErrors((prev) => ({ ...prev, password: "" }));
-    }
-  };
-
-  const isFormValid = () => {
-    return (
-      email.trim() &&
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) &&
-      password &&
-      Object.values(errors).every((error) => !error)
-    );
+  const validatePassword = (val: string) => {
+    if (!val) return "Password is required";
+    return "";
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isFormValid()) {
+    const eErr = validateEmail(email);
+    const pErr = validatePassword(password);
+    setEmailError(eErr);
+    setPasswordError(pErr);
+    setSubmitted(true);
+    if (!eErr && !pErr) {
       onLoginSuccess();
     }
   };
 
+  const inputStyle = (field: "email" | "password", hasError: boolean) => ({
+    height: "44px",
+    borderRadius: "8px",
+    border: hasError
+      ? "1.5px solid #BA1A1A"
+      : activeInput === field
+      ? "1.5px solid #1D77B4"
+      : "1.5px solid #DCE9FF",
+    padding: field === "password" ? "0 44px 0 14px" : "0 14px",
+    fontSize: "14px",
+    color: "#404750",
+    backgroundColor: hasError ? "#FFF8F7" : "#FFFFFF",
+    boxShadow: hasError
+      ? "0 0 0 3px rgba(186,26,26,0.08)"
+      : activeInput === field
+      ? "0 0 0 3px rgba(29, 119, 180, 0.12)"
+      : "none",
+    outline: "none",
+    width: "100%",
+    transition: "border-color 0.15s, box-shadow 0.15s",
+  });
+
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Brand */}
-      <div className="hidden lg:flex lg:w-5/12 bg-gradient-to-br from-primary-600 to-primary-700 p-12 flex-col justify-between">
+    <div
+      style={{
+        fontFamily: "'Avenir', 'Avenir Next', 'Nunito Sans', sans-serif",
+        height: "100vh",
+        overflow: "hidden",
+        display: "flex",
+      }}
+    >
+      {/* Left Panel - Solid blue gradient matching OTPPasswordScreen */}
+      <div
+        className="hidden lg:flex lg:w-5/12 flex-col justify-between"
+        style={{
+          background: "linear-gradient(135deg, #1D77B4 0%, #1365a2 100%)",
+          padding: "48px",
+          overflow: "hidden",
+          flexShrink: 0,
+          height: "100vh",
+        }}
+      >
         <div>
-          <h1 className="text-4xl font-bold text-white mb-2">SpineCloudIQ</h1>
-          <div className="w-20 h-1 bg-white rounded-full mb-8"></div>
-          <h2 className="text-2xl font-semibold text-white mb-4">Welcome back</h2>
-          <p className="text-primary-100 text-sm leading-relaxed">
-            Sign in to access your health records, manage appointments, and continue your care journey.
+          <img src={logo} alt="SpineCloud IQ" style={{ height: "60px", width: "auto" }} />
+          <div style={{ width: "48px", height: "3px", backgroundColor: "rgba(255,255,255,0.5)", borderRadius: "2px", marginTop: "20px" }} />
+        </div>
+
+        <div style={{ marginBottom: "32px" }}>
+          <h1 style={{ color: "#FFFFFF", fontSize: "38px", fontWeight: 800, lineHeight: 1.15, marginBottom: "16px" }}>
+            Your care,<br />simplified.
+          </h1>
+          <p style={{ color: "rgba(255,255,255,0.80)", fontSize: "15px", lineHeight: 1.7 }}>
+            Access your health records, manage appointments, and stay connected with your care team.
           </p>
         </div>
-        
-        <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-              <Calendar className="w-5 h-5 text-white" />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+            <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <Shield size={18} color="white" />
             </div>
             <div>
-              <h3 className="text-white font-medium text-sm mb-1">Easy scheduling</h3>
-              <p className="text-primary-100 text-sm">Book and manage appointments with ease</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-              <Clock className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-white font-medium text-sm mb-1">24/7 access</h3>
-              <p className="text-primary-100 text-sm">View your health information anytime</p>
+              <p style={{ color: "white", fontWeight: 600, fontSize: "13px", marginBottom: "2px" }}>Secure &amp; private</p>
+              <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "12px" }}>Your health data is encrypted and protected</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Right Panel - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-neutral-50 dark:bg-neutral-950">
-        <div className="w-full max-w-md">
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-2">
-              Login to your account
+      {/* Right Panel */}
+      <div
+        className="flex-1 lg:w-1/2 flex items-center justify-center bg-white"
+        style={{ overflow: "hidden" }}
+      >
+        <div style={{ width: "100%", maxWidth: "400px", padding: "0 32px" }}>
+          {/* Heading */}
+          <div style={{ marginBottom: "28px" }}>
+            <h2 style={{ fontSize: "26px", fontWeight: 700, color: "#404750", marginBottom: "6px" }}>
+              Welcome back!
             </h2>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              Enter your credentials to continue
+            <p style={{ color: "rgba(64,71,80,0.65)", fontSize: "14px" }}>
+              Log in to your account to continue
             </p>
           </div>
 
-          {/* Success Message */}
           {successMessage && (
-            <div className="mb-6 p-4 bg-success-50 dark:bg-success-950/30 border border-success-200 dark:border-success-800 rounded-lg">
-              <p className="text-sm text-success-700 dark:text-success-400">{successMessage}</p>
+            <div
+              style={{
+                marginBottom: "20px",
+                padding: "12px 16px",
+                borderRadius: "8px",
+                backgroundColor: "rgba(140,198,63,0.1)",
+                border: "1px solid #8CC63F",
+              }}
+            >
+              <p style={{ color: "#5a8a1a", fontSize: "14px", fontWeight: 500 }}>{successMessage}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
             {/* Email */}
             <div>
-              <label htmlFor="email" className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-1.5">
-                Email address <span className="text-destructive">*</span>
+              <label
+                htmlFor="email"
+                style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: 600, color: "#404750" }}
+              >
+                Email address
               </label>
               <input
                 id="email"
                 type="email"
-                placeholder="patient@example.com"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
-                  if (errors.email) {
-                    setErrors((prev) => ({ ...prev, email: "" }));
-                  }
+                  if (submitted) setEmailError(validateEmail(e.target.value));
                 }}
-                onBlur={handleEmailBlur}
-                aria-invalid={!!errors.email}
-                className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-1 text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 outline-none focus:border-primary-500 dark:focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 dark:focus:ring-primary-600/20 transition-[border-color,box-shadow] aria-[invalid=true]:border-destructive"
+                onFocus={() => setActiveInput("email")}
+                onBlur={() => { setActiveInput(null); if (submitted) setEmailError(validateEmail(email)); }}
+                style={inputStyle("email", !!emailError && submitted)}
               />
-              {errors.email && (
-                <p className="text-xs text-destructive mt-1">{errors.email}</p>
+              {emailError && submitted && (
+                <p style={{ color: "#BA1A1A", fontSize: "12px", marginTop: "4px" }}>{emailError}</p>
               )}
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-1.5">
-                Password <span className="text-destructive">*</span>
+              <label
+                htmlFor="password"
+                style={{ display: "block", marginBottom: "6px", fontSize: "13px", fontWeight: 600, color: "#404750" }}
+              >
+                Password
               </label>
-              <div className="relative">
+              <div style={{ position: "relative" }}>
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -151,71 +188,99 @@ export function LoginScreen({
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    if (errors.password) {
-                      setErrors((prev) => ({ ...prev, password: "" }));
-                    }
+                    if (submitted) setPasswordError(validatePassword(e.target.value));
                   }}
-                  onBlur={handlePasswordBlur}
-                  aria-invalid={!!errors.password}
-                  className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-1 pr-10 text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 outline-none focus:border-primary-500 dark:focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 dark:focus:ring-primary-600/20 transition-[border-color,box-shadow] aria-[invalid=true]:border-destructive"
+                  onFocus={() => setActiveInput("password")}
+                  onBlur={() => { setActiveInput(null); if (submitted) setPasswordError(validatePassword(password)); }}
+                  style={inputStyle("password", !!passwordError && submitted)}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+                  style={{
+                    position: "absolute",
+                    right: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "rgba(64,71,80,0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-xs text-destructive mt-1">{errors.password}</p>
+              {passwordError && submitted && (
+                <p style={{ color: "#BA1A1A", fontSize: "12px", marginTop: "4px" }}>{passwordError}</p>
               )}
             </div>
 
-            {/* Forgot Password Link */}
-            <div className="flex justify-end">
+            {/* Forgot password */}
+            <div style={{ textAlign: "right", marginTop: "-8px" }}>
               <button
                 type="button"
                 onClick={onNavigateToForgotPassword}
-                className="text-sm text-primary-600 dark:text-primary-400 hover:underline"
+                style={{ color: "#8CC63F", fontSize: "13px", fontWeight: 500, background: "none", border: "none", cursor: "pointer" }}
               >
                 Forgot password?
               </button>
             </div>
 
-            {/* Login Button */}
+            {/* Log in button */}
             <button
               type="submit"
-              disabled={!isFormValid()}
-              className="w-full h-11 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 active:bg-primary-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+              style={{
+                height: "46px",
+                borderRadius: "8px",
+                backgroundColor: "#1D77B4",
+                color: "#FFFFFF",
+                fontWeight: 700,
+                fontSize: "15px",
+                border: "none",
+                cursor: "pointer",
+                width: "100%",
+                transition: "background-color 0.15s",
+                fontFamily: "inherit",
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#1563a0")}
+              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#1D77B4")}
             >
-              Login
+              Log in
             </button>
 
-            {/* Signup Link */}
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={onNavigateToSignup}
-                className="text-sm text-primary-600 dark:text-primary-400 hover:underline"
-              >
-                Don't have an account? Sign up
-              </button>
+            {/* Divider */}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ flex: 1, height: "1px", backgroundColor: "#DCE9FF" }} />
+              <span style={{ fontSize: "12px", color: "rgba(64,71,80,0.45)", fontWeight: 500 }}>or</span>
+              <div style={{ flex: 1, height: "1px", backgroundColor: "#DCE9FF" }} />
             </div>
-          </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-primary-50 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800 rounded-lg">
-            <p className="text-sm font-medium text-primary-700 dark:text-primary-400 mb-2">
-              Demo credentials
-            </p>
-            <p className="text-sm text-primary-600 dark:text-primary-300">
-              Email: <span className="font-mono">patient@example.com</span>
-            </p>
-            <p className="text-sm text-primary-600 dark:text-primary-300">
-              Password: <span className="font-mono">Patient123!</span>
-            </p>
-          </div>
+            {/* Create account */}
+            <button
+              type="button"
+              onClick={onNavigateToSignup}
+              style={{
+                height: "46px",
+                borderRadius: "8px",
+                border: "1.5px solid #8CC63F",
+                color: "#8CC63F",
+                backgroundColor: "transparent",
+                fontWeight: 700,
+                fontSize: "15px",
+                cursor: "pointer",
+                width: "100%",
+                transition: "background-color 0.15s",
+                fontFamily: "inherit",
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "rgba(140,198,63,0.07)")}
+              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+            >
+              Create an account
+            </button>
+          </form>
         </div>
       </div>
     </div>

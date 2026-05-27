@@ -10,18 +10,20 @@ import { ClinicSelectionScreen } from "@/app/components/booking/ClinicSelectionS
 import { ProviderSelectionScreen } from "@/app/components/booking/ProviderSelectionScreen";
 import { AppointmentBookingScreen } from "@/app/components/booking/AppointmentBookingScreen";
 import { BookingFromDashboardFlow } from "@/app/components/booking/BookingFromDashboardFlow";
-import { AppointmentConfirmationScreen } from "@/app/components/dashboard/AppointmentConfirmationScreen";
+import { BookingDrawer } from "@/app/components/booking/BookingDrawer";
 import { DashboardScreen } from "@/app/components/dashboard/DashboardScreen";
 import { ModernQuestionnaireScreen } from "@/app/components/questionnaire/ModernQuestionnaireScreen";
 import { MyProfileScreen } from "@/app/components/profile/MyProfileScreen";
 import { ViewAppointmentDetailsScreen } from "@/app/components/appointments/ViewAppointmentDetailsScreen";
 import { RescheduleDrawer } from "@/app/components/appointments/RescheduleDrawer";
 import { AppointmentsListScreen } from "@/app/components/appointments/AppointmentsListScreen";
+import { FormsAgreementsPatientScreen } from "@/app/components/patient/FormsAgreementsPatientScreen";
 import { InvoicesListScreen as PatientInvoicesListScreen } from "@/app/components/invoices/InvoicesListScreen";
 import { NotificationsScreen } from "@/app/components/notifications/NotificationsScreen";
 import { NotificationDetailScreen } from "@/app/components/notifications/NotificationDetailScreen";
 import { SettingsScreen } from "@/app/components/settings/SettingsScreen";
 import { PatientTicketManagementScreen } from "@/app/components/patient/tickets/PatientTicketManagementScreen";
+import { TicketDetailScreen } from "@/app/components/shared/TicketDetailScreen";
 import { PatientSpineCloudIndexScreen } from "@/app/components/spinecloud/PatientSpineCloudIndexScreen";
 import { PatientClinicalRecordsScreen } from "@/app/components/patient/clinical-records/PatientClinicalRecordsScreen";
 import { SpineCloudQuestionnaireScreen } from "@/app/components/spinecloud/SpineCloudQuestionnaireScreen";
@@ -38,21 +40,22 @@ import { ClinicAdminVerificationScreen } from "@/app/components/clinic-admin/Cli
 import { ClinicAdminLoginScreen } from "@/app/components/clinic-admin/ClinicAdminLoginScreen";
 import { ClinicAdminForgotPasswordScreen } from "@/app/components/clinic-admin/ClinicAdminForgotPasswordScreen";
 import { ClinicAdminDashboardScreen } from "@/app/components/clinic-admin/ClinicAdminDashboardScreen";
+import { BaseSetupScreen } from "@/app/components/clinic-admin/BaseSetupScreen";
 import { BranchesListScreen } from "@/app/components/clinic-admin/BranchesListScreen";
 import { AddEditBranchScreen } from "@/app/components/clinic-admin/AddEditBranchScreen";
 import { RolesManagementScreen } from "@/app/components/clinic-admin/RolesManagementScreen";
 import { AddEditRoleScreen } from "@/app/components/clinic-admin/AddEditRoleScreen";
 import { UserManagementScreen } from "@/app/components/clinic-admin/UserManagementScreen";
 import { AddEditUserScreen } from "@/app/components/clinic-admin/AddEditUserScreen";
-import { QuestionnaireListScreen } from "@/app/components/clinic-admin/QuestionnaireListScreen";
-import { AddEditQuestionnaireScreen } from "@/app/components/clinic-admin/AddEditQuestionnaireScreen";
-import { PreviewQuestionnaireModal } from "@/app/components/clinic-admin/PreviewQuestionnaireModal";
+import { PatientFormsListScreen } from "@/app/components/clinic-admin/PatientFormsListScreen";
+import { AddEditPatientFormScreen } from "@/app/components/clinic-admin/AddEditPatientFormScreen";
+import { PreviewPatientFormModal } from "@/app/components/clinic-admin/PreviewPatientFormModal";
 import { ProvidersListScreen } from "@/app/components/clinic-admin/ProvidersListScreen";
 import { ProviderDetailsScreen } from "@/app/components/clinic-admin/ProviderDetailsScreen";
 import { ProviderScheduleScreen } from "@/app/components/clinic-admin/ProviderScheduleScreen";
 import { ProviderCalendarScreen } from "@/app/components/clinic-admin/ProviderCalendarScreen";
-import { ConsentFormsListScreen } from "@/app/components/clinic-admin/ConsentFormsListScreen";
-import { AddEditConsentFormScreen } from "@/app/components/clinic-admin/AddEditConsentFormScreen";
+import { AgreementsListScreen } from "@/app/components/clinic-admin/AgreementsListScreen";
+import { AddEditAgreementScreen } from "@/app/components/clinic-admin/AddEditAgreementScreen";
 import { PatientsListScreen } from "@/app/components/clinic-admin/PatientsListScreen";
 import { PatientDetailsScreen } from "@/app/components/clinic-admin/PatientDetailsScreen";
 import { AddPatientDrawer } from "@/app/components/clinic-admin/AddPatientDrawer";
@@ -224,6 +227,8 @@ type Screen =
   | "providerLeaveManagement"
   | "carePlanMaster"
   | "patientClinicalRecords"
+  | "consentForms"
+  | "ticketDetails"
   | "clinicAdminClinicalRecords";
 
 type PasswordContext = "signup" | "forgotPassword";
@@ -262,6 +267,8 @@ export default function App() {
   const [currentAppointmentId, setCurrentAppointmentId] =
     useState<string>("");
   const [showRescheduleDrawer, setShowRescheduleDrawer] =
+    useState(false);
+  const [showBookingDrawer, setShowBookingDrawer] =
     useState(false);
   const [questionnaireResponses, setQuestionnaireResponses] =
     useState<any[]>([]);
@@ -624,7 +631,68 @@ export default function App() {
     useState(false);
   const [previewQuestionnaire, setPreviewQuestionnaire] =
     useState<any>(null);
-  const [providers, setProviders] = useState<any[]>([]);
+  const [providers, setProviders] = useState<any[]>([
+    {
+      id: "user-2",
+      firstName: "Michael",
+      lastName: "Chen",
+      name: "Dr. Michael Chen",
+      email: "michael.chen@example.com",
+      role: "Medical Staff",
+      specialty: "Chiropractor",
+      specialization: "Chiropractor",
+      color: "#3B82F6",
+      branches: ["Downtown Branch", "Uptown Branch"],
+      status: "Active",
+      accountStatus: "Active",
+      createdAt: "2024-02-12T09:00:00Z",
+    },
+    {
+      id: "user-1",
+      firstName: "Sarah",
+      lastName: "Johnson",
+      name: "Dr. Sarah Johnson",
+      email: "sarah.johnson@example.com",
+      role: "Clinic Administrator",
+      specialty: "Physical Therapist",
+      specialization: "Physical Therapist",
+      color: "#10B981",
+      branches: ["Downtown Branch"],
+      status: "Active",
+      accountStatus: "Active",
+      createdAt: "2024-01-05T08:30:00Z",
+    },
+    {
+      id: "user-3",
+      firstName: "Emily",
+      lastName: "Rodriguez",
+      name: "Dr. Emily Rodriguez",
+      email: "emily.rodriguez@example.com",
+      role: "Medical Staff",
+      specialty: "Physical Therapist",
+      specialization: "Physical Therapist",
+      color: "#F59E0B",
+      branches: ["Downtown Branch"],
+      status: "Active",
+      accountStatus: "Invited",
+      createdAt: "2024-06-20T11:15:00Z",
+    },
+    {
+      id: "user-4",
+      firstName: "David",
+      lastName: "Kim",
+      name: "Dr. David Kim",
+      email: "david.kim@example.com",
+      role: "Medical Staff",
+      specialty: "Massage Therapist",
+      specialization: "Massage Therapist",
+      color: "#8B5CF6",
+      branches: ["Uptown Branch"],
+      status: "Active",
+      accountStatus: "Suspended",
+      createdAt: "2024-09-03T14:45:00Z",
+    },
+  ]);
   const [providerLeaves, setProviderLeaves] = useState<any[]>([]);
   const [selectedProviderId, setSelectedProviderId] =
     useState<string>("");
@@ -871,6 +939,118 @@ export default function App() {
     useState<string | null>(null);
   const [selectedTicketId, setSelectedTicketId] =
     useState<string>("");
+  const [patientTickets, setPatientTickets] = useState<any[]>([
+    {
+      id: "ticket-001",
+      ticketId: "TKT-2026-001",
+      subject: "Issue with appointment booking",
+      category: "Appointment",
+      priority: "High",
+      status: "Resolved",
+      createdAt: "2026-02-15",
+      updatedAt: "2026-02-18",
+      createdBy: "John Smith",
+      createdByRole: "Patient",
+      description: "I'm unable to book an appointment for next week. The calendar doesn't show any available slots even though I was told there are openings.",
+      messages: [
+        {
+          id: "resp-001",
+          author: "Sarah Johnson",
+          role: "Staff",
+          content: "Thank you for reaching out. We're looking into the calendar availability issue. In the meantime, I've checked manually and we do have slots available next Tuesday and Thursday.",
+          timestamp: "2026-02-15T10:30:00",
+          isYou: false
+        },
+        {
+          id: "resp-002",
+          author: "John Smith",
+          role: "Patient",
+          content: "Thank you! I can see the slots now. I've booked Tuesday at 2 PM.",
+          timestamp: "2026-02-15T14:45:00",
+          isYou: true
+        },
+        {
+          id: "resp-003",
+          author: "Sarah Johnson",
+          role: "Staff",
+          content: "Perfect! We've confirmed your appointment. The calendar issue has been fixed. Thank you for your patience!",
+          timestamp: "2026-02-18T09:15:00",
+          isYou: false
+        },
+      ],
+    },
+    {
+      id: "ticket-002",
+      ticketId: "TKT-2026-002",
+      subject: "Question about insurance coverage",
+      category: "Billing",
+      priority: "Medium",
+      status: "In Progress",
+      createdAt: "2026-02-18",
+      updatedAt: "2026-02-19",
+      createdBy: "John Smith",
+      createdByRole: "Patient",
+      description: "I wanted to check if my insurance plan covers the imaging services that were recommended during my last visit.",
+      messages: [
+        {
+          id: "resp-004",
+          author: "Michael Chen",
+          role: "Staff",
+          content: "Thank you for your inquiry. Our billing team is reviewing your insurance plan details. We'll get back to you within 24 hours with specific coverage information for the recommended imaging services.",
+          timestamp: "2026-02-18T16:20:00",
+          isYou: false
+        },
+      ],
+    },
+    {
+      id: "ticket-003",
+      ticketId: "TKT-2026-003",
+      subject: "Unable to access clinical reports",
+      category: "Technical",
+      priority: "Low",
+      status: "Open",
+      createdAt: "2026-02-20",
+      updatedAt: "2026-02-20",
+      createdBy: "John Smith",
+      createdByRole: "Patient",
+      description: "I'm trying to download my recent lab reports but the download button doesn't seem to work. Can you please help?",
+      messages: [],
+    },
+  ]);
+  const [adminTickets, setAdminTickets] = useState<any[]>([
+    {
+      id: "1",
+      ticketId: "TKT-2026-001",
+      subject: "Unable to access patient records",
+      category: "Technical Issue",
+      priority: "High",
+      status: "In Progress",
+      createdBy: "Dr. Sarah Johnson",
+      createdByRole: "Provider",
+      assignedTo: "IT Support Team",
+      createdAt: "2026-02-18T09:30:00",
+      updatedAt: "2026-02-19T14:20:00",
+      description: "I'm unable to access patient records in the system. Getting an error message when trying to view patient history.",
+      messages: [
+        { id: "m1", author: "IT Support", role: "Staff", content: "We are looking into this.", timestamp: "2026-02-18T10:00:00", isYou: false }
+      ]
+    },
+    {
+      id: "2",
+      ticketId: "TKT-2026-002",
+      subject: "Billing discrepancy in invoice #INV-2026-042",
+      category: "Billing",
+      priority: "Medium",
+      status: "Open",
+      createdBy: "Emily Staff",
+      createdByRole: "Clinic Staff",
+      assignedTo: "Finance Team",
+      createdAt: "2026-02-19T11:15:00",
+      updatedAt: "2026-02-19T11:15:00",
+      description: "There's a discrepancy in the total amount for invoice #INV-2026-042. The insurance amount doesn't match our records.",
+      messages: []
+    }
+  ]);
   const [editingEmailTemplate, setEditingEmailTemplate] =
     useState<any | null>(null);
   const [patientAppointments, setPatientAppointments] =
@@ -5643,72 +5823,84 @@ export default function App() {
       setQuestionnaireResponses(onboardingData.questionnaires);
     }
 
-    // Create appointment from onboarding data WITH dummy details
-    const newAppointmentId = `apt-${Date.now()}`;
-    const newAppointment = {
-      id: newAppointmentId,
-      date: onboardingData.appointmentDetails.date,
-      time: onboardingData.appointmentDetails.time,
-      timeSlot: onboardingData.appointmentDetails.timeSlot,
-      clinic: onboardingData.selectedClinic.name,
-      clinicAddress:
-        onboardingData.selectedClinic.address +
-        ", " +
-        onboardingData.selectedClinic.city,
-      type: onboardingData.appointmentDetails.type,
-      provider: onboardingData.selectedProvider.name,
-      status: "Confirmed" as const,
-      // Add dummy details for viewing
-      sessionNotes:
-        "Patient reports improvement in mobility and reduced pain levels. Continuing with current treatment plan. Follow-up recommended in 2 weeks to assess progress.",
-      images: [
-        {
-          id: "img-1",
-          url: "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800&h=600&fit=crop",
-          caption: "X-ray - Lateral view",
-          annotations: [
-            {
-              id: "ann-1",
-              x: 45,
-              y: 30,
-              text: "Area of concern",
-              color: "#EF4444",
-            },
-            {
-              id: "ann-2",
-              x: 60,
-              y: 50,
-              text: "Improved alignment",
-              color: "#10B981",
-            },
-          ],
-        },
-        {
-          id: "img-2",
-          url: "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&h=600&fit=crop",
-          caption: "MRI - Sagittal view",
-          annotations: [
-            {
-              id: "ann-3",
-              x: 50,
-              y: 40,
-              text: "Normal tissue",
-              color: "#10B981",
-            },
-          ],
-        },
-      ],
-    };
-    setAppointments([...appointments, newAppointment]);
-    setCurrentAppointmentId(newAppointmentId);
-    setBookedAppointment(newAppointment); // Set bookedAppointment for confirmation screen
+    if (onboardingData.appointmentDetails && onboardingData.selectedClinic && onboardingData.selectedProvider) {
+      // Create appointment from onboarding data WITH dummy details
+      const newAppointmentId = `apt-${Date.now()}`;
+      const newAppointment = {
+        id: newAppointmentId,
+        date: onboardingData.appointmentDetails.date,
+        time: onboardingData.appointmentDetails.time || onboardingData.appointmentDetails.timeSlot,
+        timeSlot: onboardingData.appointmentDetails.timeSlot,
+        clinic: onboardingData.selectedClinic.name,
+        clinicAddress:
+          onboardingData.selectedClinic.address +
+          ", " +
+          onboardingData.selectedClinic.city,
+        type: onboardingData.appointmentDetails.type || "Initial Consultation",
+        provider: onboardingData.selectedProvider.name,
+        status: "Confirmed" as const,
+        // Add dummy details for viewing
+        sessionNotes:
+          "Patient reports improvement in mobility and reduced pain levels. Continuing with current treatment plan. Follow-up recommended in 2 weeks to assess progress.",
+        images: [
+          {
+            id: "img-1",
+            url: "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800&h=600&fit=crop",
+            caption: "X-ray - Lateral view",
+            annotations: [
+              {
+                id: "ann-1",
+                x: 45,
+                y: 30,
+                text: "Area of concern",
+                color: "#EF4444",
+              },
+              {
+                id: "ann-2",
+                x: 60,
+                y: 50,
+                text: "Improved alignment",
+                color: "#10B981",
+              },
+            ],
+          },
+          {
+            id: "img-2",
+            url: "https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&h=600&fit=crop",
+            caption: "MRI - Sagittal view",
+            annotations: [
+              {
+                id: "ann-3",
+                x: 50,
+                y: 40,
+                text: "Normal tissue",
+                color: "#10B981",
+              },
+            ],
+          },
+        ],
+      };
+      setAppointments([...appointments, newAppointment]);
+      setCurrentAppointmentId(newAppointmentId);
+      setBookedAppointment(newAppointment); // Set bookedAppointment for confirmation screen
 
-    // Check if consent forms are enabled
-    if (wizardData?.intakeDefaults.enableConsents) {
-      setCurrentScreen("consent");
+      // Check if consent forms are enabled
+      if (wizardData?.intakeDefaults?.enableConsents) {
+        setCurrentScreen("consent");
+      } else {
+        // Skip consent forms, go directly to confirmation
+        setCurrentScreen("appointmentConfirmation");
+      }
     } else {
-      // Skip consent forms, go directly to confirmation
-      setCurrentScreen("appointmentConfirmation");
+      // Skipped appointment booking
+      setBookedAppointment(null);
+      
+      // Check if consent forms are enabled
+      if (wizardData?.intakeDefaults?.enableConsents) {
+        setCurrentScreen("consent");
+      } else {
+        setCurrentScreen("dashboard");
+      }
     }
   };
 
@@ -5823,7 +6015,7 @@ export default function App() {
     setBookedAppointment(newAppointment);
 
     // Check if consent forms are enabled
-    if (wizardData?.intakeDefaults.enableConsents) {
+    if (wizardData?.intakeDefaults?.enableConsents) {
       setCurrentScreen("consent");
     } else {
       // Skip consent forms, go directly to confirmation
@@ -6149,6 +6341,8 @@ export default function App() {
   const handleClinicAdminNavigate = (menu: string) => {
     if (menu === "dashboard") {
       setCurrentScreen("clinicAdminDashboard");
+    } else if (menu === "baseSetup") {
+      setCurrentScreen("baseSetup");
     } else if (menu === "calendar") {
       setCurrentScreen("clinicCalendar");
     } else if (menu === "holidays") {
@@ -6279,7 +6473,8 @@ export default function App() {
   console.log("📱 Current Screen:", currentScreen);
 
   return (
-    <div className="size-full">\n      {/* Entity Switcher - Shows on auth screens only */}
+    <div className="size-full">
+      {/* Entity Switcher - Shows on auth screens only */}
       {showEntitySwitcher && (
         <EntitySwitcher
           currentEntity={currentEntity}
@@ -6357,7 +6552,7 @@ export default function App() {
           onBack={() => setCurrentScreen("patientProfile")}
           onContinue={() => {
             // Check if intake wizard is enabled
-            if (wizardData?.intakeDefaults.enableIntakeWizard) {
+            if (wizardData?.intakeDefaults?.enableIntakeWizard) {
               setCurrentScreen("questionnaireCategory");
             } else {
               // Skip questionnaires, go directly to clinic selection
@@ -6468,8 +6663,24 @@ export default function App() {
         <>
           {console.log("✅ Rendering ConsentFormsScreen - currentScreen:", currentScreen)}
           <ConsentFormsScreen
-            onBack={() => setCurrentScreen("questionnaireCategory")}
-            onComplete={() => setCurrentScreen("clinicSelection")}
+            onBack={() => {
+              if (hasCompletedProfile) {
+                setCurrentScreen("patientOnboarding");
+              } else {
+                setCurrentScreen("questionnaireCategory");
+              }
+            }}
+            onComplete={() => {
+              if (hasCompletedProfile) {
+                if (bookedAppointment) {
+                  setCurrentScreen("appointmentConfirmation");
+                } else {
+                  setCurrentScreen("dashboard");
+                }
+              } else {
+                setCurrentScreen("clinicSelection");
+              }
+            }}
           />
         </>
       )}
@@ -6567,7 +6778,7 @@ export default function App() {
           onCancel={handleCancelAppointment}
           onLogout={() => setCurrentScreen("login")}
           onBookAppointment={() =>
-            setCurrentScreen("bookingServiceType")
+            setShowBookingDrawer(true)
           }
           onNavigateToNotifications={() =>
             setCurrentScreen("notifications")
@@ -6673,13 +6884,112 @@ export default function App() {
           onNavigate={(menu) => {
             if (menu === "clinicalRecords") {
               setCurrentScreen("patientClinicalRecords");
-            } else if (menu === "clinicalRecords") {
-              setCurrentScreen("patientClinicalRecords");
             } else {
               setCurrentScreen(menu as any);
             }
           }}
+          onViewTicket={(id) => {
+            setSelectedTicketId(id);
+            setCurrentScreen("ticketDetails");
+          }}
           onLogout={() => setCurrentScreen("login")}
+          tickets={patientTickets}
+          onCreateTicket={(ticketData) => {
+            const newTicket = {
+              id: `ticket-${Date.now()}`,
+              ticketId: `TKT-2026-${String(patientTickets.length + 1).padStart(3, "0")}`,
+              subject: ticketData.subject,
+              category: ticketData.category,
+              priority: ticketData.priority,
+              status: "Open",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              createdBy: "John Smith",
+              createdByRole: "Patient",
+              description: ticketData.description,
+              messages: [],
+            };
+            setPatientTickets([newTicket, ...patientTickets]);
+          }}
+        />
+      )}
+
+      {/* Ticket Details Screen */}
+      {currentScreen === "ticketDetails" && selectedTicketId && (
+        <TicketDetailScreen
+          portal={currentEntity === "clinicAdmin" ? "admin" : "patient"}
+          ticket={
+            currentEntity === "clinicAdmin" 
+              ? adminTickets.find(t => t.id === selectedTicketId)
+              : patientTickets.find(t => t.id === selectedTicketId)
+          }
+          messages={
+            currentEntity === "clinicAdmin"
+              ? adminTickets.find(t => t.id === selectedTicketId)?.messages || []
+              : patientTickets.find(t => t.id === selectedTicketId)?.messages || []
+          }
+          onBack={() => {
+            if (currentEntity === "clinicAdmin") setCurrentScreen("ticketManagement");
+            else setCurrentScreen("tickets");
+          }}
+          onNavigate={(menu) => {
+             if (currentEntity === "clinicAdmin") handleClinicAdminNavigate(menu);
+             else if (menu === "clinicalRecords") {
+               setCurrentScreen("patientClinicalRecords");
+             } else {
+               setCurrentScreen(menu as any);
+             }
+          }}
+          onLogout={() => setCurrentScreen("login")}
+          onSendReply={(message) => {
+            if (currentEntity === "clinicAdmin") {
+                const updatedTickets = adminTickets.map(t => {
+                  if (t.id === selectedTicketId) {
+                    return {
+                      ...t,
+                      updatedAt: new Date().toISOString(),
+                      messages: [
+                        ...t.messages,
+                        {
+                          id: `msg-${Date.now()}`,
+                          author: "Clinic Admin",
+                          role: "Staff",
+                          content: message,
+                          timestamp: new Date().toISOString(),
+                          isYou: true
+                        }
+                      ]
+                    };
+                  }
+                  return t;
+                });
+                setAdminTickets(updatedTickets);
+            } else {
+                const updatedTickets = patientTickets.map(t => {
+                  if (t.id === selectedTicketId) {
+                    return {
+                      ...t,
+                      updatedAt: new Date().toISOString(),
+                      messages: [
+                        ...t.messages,
+                        {
+                          id: `msg-${Date.now()}`,
+                          author: "John Smith",
+                          role: "Patient",
+                          content: message,
+                          timestamp: new Date().toISOString(),
+                          isYou: true
+                        }
+                      ]
+                    };
+                  }
+                  return t;
+                });
+                setPatientTickets(updatedTickets);
+            }
+          }}
+          currentEntity={currentEntity}
+          onEntitySwitch={handleEntitySwitch}
         />
       )}
 
@@ -6695,6 +7005,29 @@ export default function App() {
           onLogout={() => setCurrentScreen("login")}
           onNavigateToProfile={() => setCurrentScreen("myProfile")}
           clinicSettings={clinicSettings}
+        />
+      )}
+
+      {/* Forms & Agreements */}
+      {currentScreen === "consentForms" && (
+        <FormsAgreementsPatientScreen
+          onNavigate={(menu) => {
+             if (menu === "clinicalRecords") {
+               setCurrentScreen("patientClinicalRecords");
+             } else {
+               setCurrentScreen(menu as any);
+             }
+          }}
+          onLogout={() => setCurrentScreen("login")}
+          onNavigateToProfile={() => setCurrentScreen("myProfile")}
+          currentEntity="patient"
+          onEntitySwitch={(entity) => {
+            setCurrentEntity(entity);
+            if (entity === "clinicAdmin") setCurrentScreen("clinicAdminDashboard");
+            else if (entity === "provider") setCurrentScreen("providerDashboard");
+            else if (entity === "clinic-staff") setCurrentScreen("clinicStaffCalendar");
+          }}
+          notifications={notifications}
         />
       )}
 
@@ -6733,11 +7066,13 @@ export default function App() {
           />
         )}
 
-      {/* Booking From Appointments List Flow */}
-      {currentScreen === "bookingServiceType" && (
-        <BookingFromDashboardFlow
+      {/* Booking Drawer */}
+      {showBookingDrawer && (
+        <BookingDrawer
+          isOpen={showBookingDrawer}
+          onClose={() => setShowBookingDrawer(false)}
           services={services}
-          clinics={branches.map((b) => ({
+          branches={branches.map((b) => ({
             id: b.id,
             name: b.name,
             address: `${b.street}, ${b.city}, ${b.state} ${b.zip}`,
@@ -6762,18 +7097,9 @@ export default function App() {
               availability: "Next available: Monday",
             },
           ]}
-          spineCloudConfig={spineCloudConfig}
-          patientVisitCount={appointments.filter(a => a.patientId === "patient-1" && a.status === "Completed").length}
-          patientLastVisitDate={
-            appointments
-              .filter(a => a.patientId === "patient-1" && a.status === "Completed")
-              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]?.date
-          }
-          patientAge={29}
-          onComplete={(bookingData) => {
-            // Create new appointment
+          onConfirm={(bookingData) => {
             const selectedClinic = branches.find(
-              (b) => b.id === bookingData.clinicId,
+              (b) => b.id === bookingData.branchId,
             );
             const providerNames: Record<string, string> = {
               "user-1": "Dr. Sarah Johnson",
@@ -6781,7 +7107,6 @@ export default function App() {
               "user-3": "Dr. Emily Rodriguez",
             };
 
-            // Generate appointment ID
             const appointmentNumber = String(
               appointments.length + 1,
             ).padStart(4, "0");
@@ -6810,8 +7135,6 @@ export default function App() {
             };
 
             setAppointments([...appointments, newAppointment]);
-
-            // Add notification for new booking
             setNotifications([
               {
                 id: `notif-${Date.now()}`,
@@ -6821,11 +7144,9 @@ export default function App() {
               },
               ...notifications,
             ]);
-
-            // Redirect directly to appointments list
+            setShowBookingDrawer(false);
             setCurrentScreen("appointments");
           }}
-          onCancel={() => setCurrentScreen("appointments")}
         />
       )}
 
@@ -6834,20 +7155,32 @@ export default function App() {
         <RescheduleDrawer
           isOpen={showRescheduleDrawer}
           onClose={() => setShowRescheduleDrawer(false)}
-          onConfirm={(data) => {
-            // Update the existing appointment
-            const updatedAppointments = appointments.map(
-              (apt) =>
-                apt.id === currentAppointmentId
-                  ? {
-                      ...apt,
-                      ...data,
-                      clinic: "Downtown Medical Center",
-                      clinicAddress:
-                        "123 Main Street, Suite 400, New York, NY 10001",
-                      provider: "Dr. Sarah Johnson",
-                    }
-                  : apt,
+          onConfirm={(bookingData) => {
+            const selectedClinic = branches.find(
+              (b) => b.id === bookingData.branchId,
+            );
+            const providerNames: Record<string, string> = {
+              "user-1": "Dr. Sarah Johnson",
+              "user-2": "Dr. Michael Chen",
+              "user-3": "Dr. Emily Rodriguez",
+            };
+
+            const updatedAppointments = appointments.map((apt) =>
+              apt.id === currentAppointmentId
+                ? {
+                    ...apt,
+                    date: bookingData.date,
+                    time: bookingData.time,
+                    timeSlot: `${bookingData.time} - ${bookingData.time}`,
+                    service: bookingData.service,
+                    providerId: bookingData.providerId,
+                    provider: providerNames[bookingData.providerId] || "Dr. Sarah Johnson",
+                    clinic: selectedClinic?.name || "Downtown Medical Center",
+                    clinicAddress: selectedClinic
+                      ? `${selectedClinic.street}, ${selectedClinic.city}, ${selectedClinic.state} ${selectedClinic.zip}`
+                      : "123 Main Street, Suite 400, New York, NY 10001",
+                  }
+                : apt,
             );
             setAppointments(updatedAppointments);
             setNotifications([
@@ -6861,44 +7194,27 @@ export default function App() {
             ]);
             setShowRescheduleDrawer(false);
           }}
-          clinics={[
-            {
-              id: "1",
-              name: "Downtown Medical Center",
-              address:
-                "123 Main Street, Suite 400, New York, NY 10001",
-              workingHours: "Mon–Fri, 9:00 AM – 6:00 PM",
-            },
-            {
-              id: "2",
-              name: "Uptown Wellness Clinic",
-              address:
-                "456 Park Avenue, 2nd Floor, New York, NY 10022",
-              workingHours: "Mon–Sat, 8:00 AM – 7:00 PM",
-            },
-            {
-              id: "3",
-              name: "Brooklyn Health Center",
-              address:
-                "789 Atlantic Avenue, Brooklyn, NY 11217",
-              workingHours: "Mon–Fri, 10:00 AM – 5:00 PM",
-            },
-          ]}
+          clinics={branches.map((b) => ({
+            id: b.id,
+            name: b.name,
+            address: `${b.street}, ${b.city}, ${b.state} ${b.zip}`,
+            workingHours: "Mon–Fri, 9:00 AM – 6:00 PM",
+          }))}
           providers={[
             {
-              id: "1",
+              id: "user-1",
               name: "Dr. Sarah Johnson",
               specialization: "Chiropractor",
               availability: "Available Today",
             },
             {
-              id: "2",
+              id: "user-2",
               name: "Dr. Michael Chen",
               specialization: "Physical Therapist",
               availability: "Next available: Tomorrow",
             },
             {
-              id: "3",
+              id: "user-3",
               name: "Dr. Emily Rodriguez",
               specialization: "Sports Medicine Specialist",
               availability: "Available Today",
@@ -7564,6 +7880,12 @@ export default function App() {
             <ProviderPatientDetailsScreen
               patient={fullPatientDetails}
               soapCategories={soapCategories}
+              services={services}
+              branches={branches}
+              providers={providers}
+              onBookAppointments={(newAppts) => {
+                setPatientAppointments(prev => [...prev, ...newAppts]);
+              }}
               onNavigate={(menu) => {
                 if (menu === "dashboard") {
                   setCurrentScreen("providerDashboard");
@@ -8289,6 +8611,24 @@ export default function App() {
         onEdit={handleEditRoom}
       />
 
+      {/* Base Setup Screen */}
+      {currentScreen === "baseSetup" && (
+        <BaseSetupScreen
+          branches={branches}
+          providers={providers}
+          services={services}
+          questionnaires={questionnaires}
+          consentForms={consentForms}
+          roles={roles}
+          users={users}
+          onNavigate={handleClinicAdminNavigate}
+          onLogout={() => {
+            setCurrentEntity("patient");
+            setCurrentScreen("login");
+          }}
+        />
+      )}
+
       {/* Clinic Admin Dashboard */}
       {currentScreen === "clinicAdminDashboard" && (
         <>
@@ -8416,10 +8756,15 @@ export default function App() {
       {currentScreen === "ticketManagement" && (
         <TicketManagementScreen
           onNavigate={handleClinicAdminNavigate}
+          onViewTicket={(id) => {
+             setSelectedTicketId(id);
+             setCurrentScreen("ticketDetails");
+          }}
           onLogout={() => {
             setCurrentEntity("patient");
             setCurrentScreen("login");
           }}
+          tickets={adminTickets}
         />
       )}
 
@@ -8767,20 +9112,8 @@ export default function App() {
 
       {/* Questionnaires List */}
       {currentScreen === "questionnairesList" && (
-        <QuestionnaireListScreen
-          questionnaires={questionnaires}
+        <PatientFormsListScreen
           onNavigate={handleClinicAdminNavigate}
-          onAddQuestionnaire={() => {
-            setEditingQuestionnaire(null);
-            setCurrentScreen("addEditQuestionnaire");
-          }}
-          onEditQuestionnaire={(id) => {
-            const quest = questionnaires.find(
-              (q) => q.id === id,
-            );
-            setEditingQuestionnaire(quest);
-            setCurrentScreen("addEditQuestionnaire");
-          }}
           onLogout={() => {
             setCurrentEntity("patient");
             setCurrentScreen("login");
@@ -9132,17 +9465,8 @@ export default function App() {
 
       {/* Consent Forms List */}
       {currentScreen === "consentFormsList" && (
-        <ConsentFormsListScreen
-          forms={consentForms}
+        <AgreementsListScreen
           onNavigate={handleClinicAdminNavigate}
-          onAdd={() => {
-            setEditingConsentForm(null);
-            setCurrentScreen("addEditConsentForm");
-          }}
-          onEdit={(form) => {
-            setEditingConsentForm(form);
-            setCurrentScreen("addEditConsentForm");
-          }}
           onLogout={() => {
             setCurrentEntity("patient");
             setCurrentScreen("login");

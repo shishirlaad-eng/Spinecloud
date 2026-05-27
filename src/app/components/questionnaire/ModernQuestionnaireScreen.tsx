@@ -134,11 +134,8 @@ export function ModernQuestionnaireScreen({
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-neutral-50 dark:from-neutral-950 dark:to-neutral-900 p-4 md:p-6">
       <div className="max-w-3xl mx-auto">
-        {/* Brand Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-neutral-900 dark:text-white mb-2">
-            SpineCloudIQ
-          </h1>
+        {/* Header Title Area */}
+        <div className="text-center mb-6">
           <div className="w-16 h-1 bg-primary-600 mx-auto rounded-full"></div>
         </div>
 

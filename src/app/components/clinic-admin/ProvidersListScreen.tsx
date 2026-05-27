@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ClinicAdminLayout } from "./layout/ClinicAdminLayout";
-import { UserPlus, Search, Stethoscope, MoreVertical, Edit2, UserCheck, Filter, X, Plus, Lock, Download } from "lucide-react";
+import { UserPlus, Search, Stethoscope, MoreVertical, Edit2, UserCheck, Filter, X, Plus, Lock, Download, Calendar, HelpCircle, BookOpen, ChevronUp } from "lucide-react";
 import { Pagination } from "../shared/Pagination";
 import { TooltipBubble } from "../shared/TooltipBubble";
 import { isStepCompleted } from "../shared/walkthroughUtils";
@@ -21,6 +21,7 @@ interface Provider {
   hasVisitTypes: boolean;
   invitationSent?: boolean;
   invitationDate?: string;
+  createdAt?: string;
 }
 
 interface ProvidersListScreenProps {
@@ -48,17 +49,98 @@ export function ProvidersListScreen({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [branchFilter, setBranchFilter] = useState<string>("all");
   const [specialtyFilter, setSpecialtyFilter] = useState<string>("all");
-  const [selfBookableFilter, setSelfBookableFilter] = useState<string>("all");
-  const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<"name" | "specialty" | "status">("name");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = useState<"name" | "specialty" | "status" | "createdAt">("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [showKnowledgePanel, setShowKnowledgePanel] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<string | null>("overview");
+
+  const renderKnowledgePanel = () => {
+    if (!showKnowledgePanel) return null;
+    return (
+      <>
+        <div className="fixed inset-0 bg-neutral-950/40 z-40" onClick={() => setShowKnowledgePanel(false)} />
+        <div className="fixed top-0 right-0 h-full w-full max-w-md bg-white dark:bg-neutral-900 border-l border-neutral-200 dark:border-neutral-800 z-50 flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-primary-50 dark:bg-primary-950/20">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/40 rounded-lg flex items-center justify-center">
+                <BookOpen className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-neutral-900 dark:text-white">Providers Management</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">Knowledge Guide</p>
+              </div>
+            </div>
+            <button onClick={() => setShowKnowledgePanel(false)} className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto text-left">
+            {[
+              {
+                id: "overview",
+                title: "What is the Providers Module?",
+                content: (
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                    The <strong className="text-neutral-800 dark:text-neutral-200">Providers module</strong> allows clinic administrators to manage all healthcare staff — including chiropractors, physical therapists, and massage therapists — who deliver services across your branches. Each provider profile controls availability, branch assignments, and self-booking eligibility.
+                  </p>
+                ),
+              },
+              {
+                id: "status",
+                title: "Provider Status Types",
+                content: (
+                  <div className="text-sm text-neutral-600 dark:text-neutral-400 space-y-2 leading-relaxed">
+                    <div><p className="font-semibold text-neutral-800 dark:text-neutral-200">Active</p><p>The provider has accepted their invitation and can receive bookings. Their availability schedule is live.</p></div>
+                    <div><p className="font-semibold text-neutral-800 dark:text-neutral-200">Invited</p><p>An invitation email has been sent but the provider has not yet accepted or created their account.</p></div>
+                    <div><p className="font-semibold text-neutral-800 dark:text-neutral-200">Suspended</p><p>The provider is temporarily deactivated. They cannot log in or receive new bookings, but their records are preserved.</p></div>
+                  </div>
+                ),
+              },
+              {
+                id: "schedule",
+                title: "Availability & Branch Assignments",
+                content: (
+                  <div className="text-sm text-neutral-600 dark:text-neutral-400 space-y-2 leading-relaxed">
+                    <p>Each provider must have an availability schedule configured before patients can book appointments with them. From the provider detail page you can:</p>
+                    <ul className="list-disc list-inside space-y-1 pl-1">
+                      <li>Set working hours by day of the week</li>
+                      <li>Assign the provider to one or more branches</li>
+                      <li>Enable or disable self-booking eligibility for patients</li>
+                      <li>Block out leave periods using the leave management tab</li>
+                    </ul>
+                  </div>
+                ),
+              },
+            ].map((section) => {
+              const isExpanded = expandedSection === section.id;
+              return (
+                <div key={section.id} className="border-b border-neutral-100 dark:border-neutral-800">
+                  <button type="button" onClick={() => setExpandedSection(isExpanded ? null : section.id)} className="w-full flex items-center justify-between gap-3 px-5 py-4 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-left">
+                    <span className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{section.title}</span>
+                    {isExpanded ? <ChevronUp className="w-4 h-4 text-neutral-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-neutral-400 shrink-0" />}
+                  </button>
+                  {isExpanded && <div className="px-5 pb-5 pt-1">{section.content}</div>}
+                </div>
+              );
+            })}
+          </div>
+          <div className="px-5 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-950/30">
+            <p className="text-xs text-neutral-400 dark:text-neutral-500 text-center">This guide reflects the current capabilities of the Providers module in SpineCloudIQ.</p>
+          </div>
+        </div>
+      </>
+    );
+  };
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, branchFilter, specialtyFilter, selfBookableFilter, availabilityFilter]);
+  }, [searchQuery, statusFilter, branchFilter, specialtyFilter, startDateFilter, endDateFilter]);
+
   const [activeGuide, setActiveGuide] = useState<string | null>(null);
   const [bubbleDismissed, setBubbleDismissed] = useState(false);
 
@@ -72,13 +154,8 @@ export function ProvidersListScreen({
     localStorage.setItem("spinecloud_bubble_dismissed_providers", "true");
   };
 
-  // Get unique values for filters
-  const allBranches = Array.from(
-    new Set((providers || []).flatMap((p) => p.branches))
-  );
-  const allSpecialties = Array.from(
-    new Set((providers || []).map((p) => p.specialty))
-  );
+  const allBranches = Array.from(new Set((providers || []).flatMap((p) => p.branches)));
+  const allSpecialties = Array.from(new Set((providers || []).map((p) => p.specialty)));
 
   const filteredProviders = (providers || []).filter((provider) => {
     const fullName = `${provider.firstName} ${provider.lastName}`.toLowerCase();
@@ -88,45 +165,42 @@ export function ProvidersListScreen({
       provider.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       provider.specialty.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === "all" || provider.accountStatus === statusFilter;
+    const matchesStatus = statusFilter === "all" || provider.accountStatus === statusFilter;
+    const matchesBranch = branchFilter === "all" || provider.branches.includes(branchFilter);
+    const matchesSpecialty = specialtyFilter === "all" || provider.specialty === specialtyFilter;
 
-    const matchesBranch =
-      branchFilter === "all" || provider.branches.includes(branchFilter);
+    let matchesDate = true;
+    if (provider.createdAt) {
+      const createdDate = new Date(provider.createdAt).getTime();
+      if (startDateFilter) {
+        matchesDate = matchesDate && createdDate >= new Date(startDateFilter).getTime();
+      }
+      if (endDateFilter) {
+        matchesDate = matchesDate && createdDate <= new Date(endDateFilter).setHours(23, 59, 59, 999);
+      }
+    }
 
-    const matchesSpecialty =
-      specialtyFilter === "all" || provider.specialty === specialtyFilter;
-
-    const matchesSelfBookable =
-      selfBookableFilter === "all" ||
-      (selfBookableFilter === "yes" && provider.selfBookingEligible) ||
-      (selfBookableFilter === "no" && !provider.selfBookingEligible);
-
-    const matchesAvailability =
-      availabilityFilter === "all" || provider.availabilityStatus === availabilityFilter;
-
-    return matchesSearch && matchesStatus && matchesBranch && matchesSpecialty && matchesSelfBookable && matchesAvailability;
+    return matchesSearch && matchesStatus && matchesBranch && matchesSpecialty && matchesDate;
   });
 
   const sortedProviders = [...filteredProviders].sort((a, b) => {
+    if (sortBy === "createdAt") {
+      const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return sortOrder === "asc" ? aDate - bDate : bDate - aDate;
+    }
     if (sortBy === "name") {
       const aName = `${a.firstName} ${a.lastName}`;
       const bName = `${b.firstName} ${b.lastName}`;
-      return sortOrder === "asc"
-        ? aName.localeCompare(bName)
-        : bName.localeCompare(aName);
+      return sortOrder === "asc" ? aName.localeCompare(bName) : bName.localeCompare(aName);
     } else if (sortBy === "specialty") {
-      return sortOrder === "asc"
-        ? a.specialty.localeCompare(b.specialty)
-        : b.specialty.localeCompare(a.specialty);
+      return sortOrder === "asc" ? a.specialty.localeCompare(b.specialty) : b.specialty.localeCompare(a.specialty);
     } else {
-      return sortOrder === "asc"
-        ? a.status.localeCompare(b.status)
-        : b.status.localeCompare(a.status);
+      return sortOrder === "asc" ? a.status.localeCompare(b.status) : b.status.localeCompare(a.status);
     }
   });
 
-  const handleSort = (field: "name" | "specialty" | "status") => {
+  const handleSort = (field: "name" | "specialty" | "status" | "createdAt") => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -139,91 +213,77 @@ export function ProvidersListScreen({
     (statusFilter !== "all" ? 1 : 0) +
     (branchFilter !== "all" ? 1 : 0) +
     (specialtyFilter !== "all" ? 1 : 0) +
-    (selfBookableFilter !== "all" ? 1 : 0) +
-    (availabilityFilter !== "all" ? 1 : 0);
+    (startDateFilter || endDateFilter ? 1 : 0);
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = sortedProviders.slice(indexOfFirstItem, indexOfLastItem);
 
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "N/A";
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
   return (
     <ClinicAdminLayout activeMenu="providers" onNavigate={onNavigate} onLogout={onLogout}>
       <div className="p-6">
+        {renderKnowledgePanel()}
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-1">
-              Provider Management
+              Providers
             </h1>
             <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              Manage provider schedules, branches, and availability
+              Manage medical staff, clinic assignments, and availability schedules
             </p>
           </div>
-          {/* Add Provider button with guided tooltip bubble */}
-          <div className="relative">
-            <button
-              className="inline-flex items-center gap-2 px-4 h-10 bg-primary-600 text-white rounded-lg hover:bg-primary-700 active:bg-primary-800 transition-colors font-medium text-sm"
-              onClick={onAddProvider}
-            >
-              <Plus className="w-4 h-4" />
-              Add provider
-            </button>
-            <TooltipBubble
-              step="Step 3"
-              title="Add providers"
-              description="Click 'Add Provider' to add doctors or therapists to your clinic. They will be assigned to specific branches and services."
-              side="left"
-              visible={!bubbleDismissed && (activeGuide === "providers" || (!isStepCompleted("providers") && activeGuide !== "skipped"))}
-              onDismiss={handleDismissBubble}
-            />
-          </div>
+          <button type="button" onClick={() => setShowKnowledgePanel(true)} title="Module Knowledge Guide" className="flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-400 dark:hover:border-primary-600 rounded-lg text-xs font-medium transition-colors shadow-sm">
+            <HelpCircle className="w-4 h-4" />
+            <span>Help Guide</span>
+          </button>
         </div>
 
-        {/* Search and Filters */}
-        <div className="mb-6 flex gap-3">
+        {/* Search and Filter Bar */}
+        <div className="mb-6 flex gap-3 items-center">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <input
               type="text"
-              placeholder="Search providers..."
+              placeholder="Search by name, email, or specialty"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 outline-none focus:border-primary-500 dark:focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 dark:focus:ring-primary-600/20 transition-[border-color,box-shadow]"
+              className="w-full h-10 pl-9 pr-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 outline-none transition-[border-color,box-shadow]"
             />
           </div>
 
-          {/* Export Button */}
-          <button
-            onClick={() => console.log("Exporting providers...")}
-            className="inline-flex items-center gap-2 px-4 h-10 border rounded-lg transition-colors text-sm font-medium border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-          >
-            <Download className="w-4 h-4" />
-            Export
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Filter Button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-colors ${
+                  activeFilterCount > 0
+                    ? "border-primary-500 dark:border-primary-600 bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400"
+                    : "border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                }`}
+                title="Filters"
+              >
+                <Filter className="w-4 h-4" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-600 dark:bg-primary-500 text-white text-[10px] font-bold border-2 border-white dark:border-neutral-950">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
 
-          {/* Filter Button */}
-          <div className="relative">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`inline-flex items-center gap-2 px-4 h-10 border rounded-lg transition-colors text-sm font-medium ${
-                activeFilterCount > 0
-                  ? "border-primary-500 dark:border-primary-600 bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400"
-                  : "border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-              }`}
-            >
-              <Filter className="w-4 h-4" />
-              Filters
-              {activeFilterCount > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-600 dark:bg-primary-500 text-white text-xs">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-
-            {/* Filter Dropdown */}
-            {showFilters && (
-              <div className="absolute right-0 top-12 w-64 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-lg z-10">
-                <div className="p-4">
+              {/* Filter Dropdown */}
+              {showFilters && (
+                <div className="absolute right-0 top-12 w-[360px] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-lg z-10 p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
                       Filters
@@ -237,158 +297,67 @@ export function ProvidersListScreen({
                   </div>
 
                   <div className="space-y-4">
+                    {/* Status Filter */}
                     <div>
-                      <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">
+                      <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-1">
                         Status
                       </label>
-                      <div className="space-y-2">
-                        {["all", "Active", "Suspended"].map((status) => (
-                          <label
-                            key={status}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              name="status"
-                              checked={statusFilter === status}
-                              onChange={() => setStatusFilter(status)}
-                              className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
-                            />
-                            <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                              {status === "all" ? "All Statuses" : status}
-                            </span>
-                          </label>
-                        ))}
+                      <div className="relative">
+                        <select
+                          value={statusFilter}
+                          onChange={(e) => setStatusFilter(e.target.value)}
+                          className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
+                        >
+                          <option value="all">All statuses</option>
+                          <option value="Active">Active</option>
+                          <option value="Suspended">Suspended</option>
+                          <option value="Invited">Invited</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
                       </div>
                     </div>
 
+                    {/* Branch Filter */}
                     <div>
-                      <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">
+                      <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-1">
                         Branch
                       </label>
-                      <div className="space-y-2 max-h-32 overflow-y-auto">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="branch"
-                            checked={branchFilter === "all"}
-                            onChange={() => setBranchFilter("all")}
-                            className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
-                          />
-                          <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                            All Branches
-                          </span>
-                        </label>
-                        {allBranches.map((branch) => (
-                          <label
-                            key={branch}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              name="branch"
-                              checked={branchFilter === branch}
-                              onChange={() => setBranchFilter(branch)}
-                              className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
-                            />
-                            <span className="text-sm text-neutral-700 dark:text-neutral-300">
+                      <div className="relative">
+                        <select
+                          value={branchFilter}
+                          onChange={(e) => setBranchFilter(e.target.value)}
+                          className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
+                        >
+                          <option value="all">All branches</option>
+                          {allBranches.map((branch) => (
+                            <option key={branch} value={branch}>
                               {branch}
-                            </span>
-                          </label>
-                        ))}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
                       </div>
                     </div>
 
+                    {/* Created Date Filter */}
                     <div>
                       <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">
-                        Specialty
+                        Created Date
                       </label>
-                      <div className="space-y-2 max-h-32 overflow-y-auto">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="specialty"
-                            checked={specialtyFilter === "all"}
-                            onChange={() => setSpecialtyFilter("all")}
-                            className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
-                          />
-                          <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                            All Specialties
-                          </span>
-                        </label>
-                        {allSpecialties.map((specialty) => (
-                          <label
-                            key={specialty}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              name="specialty"
-                              checked={specialtyFilter === specialty}
-                              onChange={() => setSpecialtyFilter(specialty)}
-                              className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
-                            />
-                            <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                              {specialty}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">
-                        Self-Bookable
-                      </label>
-                      <div className="space-y-2">
-                        {["all", "yes", "no"].map((selfBookable) => (
-                          <label
-                            key={selfBookable}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              name="selfBookable"
-                              checked={selfBookableFilter === selfBookable}
-                              onChange={() => setSelfBookableFilter(selfBookable)}
-                              className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
-                            />
-                            <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                              {selfBookable === "all"
-                                ? "All"
-                                : selfBookable === "yes"
-                                ? "Yes"
-                                : "No"}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">
-                        Availability
-                      </label>
-                      <div className="space-y-2">
-                        {["all", "Configured", "Not Configured"].map((availability) => (
-                          <label
-                            key={availability}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              name="availability"
-                              checked={availabilityFilter === availability}
-                              onChange={() => setAvailabilityFilter(availability)}
-                              className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
-                            />
-                            <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                              {availability === "all"
-                                ? "All"
-                                : availability}
-                            </span>
-                          </label>
-                        ))}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          value={startDateFilter}
+                          onChange={(e) => setStartDateFilter(e.target.value)}
+                          className="flex-1 h-8 px-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none min-w-0"
+                        />
+                        <span className="text-neutral-500">-</span>
+                        <input
+                          type="date"
+                          value={endDateFilter}
+                          onChange={(e) => setEndDateFilter(e.target.value)}
+                          className="flex-1 h-8 px-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none min-w-0"
+                        />
                       </div>
                     </div>
                   </div>
@@ -399,8 +368,8 @@ export function ProvidersListScreen({
                         setStatusFilter("all");
                         setBranchFilter("all");
                         setSpecialtyFilter("all");
-                        setSelfBookableFilter("all");
-                        setAvailabilityFilter("all");
+                        setStartDateFilter("");
+                        setEndDateFilter("");
                       }}
                       className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
                     >
@@ -408,168 +377,130 @@ export function ProvidersListScreen({
                     </button>
                   </div>
                 </div>
-              </div>
+              )}
+            </div>
+
+            {onAddProvider && (
+              <button
+                onClick={onAddProvider}
+                className="inline-flex items-center gap-2 h-10 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors text-sm whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                Add Provider
+              </button>
             )}
           </div>
         </div>
 
-        {/* Providers Table */}
-        {sortedProviders.length > 0 ? (
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-neutral-50 dark:bg-neutral-900/50 border-b border-neutral-200 dark:border-neutral-800">
-                  <tr>
-                    <th
-                      className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                      onClick={() => handleSort("name")}
-                    >
-                      <div className="flex items-center gap-2">
-                        Provider name
-                        {sortBy === "name" && (
-                          <span className="text-neutral-400">
-                            {sortOrder === "asc" ? "↑" : "↓"}
+        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-neutral-50 dark:bg-neutral-900/50 border-b border-neutral-200 dark:border-neutral-800">
+                <tr>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-neutral-400 uppercase tracking-widest cursor-pointer hover:text-primary-600 transition-colors" onClick={() => handleSort("createdAt")}>
+                    <div className="flex items-center gap-2">Created Date {sortBy === "createdAt" && (sortOrder === "asc" ? "↑" : "↓")}</div>
+                  </th>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-neutral-400 uppercase tracking-widest cursor-pointer hover:text-primary-600 transition-colors" onClick={() => handleSort("name")}>
+                    <div className="flex items-center gap-2">Provider Name {sortBy === "name" && (sortOrder === "asc" ? "↑" : "↓")}</div>
+                  </th>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-neutral-400 uppercase tracking-widest">Email Address</th>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-neutral-400 uppercase tracking-widest cursor-pointer hover:text-primary-600 transition-colors" onClick={() => handleSort("specialty")}>
+                    <div className="flex items-center gap-2">Specialty {sortBy === "specialty" && (sortOrder === "asc" ? "↑" : "↓")}</div>
+                  </th>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-neutral-400 uppercase tracking-widest">Branches</th>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-neutral-400 uppercase tracking-widest cursor-pointer hover:text-primary-600 transition-colors" onClick={() => handleSort("status")}>
+                    <div className="flex items-center gap-2">Status {sortBy === "status" && (sortOrder === "asc" ? "↑" : "↓")}</div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+                {currentItems.map((provider) => (
+                  <tr
+                    key={provider.id}
+                    className="group hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition-colors cursor-pointer"
+                    onClick={() => onViewProvider(provider.id)}
+                  >
+                    {/* Created Date */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                        {formatDate(provider.createdAt)}
+                      </p>
+                    </td>
+
+                    {/* Provider Name */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-950/30 flex items-center justify-center font-bold text-primary-600 text-xs">
+                          {provider.firstName[0]}{provider.lastName[0]}
+                        </div>
+                        <p className="text-sm font-medium text-neutral-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                          {provider.firstName} {provider.lastName}
+                        </p>
+                      </div>
+                    </td>
+
+                    {/* Email Address */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                        {provider.email}
+                      </p>
+                    </td>
+
+                    {/* Specialty */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                        {provider.specialty}
+                      </span>
+                    </td>
+
+                    {/* Branches */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="relative group/tooltip">
+                        <div className="flex items-center gap-2 cursor-help">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary-50 dark:bg-primary-950/30 text-[11px] font-bold text-primary-600 dark:text-primary-400 border border-primary-100 dark:border-primary-900/50">
+                            {provider.branches.length}
                           </span>
+                          <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                            {provider.branches.length === 1 ? "Location" : "Locations"}
+                          </span>
+                        </div>
+                        {provider.branches.length > 0 && (
+                          <div className="absolute bottom-full left-0 mb-2 w-48 p-2 bg-neutral-900 text-white text-[10px] rounded shadow-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-20">
+                            {provider.branches.join(", ")}
+                            <div className="absolute top-full left-4 border-4 border-transparent border-t-neutral-900"></div>
+                          </div>
                         )}
                       </div>
-                    </th>
-                    <th
-                      className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                      onClick={() => handleSort("specialty")}
-                    >
-                      <div className="flex items-center gap-2">
-                        Specialty
-                        {sortBy === "specialty" && (
-                          <span className="text-neutral-400">
-                            {sortOrder === "asc" ? "↑" : "↓"}
-                          </span>
-                        )}
-                      </div>
-                    </th>
-                    <th className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                      Assigned locations
-                    </th>
-                    <th className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                      Self-booking
-                    </th>
-                    <th
-                      className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                      onClick={() => handleSort("status")}
-                    >
-                      <div className="flex items-center gap-2">
-                        Account status
-                        {sortBy === "status" && (
-                          <span className="text-neutral-400">
-                            {sortOrder === "asc" ? "↑" : "↓"}
-                          </span>
-                        )}
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                  {currentItems.map((provider) => {
-                    return (
-                      <tr
-                        key={provider.id}
-                        className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition-colors cursor-pointer"
-                        onClick={() => onViewProvider(provider.id)}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${
+                          provider.accountStatus === "Active"
+                            ? "bg-success-50 dark:bg-success-950/30 text-success-700 dark:text-success-300"
+                            : provider.accountStatus === "Invited"
+                            ? "bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300"
+                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300"
+                        }`}
                       >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-950/30 flex items-center justify-center shrink-0">
-                              <span className="text-sm font-semibold text-primary-600 dark:text-primary-400">
-                                {provider.firstName[0]}
-                                {provider.lastName[0]}
-                              </span>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-neutral-900 dark:text-white">
-                                {provider.firstName} {provider.lastName}
-                              </p>
-                              <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                                {provider.email}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-sm text-neutral-700 dark:text-neutral-300">
-                            {provider.specialty}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-950/30 text-sm font-medium text-primary-600 dark:text-primary-400">
-                              {provider.branches.length}
-                            </span>
-                            <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                              {provider.branches.length > 0
-                                ? provider.branches.slice(0, 1).join(", ") +
-                                  (provider.branches.length > 1
-                                    ? ` +${provider.branches.length - 1}`
-                                    : "")
-                                : "None"}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          {provider.selfBookingEligible ? (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-success-100 dark:bg-success-950/30 text-sm text-success-700 dark:text-success-400">
-                              Enabled
-                            </span>
-                          ) : (
-                            <div className="flex items-center gap-1.5">
-                              <Lock className="w-4 h-4 text-neutral-400" />
-                              <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                                Disabled
-                              </span>
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-md text-sm ${
-                              provider.accountStatus === "Active"
-                                ? "bg-success-100 dark:bg-success-950/30 text-success-700 dark:text-success-400"
-                                : provider.accountStatus === "Invited"
-                                ? "bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
-                                : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
-                            }`}
-                          >
-                            {provider.accountStatus}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <Pagination
-              totalItems={sortedProviders.length}
-              itemsPerPage={itemsPerPage}
-              currentPage={currentPage}
-              totalPages={Math.ceil(sortedProviders.length / itemsPerPage)}
-              onPageChange={setCurrentPage}
-              onItemsPerPageChange={setItemsPerPage}
-            />
+                        {provider.accountStatus}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-12 text-center">
-            <div className="w-16 h-16 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mx-auto mb-4">
-              <UserCheck className="w-8 h-8 text-neutral-400" />
-            </div>
-            <p className="text-sm font-medium text-neutral-900 dark:text-white mb-1">
-              No providers found
-            </p>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-4">
-              {searchQuery || activeFilterCount > 0
-                ? "Try adjusting your search or filters"
-                : "No medical staff found in the system"}
-            </p>
-          </div>
-        )}
+          <Pagination
+            totalItems={sortedProviders.length}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            totalPages={Math.ceil(sortedProviders.length / itemsPerPage)}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
+        </div>
       </div>
     </ClinicAdminLayout>
   );

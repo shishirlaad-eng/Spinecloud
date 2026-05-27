@@ -8,7 +8,6 @@ interface CreateTicketDrawerProps {
     category: string;
     subject: string;
     description: string;
-    priority: string;
   }) => void;
 }
 
@@ -25,8 +24,6 @@ const ticketCategories = [
   "Training Request",
 ];
 
-const priorities = ["Low", "Medium", "High", "Urgent"];
-
 export function CreateTicketDrawer({
   isOpen,
   onClose,
@@ -35,7 +32,6 @@ export function CreateTicketDrawer({
   const [category, setCategory] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("Medium");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const validateForm = () => {
@@ -55,13 +51,11 @@ export function CreateTicketDrawer({
         category,
         subject: subject.trim(),
         description: description.trim(),
-        priority,
       });
       // Reset form
       setCategory("");
       setSubject("");
       setDescription("");
-      setPriority("Medium");
       setErrors({});
     }
   };
@@ -70,7 +64,6 @@ export function CreateTicketDrawer({
     setCategory("");
     setSubject("");
     setDescription("");
-    setPriority("Medium");
     setErrors({});
     onClose();
   };
@@ -135,29 +128,6 @@ export function CreateTicketDrawer({
             )}
           </div>
 
-          {/* Priority */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-              Priority <span className="text-destructive">*</span>
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {priorities.map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPriority(p)}
-                  className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-                    priority === p
-                      ? "border-primary-500 bg-primary-50 dark:bg-primary-950/20 text-primary-700 dark:text-primary-400 ring-2 ring-primary-500/20"
-                      : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Subject */}
           <div>
             <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
@@ -206,14 +176,6 @@ export function CreateTicketDrawer({
             )}
           </div>
 
-          {/* Info Box */}
-          <div className="bg-primary-50 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800 rounded-lg p-4">
-            <p className="text-sm text-primary-700 dark:text-primary-300">
-              <span className="font-semibold">Note:</span> Once submitted, your ticket will be
-              assigned to the appropriate team. You'll receive updates via email and can track
-              the progress in the ticket management system.
-            </p>
-          </div>
         </div>
 
         {/* Footer */}

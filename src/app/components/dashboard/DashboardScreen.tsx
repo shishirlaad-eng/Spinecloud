@@ -30,6 +30,8 @@ interface DashboardScreenProps {
   onCancelAppointment?: (appointmentId: string) => void;
   onLogout?: () => void;
   onNavigateToProfile?: () => void;
+  currentEntity?: "patient" | "clinicAdmin" | "provider" | "clinic-staff";
+  onEntitySwitch?: (entity: "patient" | "clinicAdmin" | "provider" | "clinic-staff") => void;
 }
 
 // Mock wellness data
@@ -104,6 +106,8 @@ export function DashboardScreen({
   onCancelAppointment,
   onLogout,
   onNavigateToProfile,
+  currentEntity,
+  onEntitySwitch,
 }: DashboardScreenProps) {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -233,8 +237,10 @@ export function DashboardScreen({
       onNavigate={onNavigate}
       onLogout={onLogout}
       onNavigateToProfile={onNavigateToProfile}
+      currentEntity={currentEntity}
+      onEntitySwitch={onEntitySwitch}
     >
-      <div className="max-w-7xl mx-auto space-y-6 px-1">
+      <div className="max-w-7xl space-y-6 px-1">
         {/* Page Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>

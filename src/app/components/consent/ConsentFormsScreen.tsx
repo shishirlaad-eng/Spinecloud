@@ -335,12 +335,7 @@ export function ConsentFormsScreen({ onBack, onComplete }: ConsentFormsScreenPro
     <div className="flex min-h-screen items-center justify-center p-5 md:p-6 bg-neutral-50 dark:bg-neutral-950">
       <div className="w-full max-w-3xl">
         {/* Logo - Outside Card */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-neutral-900 dark:text-white">
-            SpineCloudIQ
-          </h1>
-          <div className="w-16 h-1 bg-primary-600 mx-auto mt-3 rounded-full"></div>
-        </div>
+
 
         {/* Card */}
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-sm">

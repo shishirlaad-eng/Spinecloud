@@ -1,11 +1,14 @@
 import { useState, useRef } from "react";
 import { DashboardLayout } from "@/app/components/layout/DashboardLayout";
-import { User, CreditCard, Camera, X } from "lucide-react";
+import { User, CreditCard, Camera, X, ChevronRight } from "lucide-react";
 
 interface MyProfileScreenProps {
-  onNavigate: (menu: "dashboard" | "appointments") => void;
+  onNavigate: (menu: "dashboard" | "appointments" | "invoices" | "notifications" | "settings" | "tickets" | "clinicalRecords" | "spineCloud") => void;
   onBack: () => void;
   onLogout?: () => void;
+  onNavigateToNotifications?: () => void;
+  onViewNotification?: (id: string) => void;
+  notifications?: any[];
 }
 
 export function MyProfileScreen({ 
@@ -103,107 +106,106 @@ export function MyProfileScreen({
   };
 
   return (
-    <DashboardLayout activeMenu="dashboard" onNavigate={onNavigate} onLogout={onLogout}>
-      <div className="p-5 md:p-6">
-        {/* Breadcrumbs */}
-        <div className="mb-4">
-          <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
+    <DashboardLayout activeMenu="dashboard" onNavigate={onNavigate as any} onLogout={onLogout}>
+      <div>
+        {/* Breadcrumbs + Page Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 text-sm text-neutral-500 mb-1.5">
             <button
               onClick={onBack}
-              className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              className="hover:text-[#1D77B4] transition-colors"
             >
-              Dashboard
+              Home
             </button>
-            <span>/</span>
-            <span className="text-neutral-900 dark:text-white font-medium">
+            <ChevronRight className="w-3 h-3" />
+            <span className="font-medium text-[#0b1c30]">
               My profile
             </span>
           </div>
+          <h1 className="text-xl font-semibold text-neutral-900 mb-0.5">
+            My profile
+          </h1>
+          <p className="text-sm text-neutral-500">
+            View and update your personal information
+          </p>
         </div>
 
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg">
-            {/* Header */}
-            <div className="px-6 pt-6 pb-4 border-b border-neutral-200 dark:border-neutral-800">
-              <div className="flex items-start gap-4">
-                <div className="flex-1">
-                  <h2 className="text-xl font-semibold text-neutral-900 dark:text-white">
-                    My profile
-                  </h2>
-                  <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                    View and update your personal information
-                  </p>
-                </div>
-                
-                {/* Profile Picture Upload */}
-                <div className="relative group">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  {profilePicture ? (
-                    <div className="relative">
-                      <img
-                        src={profilePicture}
-                        alt="Profile"
-                        className="w-16 h-16 rounded-full object-cover border-2 border-neutral-200 dark:border-neutral-700"
-                      />
-                      <button
-                        onClick={removeProfilePicture}
-                        className="absolute -top-1 -right-1 p-1 bg-destructive text-white rounded-full hover:bg-destructive/90 transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={handleProfilePictureClick}
-                        className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Camera className="w-5 h-5 text-white" />
-                      </button>
-                    </div>
-                  ) : (
+        <div className="max-w-4xl">
+          <div className="bg-white border border-[#EFF4FF] rounded-xl">
+            {/* Profile picture */}
+            <div className="px-6 pt-5 pb-4 border-b border-[#EFF4FF] flex items-center gap-5">
+              <div className="relative group">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                {profilePicture ? (
+                  <div className="relative">
+                    <img
+                      src={profilePicture}
+                      alt="Profile"
+                      className="w-16 h-16 rounded-full object-cover border-2 border-[#EFF4FF]"
+                    />
                     <button
-                      onClick={handleProfilePictureClick}
-                      className="relative w-16 h-16 bg-primary-600 dark:bg-primary-500 rounded-full flex items-center justify-center text-white hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
+                      onClick={removeProfilePicture}
+                      className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                     >
-                      <User className="w-8 h-8" />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Camera className="w-5 h-5 text-white" />
-                      </div>
+                      <X className="w-3 h-3" />
                     </button>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleProfilePictureClick}
+                    className="relative w-16 h-16 bg-[#1D77B4] rounded-full flex items-center justify-center text-white hover:opacity-90 transition-opacity"
+                  >
+                    <User className="w-8 h-8" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Camera className="w-5 h-5 text-white" />
+                    </div>
+                  </button>
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[#0B1C30]">{name}</p>
+                <p className="text-xs text-neutral-500 mt-0.5">{email}</p>
+                <button
+                  onClick={handleProfilePictureClick}
+                  className="text-xs text-[#1D77B4] font-medium mt-1 hover:underline"
+                >
+                  Change photo
+                </button>
               </div>
             </div>
 
+
             {/* Tabs */}
-            <div className="border-b border-neutral-200 dark:border-neutral-800">
+            <div className="border-b border-[#EFF4FF]">
               <div className="flex">
                 <button
                   onClick={() => setActiveTab("basic")}
-                  className={`flex-1 px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+                  className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
                     activeTab === "basic"
-                      ? "border-primary-600 text-primary-600 dark:text-primary-400"
-                      : "border-transparent text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                      ? "border-[#1D77B4] text-[#1D77B4]"
+                      : "border-transparent text-neutral-500 hover:text-neutral-800"
                   }`}
                 >
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="flex items-center gap-2">
                     <User className="w-4 h-4" />
                     Basic information
                   </div>
                 </button>
                 <button
                   onClick={() => setActiveTab("insurance")}
-                  className={`flex-1 px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+                  className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
                     activeTab === "insurance"
-                      ? "border-primary-600 text-primary-600 dark:text-primary-400"
-                      : "border-transparent text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                      ? "border-[#1D77B4] text-[#1D77B4]"
+                      : "border-transparent text-neutral-500 hover:text-neutral-800"
                   }`}
                 >
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="flex items-center gap-2">
                     <CreditCard className="w-4 h-4" />
                     Insurance
                   </div>

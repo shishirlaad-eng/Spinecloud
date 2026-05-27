@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ClinicAdminLayout } from "./layout/ClinicAdminLayout";
-import { Search, Plus, Shield, Users, Filter, X } from "lucide-react";
+import { Search, Plus, Shield, Users, Filter, X, HelpCircle, BookOpen, ChevronDown, ChevronUp } from "lucide-react";
 import { Pagination } from "../shared/Pagination";
 import { TooltipBubble } from "../shared/TooltipBubble";
 import { isStepCompleted } from "../shared/walkthroughUtils";
@@ -30,6 +30,7 @@ interface Role {
   id: string;
   name: string;
   description: string;
+  status: "Active" | "Inactive";
   permissions: ModulePermissions;
 }
 
@@ -51,10 +52,9 @@ export function RolesManagementScreen({
   onLogout,
 }: RolesManagementScreenProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [userCountFilter, setUserCountFilter] = useState<string>("all");
-  const [permissionCountFilter, setPermissionCountFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<"name" | "users" | "permissions">("name");
+  const [sortBy, setSortBy] = useState<"name" | "users" | "permissions" | "status">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -63,7 +63,7 @@ export function RolesManagementScreen({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, userCountFilter, permissionCountFilter]);
+  }, [searchQuery, statusFilter]);
 
   useEffect(() => {
     setActiveGuide(localStorage.getItem("spinecloud_active_guide"));
@@ -133,21 +133,10 @@ export function RolesManagementScreen({
       role.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       role.description.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const userCount = userCounts[role.name] || 0;
-    const matchesUserCount =
-      userCountFilter === "all" ||
-      (userCountFilter === "0" && userCount === 0) ||
-      (userCountFilter === "1-5" && userCount >= 1 && userCount <= 5) ||
-      (userCountFilter === "6+" && userCount >= 6);
+    const matchesStatus =
+      statusFilter === "all" || role.status === statusFilter;
 
-    const permCount = countPermissions(role);
-    const matchesPermCount =
-      permissionCountFilter === "all" ||
-      (permissionCountFilter === "1-5" && permCount >= 1 && permCount <= 5) ||
-      (permissionCountFilter === "6-10" && permCount >= 6 && permCount <= 10) ||
-      (permissionCountFilter === "11+" && permCount >= 11);
-
-    return matchesSearch && matchesUserCount && matchesPermCount;
+    return matchesSearch && matchesStatus;
   });
 
   const sortedRoles = [...filteredRoles].sort((a, b) => {
@@ -155,10 +144,12 @@ export function RolesManagementScreen({
       return sortOrder === "asc"
         ? a.name.localeCompare(b.name)
         : b.name.localeCompare(a.name);
-    } else if (sortBy === "users") {
-      const aUsers = userCounts[a.name] || 0;
-      const bUsers = userCounts[b.name] || 0;
-      return sortOrder === "asc" ? aUsers - bUsers : bUsers - aUsers;
+    } else if (sortBy === "status") {
+      const statusA = a.status || "";
+      const statusB = b.status || "";
+      return sortOrder === "asc"
+        ? statusA.localeCompare(statusB)
+        : statusB.localeCompare(statusA);
     } else {
       const aPerms = countPermissions(a);
       const bPerms = countPermissions(b);
@@ -166,7 +157,7 @@ export function RolesManagementScreen({
     }
   });
 
-  const handleSort = (field: "name" | "users" | "permissions") => {
+  const handleSort = (field: "name" | "users" | "permissions" | "status") => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -175,9 +166,7 @@ export function RolesManagementScreen({
     }
   };
 
-  const activeFilterCount = 
-    (userCountFilter !== "all" ? 1 : 0) +
-    (permissionCountFilter !== "all" ? 1 : 0);
+  const activeFilterCount = statusFilter !== "all" ? 1 : 0;
 
   const totalPages = Math.ceil(sortedRoles.length / itemsPerPage);
   const currentRoles = sortedRoles.slice(
@@ -189,37 +178,17 @@ export function RolesManagementScreen({
     <ClinicAdminLayout activeMenu="roles" onNavigate={onNavigate} onLogout={onLogout}>
       <div className="p-6">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-1">
-              Roles Management
-            </h1>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              Create and manage user roles with custom permissions
-            </p>
-          </div>
-          {/* Add Role button with guided tooltip bubble */}
-          <div className="relative">
-            <button
-              onClick={onAddRole}
-              className="inline-flex items-center gap-2 px-4 h-10 bg-primary-600 text-white rounded-lg hover:bg-primary-700 active:bg-primary-800 transition-colors font-medium text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Add Role
-            </button>
-            <TooltipBubble
-              step="Step 2"
-              title="Configure user roles"
-              description="Click 'Add role' to define permissions for your staff members. You can control which modules they have access to."
-              side="left"
-              visible={!bubbleDismissed && (activeGuide === "roles" || (!isStepCompleted("roles") && activeGuide !== "skipped"))}
-              onDismiss={handleDismissBubble}
-            />
-          </div>
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-1">
+            Roles Management
+          </h1>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            Create and manage user roles with custom permissions
+          </p>
         </div>
 
         {/* Search and Filters */}
-        <div className="mb-6 flex gap-3">
+        <div className="mb-6 flex gap-3 items-center">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <input
@@ -231,24 +200,25 @@ export function RolesManagementScreen({
             />
           </div>
 
-          {/* Filter Button */}
-          <div className="relative">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`inline-flex items-center gap-2 px-4 h-10 border rounded-lg transition-colors text-sm font-medium ${
-                activeFilterCount > 0
-                  ? "border-primary-500 dark:border-primary-600 bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400"
-                  : "border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-              }`}
-            >
-              <Filter className="w-4 h-4" />
-              Filters
-              {activeFilterCount > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-600 dark:bg-primary-500 text-white text-xs">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
+          <div className="flex items-center gap-2">
+            {/* Filter Button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-colors ${
+                  activeFilterCount > 0
+                    ? "border-primary-500 dark:border-primary-600 bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400"
+                    : "border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                }`}
+                title="Filters"
+              >
+                <Filter className="w-4 h-4" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-600 dark:bg-primary-500 text-white text-[10px] font-bold border-2 border-white dark:border-neutral-950">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
 
             {/* Filter Dropdown */}
             {showFilters && (
@@ -269,14 +239,13 @@ export function RolesManagementScreen({
                   <div className="space-y-4">
                     <div>
                       <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">
-                        User Count
+                        Status
                       </label>
                       <div className="space-y-2">
                         {[
                           { value: "all", label: "All" },
-                          { value: "0", label: "No users" },
-                          { value: "1-5", label: "1-5 users" },
-                          { value: "6+", label: "6+ users" },
+                          { value: "Active", label: "Active" },
+                          { value: "Inactive", label: "Inactive" },
                         ].map((option) => (
                           <label
                             key={option.value}
@@ -284,39 +253,9 @@ export function RolesManagementScreen({
                           >
                             <input
                               type="radio"
-                              name="userCount"
-                              checked={userCountFilter === option.value}
-                              onChange={() => setUserCountFilter(option.value)}
-                              className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
-                            />
-                            <span className="text-sm text-neutral-700 dark:text-neutral-300">
-                              {option.label}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-neutral-700 dark:text-neutral-300 font-medium block mb-2">
-                        Permission Count
-                      </label>
-                      <div className="space-y-2">
-                        {[
-                          { value: "all", label: "All" },
-                          { value: "1-5", label: "1-5 permissions" },
-                          { value: "6-10", label: "6-10 permissions" },
-                          { value: "11+", label: "11+ permissions" },
-                        ].map((option) => (
-                          <label
-                            key={option.value}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            <input
-                              type="radio"
-                              name="permCount"
-                              checked={permissionCountFilter === option.value}
-                              onChange={() => setPermissionCountFilter(option.value)}
+                              name="status"
+                              checked={statusFilter === option.value}
+                              onChange={() => setStatusFilter(option.value)}
                               className="w-4 h-4 text-primary-600 border-neutral-300 dark:border-neutral-700"
                             />
                             <span className="text-sm text-neutral-700 dark:text-neutral-300">
@@ -331,8 +270,7 @@ export function RolesManagementScreen({
                   <div className="mt-4 pt-3 border-t border-neutral-200 dark:border-neutral-800">
                     <button
                       onClick={() => {
-                        setUserCountFilter("all");
-                        setPermissionCountFilter("all");
+                        setStatusFilter("all");
                       }}
                       className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
                     >
@@ -342,6 +280,25 @@ export function RolesManagementScreen({
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="relative">
+              <button
+                onClick={onAddRole}
+                className="inline-flex items-center gap-2 px-4 h-10 bg-primary-600 text-white rounded-lg hover:bg-primary-700 active:bg-primary-800 transition-colors font-medium text-sm whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                Add Role
+              </button>
+              <TooltipBubble
+                step="Step 2"
+                title="Configure user roles"
+                description="Click 'Add role' to define permissions for your staff members. You can control which modules they have access to."
+                side="left"
+                visible={!bubbleDismissed && (activeGuide === "roles" || (!isStepCompleted("roles") && activeGuide !== "skipped"))}
+                onDismiss={handleDismissBubble}
+              />
+            </div>
           </div>
         </div>
 
@@ -359,6 +316,19 @@ export function RolesManagementScreen({
                       <div className="flex items-center gap-2">
                         Role Name
                         {sortBy === "name" && (
+                          <span className="text-neutral-400">
+                            {sortOrder === "asc" ? "↑" : "↓"}
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                    <th
+                      className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                      onClick={() => handleSort("status")}
+                    >
+                      <div className="flex items-center gap-2">
+                        Status
+                        {sortBy === "status" && (
                           <span className="text-neutral-400">
                             {sortOrder === "asc" ? "↑" : "↓"}
                           </span>
@@ -409,14 +379,20 @@ export function RolesManagementScreen({
                             onClick={() => onEditRole(role.id)}
                             className="flex items-center gap-3 text-left hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                           >
-                            <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-950/30 flex items-center justify-center shrink-0">
-                              <Shield className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                            </div>
                             <span className="text-sm font-medium text-neutral-900 dark:text-white">
                               {role.name}
                             </span>
                           </button>
                         </td>
+                        <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                          role.status === "Active" 
+                            ? "bg-success-50 dark:bg-success-950/30 text-success-700 dark:text-success-400 border-success-200 dark:border-success-800"
+                            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700"
+                        }`}>
+                          {role.status || "Inactive"}
+                        </span>
+                      </td>
                         <td className="px-6 py-4">
                           <p className="text-sm text-neutral-600 dark:text-neutral-400 line-clamp-2 max-w-md">
                             {role.description}

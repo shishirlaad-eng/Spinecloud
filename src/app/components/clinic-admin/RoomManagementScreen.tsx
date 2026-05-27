@@ -107,63 +107,51 @@ export function RoomManagementScreen({
       <div className="p-6">
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-1">
-                Room management
-              </h1>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                Manage and view all clinic rooms
-              </p>
-            </div>
-            {onAddRoom && (
-              <button
-                onClick={onAddRoom}
-                className="inline-flex items-center gap-2 h-10 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                Add room
-              </button>
-            )}
+          <h1 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-1">
+            Room Management
+          </h1>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            Manage and view all clinic rooms
+          </p>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="mb-6 flex gap-3 items-center">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+            <input
+              type="text"
+              placeholder="Search by room name, room ID, or type"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-10 pl-10 pr-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 outline-none focus:border-primary-500 dark:focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 dark:focus:ring-primary-600/20 transition-[border-color,box-shadow]"
+            />
           </div>
 
-          {/* Search and Filter Bar */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            {/* Search Input */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-              <input
-                type="text"
-                placeholder="Search by room name, room ID, or type"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 pl-9 pr-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 outline-none transition-[border-color,box-shadow]"
-              />
-            </div>
-
+          <div className="flex items-center gap-2">
             {/* Export Button */}
             <button
               onClick={() => console.log("Exporting rooms...")}
-              className="inline-flex items-center gap-2 h-10 px-4 border rounded-lg font-medium transition-colors text-sm bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+              className="inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-colors border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+              title="Export"
             >
               <Download className="w-4 h-4" />
-              Export
             </button>
 
             {/* Filter Button */}
             <div className="relative">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`inline-flex items-center gap-2 h-10 px-4 border rounded-lg font-medium transition-colors text-sm ${
+                className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-colors ${
                   activeFilterCount > 0
-                    ? "bg-primary-50 dark:bg-primary-950/30 border-primary-600 text-primary-700 dark:text-primary-300"
-                    : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    ? "border-primary-500 dark:border-primary-600 bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400"
+                    : "border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                 }`}
+                title="Filters"
               >
                 <Filter className="w-4 h-4" />
-                Filters
                 {activeFilterCount > 0 && (
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-600 dark:bg-primary-500 text-white text-xs">
+                  <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-600 dark:bg-primary-500 text-white text-[10px] font-bold border-2 border-white dark:border-neutral-950">
                     {activeFilterCount}
                   </span>
                 )}
@@ -272,6 +260,16 @@ export function RoomManagementScreen({
                 </div>
               )}
             </div>
+
+            {onAddRoom && (
+              <button
+                onClick={onAddRoom}
+                className="inline-flex items-center gap-2 px-4 h-10 bg-primary-600 text-white rounded-lg hover:bg-primary-700 active:bg-primary-800 transition-colors font-medium text-sm whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                Add room
+              </button>
+            )}
           </div>
         </div>
 
@@ -366,7 +364,7 @@ export function RoomManagementScreen({
                   {sortedRooms.map((room) => (
                     <tr
                       key={room.id}
-                      className="hover:bg-neutral-50 dark:hover:bg-neutral-950 transition-colors"
+                      className="group hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition-colors cursor-pointer"
                     >
                       {/* Added Date */}
                       <td className="px-6 py-4">
@@ -386,7 +384,7 @@ export function RoomManagementScreen({
                       <td className="px-6 py-4">
                         <button
                           onClick={() => onViewRoom(room.id)}
-                          className="text-left hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                          className="text-left group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors"
                         >
                           <p className="text-sm font-medium text-neutral-900 dark:text-white">
                             {room.roomName}

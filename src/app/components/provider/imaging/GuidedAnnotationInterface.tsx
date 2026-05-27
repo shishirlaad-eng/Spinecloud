@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ArrowLeft, Save, Upload, CheckCircle2, ChevronRight, Activity, CircleDot, RefreshCcw, MousePointer2, Hand, ZoomIn, Search, Sun, Type, Ruler, Spline, Scissors, FileText } from "lucide-react";
 import type { ReportType } from "./NewReportModal";
+import { UnifiedReportPreviewModal } from "../../common/UnifiedReportPreviewModal";
 
 interface GuidedAnnotationInterfaceProps {
   reportType: ReportType;
@@ -72,78 +73,33 @@ export function GuidedAnnotationInterface({
   const activeReportTitle = REPORT_TITLES[reportType] || "Report Analysis";
 
   if (previewMode) {
+    const mockDicomData = {
+      id: "REP-" + Math.floor(Math.random() * 10000),
+      type: activeReportTitle,
+      dateOfAnalysis: new Date().toISOString(),
+      images: [
+        {
+          type: activeReportTitle,
+          imageUrl: reportType === "lumbar-lateral" 
+                      ? "/assets/clinical/lumbar_lateral.png" 
+                      : reportType === "cervical-drma"
+                      ? "/assets/clinical/cervical_flexion.png"
+                      : "/assets/clinical/ap_cervical.png",
+          findings: "Significant reduction in cervical lordosis with apparent hypomobility at C3-C4 segments during flexion/extension views. Findings are consistent with early degenerative disc disease and biomechanical stress.",
+        }
+      ],
+      clinicName: "SpineCloudIQ",
+    };
+
     return (
-      <div className="flex flex-col h-full absolute inset-0 bg-neutral-50 dark:bg-neutral-900 z-40">
-        <div className="h-16 px-6 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-4">
-             <button onClick={() => setPreviewMode(false)} className="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors">
-               <ArrowLeft className="w-5 h-5" />
-             </button>
-             <div>
-               <h1 className="font-semibold text-neutral-900 dark:text-white">Report Preview: {activeReportTitle}</h1>
-             </div>
-          </div>
-          <div className="flex items-center gap-3">
-             <button onClick={() => setPreviewMode(false)} className="px-4 h-9 border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors">
-               Edit
-             </button>
-             <button onClick={onSave} className="inline-flex items-center gap-2 px-4 h-9 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">
-               <Save className="w-4 h-4" /> Save to Patient Record
-             </button>
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto p-8 flex justify-center">
-          <div className="w-full max-w-4xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-2xl shadow-sm p-8">
-            <div className="flex items-center gap-3 mb-8 border-b border-neutral-200 dark:border-neutral-700 pb-4">
-              <FileText className="w-8 h-8 text-primary-600" />
-              <div>
-                 <h2 className="text-2xl font-bold text-neutral-900 dark:text-white">{activeReportTitle}</h2>
-                 <p className="text-sm text-neutral-500">Patient: {patientName} • Date: {new Date().toLocaleDateString()}</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-               <div className="bg-neutral-100 dark:bg-neutral-900 rounded-xl overflow-hidden border border-neutral-200 dark:border-neutral-700 flex items-center justify-center p-4">
-                 <div className="relative w-full aspect-[3/4] bg-neutral-800 border border-neutral-700 rounded-lg shadow-inner flex items-center justify-center">
-                    <img 
-                      src={reportType === "lumbar-lateral" 
-                        ? "/assets/clinical/lumbar_lateral.png" 
-                        : reportType === "cervical-drma"
-                        ? "/assets/clinical/cervical_flexion.png"
-                        : "/assets/clinical/ap_cervical.png"} 
-                      className="w-full h-full object-contain" 
-                      alt="Annotated DICOM" 
-                    />
-                    {steps.map((_, i) => (
-                      <div key={i} className={`absolute w-2 h-2 bg-red-500 rounded-full border border-white`} style={{ top: `${25 + (i * 10)}%`, left: `${40 + (i % 2 === 0 ? 0 : 20)}%` }} />
-                    ))}
-                    <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                      <p className="text-white text-xs font-mono">Annotated {reportType.toUpperCase()} Study</p>
-                    </div>
-                 </div>
-               </div>
-               <div>
-                 <h3 className="text-lg font-semibold text-neutral-900 dark:text-white mb-4">Findings & Analysis</h3>
-                 <div className="space-y-4">
-                    <div className="p-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                      <h4 className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Measured Values</h4>
-                      <ul className="text-sm text-neutral-600 dark:text-neutral-400 space-y-1.5 list-disc pl-4">
-                        <li>C2-C3 Angle: 12.4° (Normal: &gt;10°)</li>
-                        <li>C3-C4 Angle: -2.1° (Abnormal Flexion)</li>
-                        <li>Overall Lordosis: 24° (Normal: 35-45°)</li>
-                      </ul>
-                    </div>
-                    <div className="p-4 bg-neutral-50 dark:bg-neutral-900/50 rounded-lg border border-neutral-200 dark:border-neutral-700">
-                      <h4 className="text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Clinical Impression</h4>
-                      <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
-                        Significant reduction in cervical lordosis with apparent hypomobility at C3-C4 segments during flexion/extension views. Findings are consistent with early degenerative disc disease and biomechanical stress.
-                      </p>
-                    </div>
-                 </div>
-               </div>
-            </div>
-          </div>
-        </div>
+      <div className="flex flex-col h-full absolute inset-0 bg-neutral-50 dark:bg-neutral-900 z-50 overflow-auto items-center p-8">
+        <UnifiedReportPreviewModal
+          type="dicom"
+          data={mockDicomData}
+          patientName={patientName}
+          onClose={() => setPreviewMode(false)}
+          onSave={onSave}
+        />
       </div>
     );
   }

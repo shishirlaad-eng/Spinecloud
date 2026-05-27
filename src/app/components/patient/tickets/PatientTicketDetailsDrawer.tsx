@@ -282,7 +282,7 @@ export function PatientTicketDetailsDrawer({
                 <button
                   onClick={handleSubmitReply}
                   disabled={!replyMessage.trim()}
-                  className="h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+                  className="h-10 px-6 bg-[#1d77b4] hover:opacity-90 text-white rounded-lg font-medium transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
                 >
                   Send reply
                 </button>

@@ -166,7 +166,7 @@ export function SpineCloudQuestionnaireScreen({
             {/* Progress Bar */}
             <div className="w-full h-2 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-primary-600 transition-all duration-300"
+                className="h-full bg-[#1d77b4] transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -213,7 +213,7 @@ export function SpineCloudQuestionnaireScreen({
                       {option.label}
                     </span>
                     {isSelected && (
-                      <div className="w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-[#1d77b4] flex items-center justify-center">
                         <Check className="w-4 h-4 text-white" />
                       </div>
                     )}
@@ -229,7 +229,7 @@ export function SpineCloudQuestionnaireScreen({
                 disabled={!hasAnsweredCurrent}
                 className={`w-full h-12 rounded-lg font-medium text-sm transition-colors inline-flex items-center justify-center gap-2 ${
                   hasAnsweredCurrent
-                    ? "bg-primary-600 text-white hover:bg-primary-700"
+                    ? "bg-[#1d77b4] text-white hover:opacity-90"
                     : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 cursor-not-allowed"
                 }`}
               >

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ClinicAdminLayout } from "./layout/ClinicAdminLayout";
 import { Search, Filter, X, Plus, Tag, ChevronLeft, ChevronRight } from "lucide-react";
 import { RaiseTicketDrawer } from "./RaiseTicketDrawer";
-import { RaiseTicketDetailsDrawer } from "./RaiseTicketDetailsDrawer";
+import { Pagination } from "../shared/Pagination";
 
 interface Ticket {
   id: string;
@@ -18,11 +18,13 @@ interface Ticket {
 
 interface RaiseTicketScreenProps {
   onNavigate: (menu: "dashboard" | "branches" | "questionnaires" | "roles" | "users" | "providers" | "consentForms" | "patients" | "master" | "subscription" | "calendar" | "appointment-categories" | "invoices" | "payments" | "email-management" | "clinic-settings" | "tickets" | "raise-ticket") => void;
+  onViewTicket: (ticketId: string) => void;
   onLogout?: () => void;
 }
 
 export function RaiseTicketScreen({
   onNavigate,
+  onViewTicket,
   onLogout,
 }: RaiseTicketScreenProps) {
   // Mock tickets data - tickets raised by clinic admin to super admin
@@ -78,7 +80,7 @@ export function RaiseTicketScreen({
       category: "Compliance",
       priority: "High",
       createdAt: "2026-02-12T11:20:00",
-      updatedAt: "2026-02-14T09:00:00",
+      updatedAt: "2024-02-14T09:00:00",
       description: "We need updated HIPAA compliance documentation and BAA for our records.",
       status: "Closed",
     },
@@ -87,19 +89,18 @@ export function RaiseTicketScreen({
   // State
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string[]>([]);
-  const [filterPriority, setFilterPriority] = useState<string[]>([]);
-  const [filterCategory, setFilterCategory] = useState<string[]>([]);
+  const [filterStatus, setFilterStatus] = useState<string>("");
+  const [filterCategory, setFilterCategory] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateDrawer, setShowCreateDrawer] = useState(false);
-  const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string>("");
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Get unique values for filters
   const categories = Array.from(new Set(tickets.map(t => t.category)));
   const statuses = ["Open", "In Progress", "Resolved", "Closed"];
-  const priorities = ["Low", "Medium", "High", "Urgent"];
 
   // Filter tickets
   const filteredTickets = tickets.filter((ticket) => {
@@ -109,11 +110,26 @@ export function RaiseTicketScreen({
       ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ticket.category.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const statusMatch = filterStatus.length === 0 || filterStatus.includes(ticket.status);
-    const priorityMatch = filterPriority.length === 0 || filterPriority.includes(ticket.priority);
-    const categoryMatch = filterCategory.length === 0 || filterCategory.includes(ticket.category);
+    const statusMatch = !filterStatus || ticket.status === filterStatus;
+    const categoryMatch = !filterCategory || ticket.category === filterCategory;
+    
+    // Date Filtering
+    let dateMatch = true;
+    if (dateFrom || dateTo) {
+      const ticketDate = new Date(ticket.createdAt);
+      if (dateFrom) {
+        const fromDate = new Date(dateFrom);
+        fromDate.setHours(0, 0, 0, 0);
+        if (ticketDate < fromDate) dateMatch = false;
+      }
+      if (dateTo) {
+        const toDate = new Date(dateTo);
+        toDate.setHours(23, 59, 59, 999);
+        if (ticketDate > toDate) dateMatch = false;
+      }
+    }
 
-    return searchMatch && statusMatch && priorityMatch && categoryMatch;
+    return searchMatch && statusMatch && categoryMatch && dateMatch;
   });
 
   // Pagination
@@ -171,34 +187,11 @@ export function RaiseTicketScreen({
     }
   };
 
-  const toggleStatus = (status: string) => {
-    if (filterStatus.includes(status)) {
-      setFilterStatus(filterStatus.filter((s) => s !== status));
-    } else {
-      setFilterStatus([...filterStatus, status]);
-    }
-  };
-
-  const togglePriority = (priority: string) => {
-    if (filterPriority.includes(priority)) {
-      setFilterPriority(filterPriority.filter((p) => p !== priority));
-    } else {
-      setFilterPriority([...filterPriority, priority]);
-    }
-  };
-
-  const toggleCategory = (category: string) => {
-    if (filterCategory.includes(category)) {
-      setFilterCategory(filterCategory.filter((c) => c !== category));
-    } else {
-      setFilterCategory([...filterCategory, category]);
-    }
-  };
-
   const clearFilters = () => {
-    setFilterStatus([]);
-    setFilterPriority([]);
-    setFilterCategory([]);
+    setFilterStatus("");
+    setFilterCategory("");
+    setDateFrom("");
+    setDateTo("");
   };
 
   const applyFilters = () => {
@@ -206,7 +199,12 @@ export function RaiseTicketScreen({
     setCurrentPage(1); // Reset to first page when filters change
   };
 
-  const handleCreateTicket = (ticketData: { category: string; subject: string; description: string; priority: string }) => {
+  const handleCreateTicket = (ticketData: { 
+    category: string; 
+    subject: string; 
+    description: string; 
+    attachments?: File[] 
+  }) => {
     console.log("Creating ticket for super admin:", ticketData);
     // Here you would typically call an API to create the ticket
     setShowCreateDrawer(false);
@@ -217,26 +215,17 @@ export function RaiseTicketScreen({
       <ClinicAdminLayout activeMenu="raise-ticket" onNavigate={onNavigate} onLogout={onLogout}>
         <div className="p-6">
           {/* Header */}
-          <div className="mb-6 flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-neutral-900 dark:text-white">
-                Raise a ticket
-              </h1>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                Submit tickets to super admin for support and assistance
-              </p>
-            </div>
-            <button
-              onClick={() => setShowCreateDrawer(true)}
-              className="inline-flex items-center gap-2 h-10 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Create ticket
-            </button>
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold text-neutral-900 dark:text-white">
+              Raise a ticket
+            </h1>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+              Submit tickets to super admin for support and assistance
+            </p>
           </div>
 
           {/* Main Card */}
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl">
             {/* Search and Filter Bar */}
             <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex items-center gap-3">
               {/* Search */}
@@ -254,21 +243,30 @@ export function RaiseTicketScreen({
                 />
               </div>
 
+              {/* Create Ticket Button */}
+              <button
+                onClick={() => setShowCreateDrawer(true)}
+                className="inline-flex items-center gap-2 h-10 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors text-sm whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                Create ticket
+              </button>
+
               {/* Filter Button */}
               <div className="relative">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`inline-flex items-center gap-2 px-4 h-10 border rounded-lg transition-colors text-sm font-medium ${
-                    showFilters || filterStatus.length > 0 || filterPriority.length > 0 || filterCategory.length > 0
+                  className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-colors ${
+                    showFilters || filterStatus || filterCategory || dateFrom || dateTo
                       ? "border-primary-500 dark:border-primary-600 bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-400"
                       : "border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                   }`}
+                  title="Filters"
                 >
                   <Filter className="w-4 h-4" />
-                  Filters
-                  {(filterStatus.length > 0 || filterPriority.length > 0 || filterCategory.length > 0) && (
-                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary-600 text-white text-xs">
-                      {filterStatus.length + filterPriority.length + filterCategory.length}
+                  {(filterStatus || filterCategory || dateFrom || dateTo) && (
+                    <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-600 text-white text-[10px] font-bold border-2 border-white dark:border-neutral-950">
+                      {[filterStatus, filterCategory, dateFrom, dateTo].filter(Boolean).length}
                     </span>
                   )}
                 </button>
@@ -278,7 +276,7 @@ export function RaiseTicketScreen({
                   <div className="absolute right-0 top-12 w-80 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-lg z-10">
                     <div className="p-4">
                       <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">
+                        <h4 className="text-sm font-semibold text-neutral-900 dark:text-white uppercase tracking-wider">
                           Filter options
                         </h4>
                         <button
@@ -292,67 +290,66 @@ export function RaiseTicketScreen({
                       <div className="space-y-4">
                         {/* Status Filter */}
                         <div>
-                          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                          <label className="block text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-2">
                             Status
                           </label>
-                          <div className="space-y-2">
+                          <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="w-full h-9 px-3 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600"
+                          >
+                            <option value="">All Statuses</option>
                             {statuses.map((status) => (
-                              <label key={status} className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={filterStatus.includes(status)}
-                                  onChange={() => toggleStatus(status)}
-                                  className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-2 focus:ring-primary-500/20"
-                                />
-                                <span className="text-sm text-neutral-900 dark:text-white">
-                                  {status}
-                                </span>
-                              </label>
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
                             ))}
-                          </div>
-                        </div>
-
-                        {/* Priority Filter */}
-                        <div>
-                          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
-                            Priority
-                          </label>
-                          <div className="space-y-2">
-                            {priorities.map((priority) => (
-                              <label key={priority} className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={filterPriority.includes(priority)}
-                                  onChange={() => togglePriority(priority)}
-                                  className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-2 focus:ring-primary-500/20"
-                                />
-                                <span className="text-sm text-neutral-900 dark:text-white">
-                                  {priority}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
+                          </select>
                         </div>
 
                         {/* Category Filter */}
                         <div>
-                          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+                          <label className="block text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-2">
                             Category
                           </label>
-                          <div className="space-y-2 max-h-40 overflow-y-auto">
+                          <select
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                            className="w-full h-9 px-3 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600"
+                          >
+                            <option value="">All Categories</option>
                             {categories.map((category) => (
-                              <label key={category} className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={filterCategory.includes(category)}
-                                  onChange={() => toggleCategory(category)}
-                                  className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-2 focus:ring-primary-500/20"
-                                />
-                                <span className="text-sm text-neutral-900 dark:text-white">
-                                  {category}
-                                </span>
-                              </label>
+                              <option key={category} value={category}>
+                                {category}
+                              </option>
                             ))}
+                          </select>
+                        </div>
+
+                        {/* Created Date Filter */}
+                        <div>
+                          <label className="block text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-2">
+                            Created Date
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <p className="text-[10px] font-medium text-neutral-400 mb-1 uppercase">From Date</p>
+                              <input
+                                type="date"
+                                value={dateFrom}
+                                onChange={(e) => setDateFrom(e.target.value)}
+                                className="w-full h-9 px-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                              />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-medium text-neutral-400 mb-1 uppercase">To Date</p>
+                              <input
+                                type="date"
+                                value={dateTo}
+                                onChange={(e) => setDateTo(e.target.value)}
+                                className="w-full h-9 px-2 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -383,6 +380,9 @@ export function RaiseTicketScreen({
                 <thead className="bg-neutral-50 dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
+                      Created Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
                       Ticket ID
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
@@ -392,13 +392,7 @@ export function RaiseTicketScreen({
                       Category
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
-                      Priority
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
                       Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide">
-                      Created at
                     </th>
                   </tr>
                 </thead>
@@ -408,62 +402,44 @@ export function RaiseTicketScreen({
                       <tr
                         key={ticket.id}
                         onClick={() => {
-                          setSelectedTicketId(ticket.id);
-                          setShowDetailsDrawer(true);
+                          onViewTicket(ticket.id);
                         }}
                         className="hover:bg-neutral-50 dark:hover:bg-neutral-900 cursor-pointer transition-colors"
                       >
-                        <td className="px-6 py-4">
-                          <span className="text-sm font-medium text-primary-600 dark:text-primary-400">
-                            {ticket.ticketId}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm text-neutral-900 dark:text-white">
-                            {ticket.subject}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <Tag className="w-4 h-4 text-neutral-500" />
-                            <span className="text-sm text-neutral-600 dark:text-neutral-400">
-                              {ticket.category}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-medium border ${getPriorityColor(
-                              ticket.priority
-                            )}`}
-                          >
-                            {ticket.priority}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-medium border ${getStatusColor(
-                              ticket.status
-                            )}`}
-                          >
-                            {ticket.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="text-sm text-neutral-900 dark:text-white">
-                              {formatDate(ticket.createdAt)}
-                            </p>
-                            <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                              {formatTime(ticket.createdAt)}
-                            </p>
-                          </div>
-                        </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-neutral-900 dark:text-white">
+                          {formatDate(ticket.createdAt)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-medium text-primary-600 dark:text-primary-400">
+                          {ticket.ticketId}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-neutral-900 dark:text-white">
+                          {ticket.subject}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                          {ticket.category}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded text-sm font-medium border ${getStatusColor(
+                            ticket.status
+                          )}`}
+                        >
+                          {ticket.status}
+                        </span>
+                      </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
+                      <td colSpan={5} className="px-6 py-12 text-center">
                         <p className="text-sm text-neutral-600 dark:text-neutral-400">
                           No tickets found matching your criteria
                         </p>
@@ -474,52 +450,14 @@ export function RaiseTicketScreen({
               </table>
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-                  {Math.min(currentPage * itemsPerPage, filteredTickets.length)} of{" "}
-                  {filteredTickets.length} tickets
-                </p>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="inline-flex items-center gap-2 px-3 h-9 border border-neutral-300 dark:border-neutral-700 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 text-sm font-medium text-neutral-700 dark:text-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </button>
-
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
-                          currentPage === page
-                            ? "bg-primary-600 text-white"
-                            : "text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="inline-flex items-center gap-2 px-3 h-9 border border-neutral-300 dark:border-neutral-700 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 text-sm font-medium text-neutral-700 dark:text-neutral-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              itemsPerPage={itemsPerPage}
+              totalItems={filteredTickets.length}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
           </div>
         </div>
       </ClinicAdminLayout>
@@ -530,18 +468,6 @@ export function RaiseTicketScreen({
           isOpen={showCreateDrawer}
           onClose={() => setShowCreateDrawer(false)}
           onSubmit={handleCreateTicket}
-        />
-      )}
-
-      {/* Ticket Details Drawer */}
-      {showDetailsDrawer && (
-        <RaiseTicketDetailsDrawer
-          isOpen={showDetailsDrawer}
-          ticketId={selectedTicketId}
-          onClose={() => {
-            setShowDetailsDrawer(false);
-            setSelectedTicketId("");
-          }}
         />
       )}
     </>

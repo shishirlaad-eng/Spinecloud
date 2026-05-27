@@ -1,14 +1,17 @@
-import { Calendar, Users } from "lucide-react";
+import { Calendar, Users, ClipboardList, FileText, Send } from "lucide-react";
 
 interface ClinicStaffSidebarProps {
-  activeMenu: "calendar" | "patients";
-  onNavigate: (menu: "calendar" | "patients") => void;
+  activeMenu: "calendar" | "patients" | "questionnaires" | "consentForms" | "referrals";
+  onNavigate: (menu: "calendar" | "patients" | "questionnaires" | "consentForms" | "referrals") => void;
 }
 
 export function ClinicStaffSidebar({ activeMenu, onNavigate }: ClinicStaffSidebarProps) {
   const menuItems = [
     { id: "calendar" as const, label: "Calendar", icon: Calendar },
     { id: "patients" as const, label: "Patients", icon: Users },
+    { id: "questionnaires" as const, label: "Patient Forms", icon: ClipboardList },
+    { id: "consentForms" as const, label: "Agreements", icon: FileText },
+    { id: "referrals" as const, label: "Referrals", icon: Send },
   ];
 
   return (

@@ -103,7 +103,7 @@ export function PatientSpineCloudIndexScreen({
               </div>
               <button
                 onClick={onStartNewIntake}
-                className="inline-flex items-center gap-2 h-10 px-6 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm"
+                className="inline-flex items-center gap-2 h-10 px-6 bg-[#1d77b4] text-white rounded-lg hover:opacity-90 transition-colors font-medium text-sm"
               >
                 <Plus className="w-4 h-4" />
                 Take new assessment
@@ -124,7 +124,7 @@ export function PatientSpineCloudIndexScreen({
                     onClick={() => setSortBy("recent")}
                     className={`px-4 h-9 rounded-lg text-sm font-medium transition-colors ${
                       sortBy === "recent"
-                        ? "bg-primary-600 text-white"
+                        ? "bg-[#1d77b4] text-white"
                         : "bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                     }`}
                   >
@@ -134,7 +134,7 @@ export function PatientSpineCloudIndexScreen({
                     onClick={() => setSortBy("score")}
                     className={`px-4 h-9 rounded-lg text-sm font-medium transition-colors ${
                       sortBy === "score"
-                        ? "bg-primary-600 text-white"
+                        ? "bg-[#1d77b4] text-white"
                         : "bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                     }`}
                   >
@@ -264,7 +264,7 @@ export function PatientSpineCloudIndexScreen({
               </p>
               <button
                 onClick={onStartNewIntake}
-                className="inline-flex items-center gap-2 h-10 px-6 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm"
+                className="inline-flex items-center gap-2 h-10 px-6 bg-[#1d77b4] text-white rounded-lg hover:opacity-90 transition-colors font-medium text-sm"
               >
                 <Plus className="w-4 h-4" />
                 Take your first assessment

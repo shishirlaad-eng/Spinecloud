@@ -13,6 +13,10 @@ import { KDTReportsTabContent } from "./KDTReportsTabContent";
 import { KDTReportBuilder, type KDTReport } from "./KDTReportBuilder";
 import { StructuralIntegrityTabContent } from "./StructuralIntegrityTabContent";
 import { UnifiedReportPreviewModal } from "../common/UnifiedReportPreviewModal";
+import { 
+  PatientFormsTab, 
+  PatientAgreementsTab 
+} from "../shared/PatientDetailTabs";
 
 interface PatientDetails {
   id: string;
@@ -66,6 +70,10 @@ interface ProviderPatientDetailsScreenProps {
   onViewAppointment?: (appointmentId: string) => void;
   onLogout?: () => void;
   soapCategories?: SOAPCategory[]; // Add SOAP Master categories
+  services?: any[];
+  branches?: any[];
+  providers?: any[];
+  onBookAppointments?: (appointments: any[]) => void;
 }
 
 export function ProviderPatientDetailsScreen({
@@ -75,8 +83,12 @@ export function ProviderPatientDetailsScreen({
   onViewAppointment,
   onLogout,
   soapCategories = [], // Default to empty array
+  services = [],
+  branches = [],
+  providers = [],
+  onBookAppointments,
 }: ProviderPatientDetailsScreenProps) {
-  const [activePatientTab, setActivePatientTab] = useState<"overview" | "appointments" | "soap" | "reports" | "carePlan" | "financialPlans" | "kdtReports" | "structuralIntegrity" | "spineCloud">("overview");
+  const [activePatientTab, setActivePatientTab] = useState<"overview" | "appointments" | "soap" | "reports" | "carePlan" | "financialPlans" | "kdtReports" | "structuralIntegrity" | "spineCloud" | "patientForms" | "agreements">("overview");
   const [isNewReportModalOpen, setIsNewReportModalOpen] = useState(false);
   const [selectedDicomIds, setSelectedDicomIds] = useState<string[]>([]);
   const [isComparingDicom, setIsComparingDicom] = useState(false);
@@ -929,6 +941,10 @@ export function ProviderPatientDetailsScreen({
                     patientName={`${patient.firstName} ${patient.lastName}`}
                     existingPlanId={activeCarePlanId}
                     isReadOnly={!!activeCarePlanId}
+                    services={services}
+                    branches={branches}
+                    providers={providers}
+                    onBookAppointments={onBookAppointments}
                     onSave={(plan) => {
                        setIsBuildingCarePlan(false);
                        setActiveCarePlanId(null);
@@ -1263,6 +1279,16 @@ export function ProviderPatientDetailsScreen({
               </div>
             </div>
           )}
+
+          {/* TAB: PATIENT FORMS */}
+          {activePatientTab === "patientForms" && (
+            <PatientFormsTab patientEmail={patient.email} patientName={`${patient.firstName} ${patient.lastName}`} />
+          )}
+
+          {/* TAB: AGREEMENTS */}
+          {activePatientTab === "agreements" && (
+            <PatientAgreementsTab patientEmail={patient.email} patientName={`${patient.firstName} ${patient.lastName}`} />
+          )}
         </div>
         </div>
 
@@ -1304,7 +1330,7 @@ export function ProviderPatientDetailsScreen({
 
            {/* Quick links */}
            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-2 shadow-sm flex flex-col gap-1">
-              {["overview", "appointments", "soap", "reports", "carePlan", "financialPlans", "kdtReports", "structuralIntegrity", "spineCloud"].map((tab) => {
+              {["overview", "appointments", "soap", "reports", "carePlan", "financialPlans", "kdtReports", "structuralIntegrity", "spineCloud", "patientForms", "agreements"].map((tab) => {
                let label = tab.charAt(0).toUpperCase() + tab.slice(1);
                if(tab === "carePlan") label = "Care Plans";
                if(tab === "financialPlans") label = "Financial Plans";
@@ -1313,6 +1339,9 @@ export function ProviderPatientDetailsScreen({
                 if(tab === "kdtReports") label = "KDT Reports";
                 if(tab === "structuralIntegrity") label = "Structural Integrity";
                 if(tab === "spineCloud") label = "SpineCloud Wellness";
+                if(tab === "patientForms") label = "Patient Forms";
+                if(tab === "agreements") label = "Agreements";
+
                return (
                  <button
                    key={tab}

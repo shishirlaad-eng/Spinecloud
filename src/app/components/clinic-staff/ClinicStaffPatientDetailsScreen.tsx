@@ -220,9 +220,6 @@ export function ClinicStaffPatientDetailsScreen({
                 <h1 className="text-xl font-semibold text-neutral-900 dark:text-white">
                   {patient.name}
                 </h1>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                  Patient ID: {patient.id}
-                </p>
               </div>
             </div>
 

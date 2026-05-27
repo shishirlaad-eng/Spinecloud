@@ -4,7 +4,6 @@ import { Search, ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 
 interface Patient {
   id: string;
-  patientId: string;
   name: string;
   locationId: string;
   locationName: string;
@@ -67,7 +66,6 @@ export function ProviderPatientsScreen({
       const query = searchQuery.toLowerCase();
       result = result.filter(
         (patient) =>
-          patient.patientId.toLowerCase().includes(query) ||
           patient.name.toLowerCase().includes(query) ||
           patient.email.toLowerCase().includes(query) ||
           patient.phone.includes(query)
@@ -133,7 +131,7 @@ export function ProviderPatientsScreen({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
             <input
               type="text"
-              placeholder="Search by patient ID, name, email, or phone..."
+              placeholder="Search by name, email, or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-10 pl-10 pr-4 border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-900 dark:text-white placeholder:text-neutral-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-600 text-sm"
@@ -166,15 +164,6 @@ export function ProviderPatientsScreen({
             <table className="w-full">
               <thead>
                 <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/50">
-                  <th className="text-left px-6 py-4">
-                    <button
-                      onClick={() => handleSort("id")}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                    >
-                      Patient ID
-                      {getSortIcon("id")}
-                    </button>
-                  </th>
                   <th className="text-left px-6 py-4">
                     <button
                       onClick={() => handleSort("name")}
@@ -244,11 +233,6 @@ export function ProviderPatientsScreen({
                         index % 2 === 0 ? "" : "bg-neutral-50/50 dark:bg-neutral-800/20"
                       }`}
                     >
-                      <td className="px-6 py-4">
-                        <span className="text-sm font-medium text-neutral-900 dark:text-white">
-                          {patient.patientId}
-                        </span>
-                      </td>
                       <td className="px-6 py-4">
                         <button
                           onClick={() => onViewPatient(patient.id)}

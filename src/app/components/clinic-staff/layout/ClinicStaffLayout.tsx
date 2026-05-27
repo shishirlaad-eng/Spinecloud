@@ -4,8 +4,8 @@ import { ClinicStaffSidebar } from "./ClinicStaffSidebar";
 
 interface ClinicStaffLayoutProps {
   children: ReactNode;
-  activeMenu: "calendar" | "patients" | "dashboard";
-  onNavigate: (menu: "calendar" | "patients" | "dashboard") => void;
+  activeMenu: "calendar" | "patients" | "dashboard" | "questionnaires" | "consentForms" | "referrals";
+  onNavigate: (menu: "calendar" | "patients" | "dashboard" | "questionnaires" | "consentForms" | "referrals") => void;
   onLogout?: () => void;
   onNavigateToProfile?: () => void;
   onNavigateToNotifications?: () => void;

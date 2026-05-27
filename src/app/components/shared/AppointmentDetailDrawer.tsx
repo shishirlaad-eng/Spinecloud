@@ -67,10 +67,7 @@ export function AppointmentDetailDrawer({
               </h2>
               <div className="flex items-center gap-2 mt-1.5">
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusStyles(appointment.status)}`}>
-                  {appointment.status}
-                </span>
-                <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                  ID: {appointment.id}
+                  {appointment.status === "Rescheduled" ? "Confirmed" : appointment.status === "No-Show" ? "Cancelled" : appointment.status}
                 </span>
               </div>
             </div>
@@ -84,38 +81,23 @@ export function AppointmentDetailDrawer({
 
           {/* Details Section */}
           <div className="space-y-4 bg-neutral-50 dark:bg-neutral-950 rounded-xl p-5 border border-neutral-200 dark:border-neutral-800">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-950/30 flex items-center justify-center shrink-0">
-                <User className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+            {userRole !== "patient" && (
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-950/30 flex items-center justify-center shrink-0">
+                  <User className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium uppercase tracking-wider">Patient</p>
+                  <button
+                    onClick={() => onNavigateToPatient(appointment.patientId)}
+                    className="text-sm font-semibold text-primary-600 dark:text-primary-400 hover:underline text-left block w-full mt-0.5"
+                  >
+                    {appointment.patientName}
+                  </button>
+                  <p className="text-xs text-neutral-500 mt-0.5">ID: {appointment.patientId}</p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 font-medium uppercase tracking-wider">Patient</p>
-                <button
-                  onClick={() => onNavigateToPatient(appointment.patientId)}
-                  className="text-sm font-semibold text-primary-600 dark:text-primary-400 hover:underline text-left block w-full mt-0.5"
-                >
-                  {appointment.patientName}
-                </button>
-                <p className="text-xs text-neutral-500 mt-0.5">ID: {appointment.patientId}</p>
-                
-                {(appointment.patientPhone || appointment.patientEmail) && (
-                  <div className="mt-3 space-y-1.5 pt-3 border-t border-neutral-100 dark:border-neutral-800">
-                    {appointment.patientPhone && (
-                      <div className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
-                        <Phone className="w-3.5 h-3.5 text-neutral-400" />
-                        {appointment.patientPhone}
-                      </div>
-                    )}
-                    {appointment.patientEmail && (
-                      <div className="flex items-center gap-2 text-xs text-neutral-600 dark:text-neutral-400">
-                        <Mail className="w-3.5 h-3.5 text-neutral-400" />
-                        {appointment.patientEmail}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div className="space-y-1">
@@ -156,7 +138,7 @@ export function AppointmentDetailDrawer({
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-neutral-500 dark:text-neutral-400">
                   <MapPin className="w-3.5 h-3.5" />
-                  <span className="text-xs font-medium uppercase tracking-wider">Location</span>
+                  <span className="text-xs font-medium uppercase tracking-wider">Branch</span>
                 </div>
                 <p className="text-sm font-medium text-neutral-900 dark:text-white">
                   {[appointment.branchName, appointment.locationName].filter(Boolean).join(" - ")}
@@ -184,22 +166,13 @@ export function AppointmentDetailDrawer({
               
               {appointment.status !== "Cancelled" && (
               <>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => onReschedule(appointment.id)}
-                    className="flex items-center justify-center gap-2 px-4 h-11 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all text-sm font-semibold active:scale-95 shadow-sm"
-                  >
-                    <RefreshCw className="w-4 h-4 text-amber-500" />
-                    Reschedule
-                  </button>
-                  <button
-                    onClick={() => onMarkNoShow(appointment.id)}
-                    className="flex items-center justify-center gap-2 px-4 h-11 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all text-sm font-semibold active:scale-95 shadow-sm"
-                  >
-                    <AlertCircle className="w-4 h-4 text-neutral-400" />
-                    No-Show
-                  </button>
-                </div>
+                <button
+                  onClick={() => onReschedule(appointment.id)}
+                  className="w-full flex items-center justify-center gap-2 px-4 h-11 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-xl hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-all text-sm font-semibold active:scale-95 shadow-sm"
+                >
+                  <RefreshCw className="w-4 h-4 text-amber-500" />
+                  Reschedule Appointment
+                </button>
                 
                 <button
                   onClick={() => onCancel(appointment.id)}

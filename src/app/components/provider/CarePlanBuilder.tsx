@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { CheckSquare, Square, Search, X, Check, Save, Printer, ArrowLeft, ChevronDown } from "lucide-react";
+import { CheckSquare, Square, Search, X, Check, Save, Printer, ArrowLeft, ChevronDown, Calendar } from "lucide-react";
+import { BookTreatmentScheduleDrawer } from "./BookTreatmentScheduleDrawer";
 
 export interface CarePlanScheduleRow {
   id: string;
@@ -31,9 +32,25 @@ interface CarePlanBuilderProps {
   isReadOnly?: boolean;
   onSave: (plan: CarePlan) => void;
   onCancel: () => void;
+  services?: any[];
+  branches?: any[];
+  providers?: any[];
+  onBookAppointments?: (appointments: any[]) => void;
 }
 
-export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, isReadOnly, onSave, onCancel }: CarePlanBuilderProps) => {
+export const CarePlanBuilder = ({ 
+  patientId, 
+  patientName, 
+  existingPlanId, 
+  isReadOnly, 
+  onSave, 
+  onCancel,
+  services = [],
+  branches = [],
+  providers = [],
+  onBookAppointments
+}: CarePlanBuilderProps) => {
+  const [isBookingDrawerOpen, setIsBookingDrawerOpen] = useState(false);
   const [plan, setPlan] = useState<CarePlan>({
     id: `cp-${Date.now()}`,
     patientId,
@@ -46,6 +63,25 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, isRead
     doctorSignatureDate: "",
     patientSignatureDate: ""
   });
+
+  const finalServices = services.length > 0 ? services : [
+    { id: "serv-1", name: "Chiropractic Spinal Adjustment", durations: [{ duration: 30 }] },
+    { id: "serv-2", name: "Initial Chiropractic Consultation", durations: [{ duration: 60 }] },
+    { id: "serv-3", name: "Spinal Decompression Therapy", durations: [{ duration: 45 }] },
+    { id: "serv-4", name: "Soft Tissue Massage Therapy", durations: [{ duration: 30 }] }
+  ];
+
+  const finalBranches = branches.length > 0 ? branches : [
+    { id: "branch-1", name: "Downtown Chiropractic Center" },
+    { id: "branch-2", name: "Uptown Spine & Wellness" },
+    { id: "branch-3", name: "Westside Chiropractic Clinic" }
+  ];
+
+  const finalProviders = providers.length > 0 ? providers : [
+    { id: "user-1", firstName: "David", lastName: "Bohn", specialty: "Chiropractor" },
+    { id: "user-2", firstName: "Sarah", lastName: "Johnson", specialty: "Spinal Decompression Specialist" },
+    { id: "user-3", firstName: "Emily", lastName: "Wilson", specialty: "Massage Therapist" }
+  ];
 
   const [masterOptions, setMasterOptions] = useState({
     basedOn: ["Your Age", "MRI /CT Report", "Digital Foot Scans", "Number of Exam Abnormalities", "Your History and Physical Examination", "Posture/Range of Motion Abnormalities"],
@@ -238,10 +274,20 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, isRead
             <button onClick={addScheduleRow} className="text-sm text-primary-600 font-medium hover:underline mt-2">+ Add Phase</button>
           )}
 
-          <div className="pt-4 mt-6 border-t border-neutral-200 dark:border-neutral-700 flex items-center gap-4 text-base font-bold text-neutral-900 dark:text-white">
-             <span>Total Visits <span className="underline underline-offset-4 text-primary-700">{totalVisits}</span></span>
-             <span className="text-neutral-400 font-medium">/</span>
-             <span><span className="underline underline-offset-4">{totalMonths}</span> Months</span>
+          <div className="pt-4 mt-6 border-t border-neutral-200 dark:border-neutral-700 flex items-center justify-between gap-4 flex-wrap text-base font-bold text-neutral-900 dark:text-white">
+             <div className="flex items-center gap-4">
+                <span>Total Visits <span className="underline underline-offset-4 text-primary-700">{totalVisits}</span></span>
+                <span className="text-neutral-400 font-medium">/</span>
+                <span><span className="underline underline-offset-4">{totalMonths}</span> Months</span>
+             </div>
+
+             <button
+               type="button"
+               onClick={() => setIsBookingDrawerOpen(true)}
+               className="inline-flex items-center gap-2 h-10 px-5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-sm cursor-pointer"
+             >
+                <Calendar className="w-4 h-4" /> Book Schedule
+             </button>
           </div>
         </div>
 
@@ -288,6 +334,24 @@ export const CarePlanBuilder = ({ patientId, patientName, existingPlanId, isRead
         </div>
 
       </div>
+
+      {isBookingDrawerOpen && (
+        <BookTreatmentScheduleDrawer
+          isOpen={isBookingDrawerOpen}
+          onClose={() => setIsBookingDrawerOpen(false)}
+          patientId={patientId}
+          patientName={patientName}
+          scheduleRows={plan.scheduleRows}
+          services={finalServices}
+          branches={finalBranches}
+          providers={finalProviders}
+          onConfirmBooking={(newAppts) => {
+            if (onBookAppointments) {
+              onBookAppointments(newAppts);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

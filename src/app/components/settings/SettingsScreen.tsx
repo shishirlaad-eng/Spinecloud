@@ -3,9 +3,23 @@ import { ArrowLeft, Lock, Bell, CheckCircle2 } from "lucide-react";
 
 interface SettingsScreenProps {
   onBack: () => void;
+  onNavigate?: (menu: "dashboard" | "appointments" | "invoices" | "notifications" | "settings") => void;
+  onLogout?: () => void;
+  currentEntity?: "patient" | "clinicAdmin" | "provider" | "clinic-staff";
+  onEntitySwitch?: (entity: "patient" | "clinicAdmin" | "provider" | "clinic-staff") => void;
+  onNavigateToProfile?: () => void;
 }
 
-export function SettingsScreen({ onBack }: SettingsScreenProps) {
+import { DashboardLayout } from "../layout/DashboardLayout";
+
+export function SettingsScreen({ 
+  onBack, 
+  onNavigate, 
+  onLogout,
+  currentEntity,
+  onEntitySwitch,
+  onNavigateToProfile
+}: SettingsScreenProps) {
   // Password form state
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -120,40 +134,43 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-      <div className="max-w-4xl mx-auto p-5 md:p-6">
-        {/* Back Button */}
-        <button
-          onClick={onBack}
-          className="group inline-flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900 transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-          Back to dashboard
-        </button>
-
+    <DashboardLayout 
+      activeMenu="settings" 
+      onNavigate={onNavigate as any} 
+      onLogout={onLogout}
+      currentEntity={currentEntity}
+      onEntitySwitch={onEntitySwitch}
+      onNavigateToProfile={onNavigateToProfile}
+    >
+      <div className="max-w-4xl">
         {/* Page Header */}
         <div className="mb-6">
-          <h2 className="text-xl font-semibold text-neutral-900 mb-2">
+          <div className="flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400 mb-2">
+            <span>Home</span>
+            <span className="mx-1">›</span>
+            <span className="font-medium text-[#0b1c30] dark:text-white">Settings</span>
+          </div>
+          <h2 className="text-xl font-semibold text-neutral-900 dark:text-white mb-2">
             Settings
           </h2>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
             Manage your account settings and preferences
           </p>
         </div>
 
         <div className="space-y-6">
           {/* Change Password Section */}
-          <div className="bg-white border border-neutral-200 rounded-xl">
-            <div className="px-6 pt-6 pb-4 border-b border-neutral-200">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl">
+            <div className="px-6 pt-6 pb-4 border-b border-neutral-200 dark:border-neutral-800">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary-50">
-                  <Lock className="w-5 h-5 text-primary-600" />
+                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#eff4ff] dark:bg-primary-950/30">
+                  <Lock className="w-5 h-5 text-[#1d77b4] dark:text-primary-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-neutral-900">
+                  <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
                     Change password
                   </h3>
-                  <p className="text-sm text-neutral-600">
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
                     Update your password to keep your account secure
                   </p>
                 </div>
@@ -193,10 +210,10 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     onBlur={() => handlePasswordBlur("currentPassword")}
                     placeholder="Enter current password"
-                    className={`w-full h-10 px-3 py-1 bg-neutral-50 border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-[border-color,box-shadow] ${
+                    className={`w-full h-10 px-3 py-1 bg-neutral-50 dark:bg-neutral-800 border rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 outline-none transition-[border-color,box-shadow] ${
                       passwordErrors.currentPassword
-                        ? "border-destructive"
-                        : "border-neutral-200 focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
+                        ? "border-destructive dark:border-destructive"
+                        : "border-neutral-200 dark:border-neutral-700 focus:border-[#1d77b4] focus:ring-2 focus:ring-[#1d77b4]/10"
                     }`}
                     aria-invalid={!!passwordErrors.currentPassword}
                   />
@@ -222,10 +239,10 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
                     onChange={(e) => setNewPassword(e.target.value)}
                     onBlur={() => handlePasswordBlur("newPassword")}
                     placeholder="Enter new password"
-                    className={`w-full h-10 px-3 py-1 bg-neutral-50 border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-[border-color,box-shadow] ${
+                    className={`w-full h-10 px-3 py-1 bg-neutral-50 dark:bg-neutral-800 border rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 outline-none transition-[border-color,box-shadow] ${
                       passwordErrors.newPassword
-                        ? "border-destructive"
-                        : "border-neutral-200 focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
+                        ? "border-destructive dark:border-destructive"
+                        : "border-neutral-200 dark:border-neutral-700 focus:border-[#1d77b4] focus:ring-2 focus:ring-[#1d77b4]/10"
                     }`}
                     aria-invalid={!!passwordErrors.newPassword}
                   />
@@ -256,10 +273,10 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     onBlur={() => handlePasswordBlur("confirmPassword")}
                     placeholder="Re-enter new password"
-                    className={`w-full h-10 px-3 py-1 bg-neutral-50 border rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 outline-none transition-[border-color,box-shadow] ${
+                    className={`w-full h-10 px-3 py-1 bg-neutral-50 dark:bg-neutral-800 border rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 dark:placeholder:text-neutral-500 outline-none transition-[border-color,box-shadow] ${
                       passwordErrors.confirmPassword
-                        ? "border-destructive"
-                        : "border-neutral-200 focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
+                        ? "border-destructive dark:border-destructive"
+                        : "border-neutral-200 dark:border-neutral-700 focus:border-[#1d77b4] focus:ring-2 focus:ring-[#1d77b4]/10"
                     }`}
                     aria-invalid={!!passwordErrors.confirmPassword}
                   />
@@ -275,7 +292,7 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
                   <button
                     type="submit"
                     disabled={!isPasswordFormValid()}
-                    className="h-10 px-6 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
+                    className="h-10 px-6 bg-[#1d77b4] hover:opacity-90 active:opacity-80 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
                   >
                     Update password
                   </button>
@@ -285,17 +302,17 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
           </div>
 
           {/* Notification Preferences Section */}
-          <div className="bg-white border border-neutral-200 rounded-xl">
-            <div className="px-6 pt-6 pb-4 border-b border-neutral-200">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl">
+            <div className="px-6 pt-6 pb-4 border-b border-neutral-200 dark:border-neutral-800">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary-50">
-                  <Bell className="w-5 h-5 text-primary-600" />
+                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-[#eff4ff] dark:bg-primary-950/30">
+                  <Bell className="w-5 h-5 text-[#1d77b4] dark:text-primary-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-neutral-900">
+                  <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">
                     Notification preferences
                   </h3>
-                  <p className="text-sm text-neutral-600">
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400">
                     Choose how you want to receive notifications
                   </p>
                 </div>
@@ -321,14 +338,14 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
               <form onSubmit={handleNotificationSubmit} className="space-y-6">
                 {/* Email Notifications */}
                 <div>
-                  <h4 className="text-sm font-semibold text-neutral-900 mb-4">
+                  <h4 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4">
                     Email notifications
                   </h4>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <label
                         htmlFor="email-appointments"
-                        className="text-sm text-neutral-700 cursor-pointer"
+                        className="text-sm text-neutral-700 dark:text-neutral-300 cursor-pointer"
                       >
                         Appointment confirmations and updates
                       </label>
@@ -342,13 +359,13 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
                             appointments: e.target.checked,
                           })
                         }
-                        className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-2 focus:ring-primary-500/20 cursor-pointer"
+                        className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 text-[#1d77b4] focus:ring-2 focus:ring-[#1d77b4]/20 cursor-pointer"
                       />
                     </div>
                     <div className="flex items-center justify-between">
                       <label
                         htmlFor="email-reminders"
-                        className="text-sm text-neutral-700 cursor-pointer"
+                        className="text-sm text-neutral-700 dark:text-neutral-300 cursor-pointer"
                       >
                         Appointment reminders
                       </label>
@@ -362,33 +379,14 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
                             reminders: e.target.checked,
                           })
                         }
-                        className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-2 focus:ring-primary-500/20 cursor-pointer"
+                        className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 text-[#1d77b4] focus:ring-2 focus:ring-[#1d77b4]/20 cursor-pointer"
                       />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <label
-                        htmlFor="email-results"
-                        className="text-sm text-neutral-700 cursor-pointer"
-                      >
-                        Lab results and documents
-                      </label>
-                      <input
-                        type="checkbox"
-                        id="email-results"
-                        checked={emailNotifications.results}
-                        onChange={(e) =>
-                          setEmailNotifications({
-                            ...emailNotifications,
-                            results: e.target.checked,
-                          })
-                        }
-                        className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-2 focus:ring-primary-500/20 cursor-pointer"
-                      />
-                    </div>
+
                     <div className="flex items-center justify-between">
                       <label
                         htmlFor="email-billing"
-                        className="text-sm text-neutral-700 cursor-pointer"
+                        className="text-sm text-neutral-700 dark:text-neutral-300 cursor-pointer"
                       >
                         Billing and payment notifications
                       </label>
@@ -402,13 +400,13 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
                             billing: e.target.checked,
                           })
                         }
-                        className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-2 focus:ring-primary-500/20 cursor-pointer"
+                        className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 text-[#1d77b4] focus:ring-2 focus:ring-[#1d77b4]/20 cursor-pointer"
                       />
                     </div>
                     <div className="flex items-center justify-between">
                       <label
                         htmlFor="email-marketing"
-                        className="text-sm text-neutral-700 cursor-pointer"
+                        className="text-sm text-neutral-700 dark:text-neutral-300 cursor-pointer"
                       >
                         Promotional emails and newsletters
                       </label>
@@ -422,7 +420,7 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
                             marketing: e.target.checked,
                           })
                         }
-                        className="w-4 h-4 rounded border-neutral-300 text-primary-600 focus:ring-2 focus:ring-primary-500/20 cursor-pointer"
+                        className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 text-[#1d77b4] focus:ring-2 focus:ring-[#1d77b4]/20 cursor-pointer"
                       />
                     </div>
                   </div>
@@ -432,7 +430,7 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="h-10 px-6 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white text-sm font-medium rounded-lg transition-colors"
+                    className="h-10 px-6 bg-[#1d77b4] hover:opacity-90 active:opacity-80 text-white text-sm font-medium rounded-lg transition-colors"
                   >
                     Save preferences
                   </button>
@@ -442,6 +440,6 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
           </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

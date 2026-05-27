@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { ClinicAdminLayout } from "./layout/ClinicAdminLayout";
 import {
   ClipboardList, Heart, Wallet, Scan, Dumbbell, Activity, Brain,
-  Search, Filter, Eye, Download, X, ChevronDown, FolderOpen
+  Search, Filter, Eye, Download, X, ChevronDown, FolderOpen, Calendar
 } from "lucide-react";
+import { Pagination } from "../shared/Pagination";
 import { UnifiedReportPreviewModal } from "../common/UnifiedReportPreviewModal";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -256,8 +257,8 @@ function loadAllRecords(): Record<TabId, AdminClinicalRecord[]> {
 
 // ── Filter state ───────────────────────────────────────────────────────────────
 
-interface TabFilter { search: string; branch: string; dateRange: string; provider: string; }
-const defaultFilter = (): TabFilter => ({ search: "", branch: "all", dateRange: "all", provider: "all" });
+interface TabFilter { search: string; branch: string; dateFrom: string; dateTo: string; provider: string; }
+const defaultFilter = (): TabFilter => ({ search: "", branch: "all", dateFrom: "", dateTo: "", provider: "all" });
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
@@ -266,11 +267,12 @@ interface Props {
   onLogout?: () => void;
 }
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 
 export function ClinicAdminClinicalRecordsScreen({ onNavigate, onLogout }: Props) {
   const [activeTab, setActiveTab] = useState<TabId>("soapNote");
   const [allRecords, setAllRecords] = useState<Record<TabId, AdminClinicalRecord[]>>(() => loadAllRecords());
+  const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_PAGE_SIZE);
   const [filters, setFilters] = useState<Record<TabId, TabFilter>>(() =>
     Object.fromEntries(TABS.map(t => [t.id, defaultFilter()])) as Record<TabId, TabFilter>
   );
@@ -308,19 +310,25 @@ export function ClinicAdminClinicalRecordsScreen({ onNavigate, onLogout }: Props
     const matchBranch  = f.branch === "all"   || r.branch   === f.branch;
     const matchProv    = f.provider === "all"  || r.provider === f.provider;
     let matchDate = true;
-    if (f.dateRange !== "all") {
+    if (f.dateFrom || f.dateTo) {
       const d = new Date(r.date);
-      if (f.dateRange === "7d")  { const x = new Date(); x.setDate(x.getDate() - 7);   matchDate = d >= x; }
-      if (f.dateRange === "30d") { const x = new Date(); x.setDate(x.getDate() - 30);  matchDate = d >= x; }
-      if (f.dateRange === "3m")  { const x = new Date(); x.setMonth(x.getMonth() - 3); matchDate = d >= x; }
-      if (f.dateRange === "6m")  { const x = new Date(); x.setMonth(x.getMonth() - 6); matchDate = d >= x; }
+      if (f.dateFrom) {
+        const start = new Date(f.dateFrom);
+        start.setHours(0, 0, 0, 0);
+        matchDate = matchDate && d >= start;
+      }
+      if (f.dateTo) {
+        const end = new Date(f.dateTo);
+        end.setHours(23, 59, 59, 999);
+        matchDate = matchDate && d <= end;
+      }
     }
     return matchSearch && matchBranch && matchProv && matchDate;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
   const page = Math.min(pages[activeTab], totalPages);
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
   const setFilter = (key: keyof TabFilter, value: string) => {
     setFilters(prev => ({ ...prev, [activeTab]: { ...prev[activeTab], [key]: value } }));
@@ -330,7 +338,7 @@ export function ClinicAdminClinicalRecordsScreen({ onNavigate, onLogout }: Props
 
   const activeFilterCount =
     (f.branch !== "all" ? 1 : 0) +
-    (f.dateRange !== "all" ? 1 : 0) +
+    (f.dateFrom || f.dateTo ? 1 : 0) +
     (f.provider !== "all" ? 1 : 0);
 
   const clearFilters = () => setFilters(prev => ({ ...prev, [activeTab]: { ...defaultFilter(), search: prev[activeTab].search } }));
@@ -378,26 +386,19 @@ export function ClinicAdminClinicalRecordsScreen({ onNavigate, onLogout }: Props
               >
                 <Icon className="w-4 h-4" />
                 {tab.label}
-                {count > 0 && (
-                  <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold ${
-                    isActive ? "bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300" : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
-                  }`}>
-                    {count}
-                  </span>
-                )}
               </button>
             );
           })}
         </div>
 
         {/* Controls */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3 mb-6">
           {/* Search */}
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <input
               type="text"
-              placeholder="Search by patient name or email..."
+              placeholder="Search by patient name, email, or provider..."
               value={f.search}
               onChange={e => setFilter("search", e.target.value)}
               className="w-full h-10 pl-10 pr-4 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-neutral-900 dark:text-white placeholder:text-neutral-400"
@@ -408,54 +409,62 @@ export function ClinicAdminClinicalRecordsScreen({ onNavigate, onLogout }: Props
           <div className="relative" ref={filterRef}>
             <button
               onClick={() => setShowFilterDropdown(v => !v)}
-              className={`inline-flex items-center gap-2 h-10 px-4 border rounded-lg text-sm font-medium transition-all ${
+              className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-all ${
                 activeFilterCount > 0
-                  ? "bg-primary-50 dark:bg-primary-950/30 border-primary-600 text-primary-700 dark:text-primary-300"
+                  ? "bg-primary-50 dark:bg-primary-950/30 border-primary-600 text-primary-700 dark:text-primary-300 shadow-sm"
                   : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
               }`}
+              title="Filters"
             >
               <Filter className="w-4 h-4" />
-              Filter
               {activeFilterCount > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-600 text-white text-[10px] font-bold">
+                <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-600 text-white text-[10px] font-bold border-2 border-white dark:border-neutral-950">
                   {activeFilterCount}
                 </span>
               )}
-              <ChevronDown className="w-3.5 h-3.5" />
             </button>
 
             {showFilterDropdown && (
-              <div className="absolute right-0 top-12 w-72 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-30 p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-neutral-900 dark:text-white">Filters</span>
-                  <button onClick={() => setShowFilterDropdown(false)} className="p-1 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 rounded transition-colors">
+              <div className="absolute right-0 top-12 w-80 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-xl z-30 p-5 space-y-5">
+                <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3 -mx-1">
+                  <span className="text-sm font-bold text-neutral-900 dark:text-white uppercase tracking-wider">Filter Results</span>
+                  <button onClick={() => setShowFilterDropdown(false)} className="p-1.5 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 rounded-full transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
                 {/* Date Range */}
-                <div>
-                  <label className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block mb-2">Created Date</label>
-                  <select
-                    value={f.dateRange}
-                    onChange={e => setFilter("dateRange", e.target.value)}
-                    className="w-full h-9 px-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  >
-                    <option value="all">All time</option>
-                    <option value="7d">Last 7 days</option>
-                    <option value="30d">Last 30 days</option>
-                    <option value="3m">Last 3 months</option>
-                    <option value="6m">Last 6 months</option>
-                  </select>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block ml-1">Created Date</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-neutral-500 font-medium ml-1">From</span>
+                      <input
+                        type="date"
+                        value={f.dateFrom}
+                        onChange={e => setFilter("dateFrom", e.target.value)}
+                        className="w-full h-9 px-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-xs text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] text-neutral-500 font-medium ml-1">To</span>
+                      <input
+                        type="date"
+                        value={f.dateTo}
+                        onChange={e => setFilter("dateTo", e.target.value)}
+                        className="w-full h-9 px-2 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-xs text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Branch */}
-                <div>
-                  <label className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block mb-2">Branch</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block ml-1">Branch</label>
                   <select
                     value={f.branch}
                     onChange={e => setFilter("branch", e.target.value)}
-                    className="w-full h-9 px-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    className="w-full h-9 px-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-xs text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                   >
                     {uniqueBranches.map(b => (
                       <option key={b} value={b}>{b === "all" ? "All Branches" : b}</option>
@@ -464,12 +473,12 @@ export function ClinicAdminClinicalRecordsScreen({ onNavigate, onLogout }: Props
                 </div>
 
                 {/* Provider */}
-                <div>
-                  <label className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider block mb-2">Provider</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest block ml-1">Provider</label>
                   <select
                     value={f.provider}
                     onChange={e => setFilter("provider", e.target.value)}
-                    className="w-full h-9 px-3 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg text-sm text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                    className="w-full h-9 px-3 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-xs text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                   >
                     {uniqueProviders.map(p => (
                       <option key={p} value={p}>{p === "all" ? "All Providers" : p}</option>
@@ -477,14 +486,20 @@ export function ClinicAdminClinicalRecordsScreen({ onNavigate, onLogout }: Props
                   </select>
                 </div>
 
-                {activeFilterCount > 0 && (
+                <div className="flex gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-800">
                   <button
                     onClick={clearFilters}
-                    className="w-full h-9 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg text-sm font-medium transition-colors"
+                    className="flex-1 h-9 bg-neutral-50 dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400 rounded-lg text-xs font-bold transition-colors"
                   >
-                    Clear all filters
+                    Clear All
                   </button>
-                )}
+                  <button
+                    onClick={() => setShowFilterDropdown(false)}
+                    className="flex-1 h-9 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-xs font-bold shadow-lg shadow-primary-600/20 transition-colors"
+                  >
+                    Apply
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -563,50 +578,14 @@ export function ClinicAdminClinicalRecordsScreen({ onNavigate, onLogout }: Props
           </div>
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              Showing{" "}
-              <span className="font-medium">{(page - 1) * PAGE_SIZE + 1}</span>
-              {" "}to{" "}
-              <span className="font-medium">{Math.min(page * PAGE_SIZE, filtered.length)}</span>
-              {" "}of{" "}
-              <span className="font-medium">{filtered.length}</span>{" "}records
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage(Math.max(1, page - 1))}
-                disabled={page === 1}
-                className="px-4 h-9 flex items-center justify-center bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Previous
-              </button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }).map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setPage(i + 1)}
-                    className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-medium transition-all ${
-                      page === i + 1
-                        ? "bg-primary-600 text-white shadow-sm"
-                        : "bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
-                    }`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => setPage(Math.min(totalPages, page + 1))}
-                disabled={page === totalPages}
-                className="px-4 h-9 flex items-center justify-center bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          totalItems={filtered.length}
+          onPageChange={setPage}
+          onItemsPerPageChange={setItemsPerPage}
+        />
       </div>
 
       {/* Preview Modal */}

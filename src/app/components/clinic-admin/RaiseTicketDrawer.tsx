@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X } from "lucide-react";
+import { useState, useRef } from "react";
+import { X, Paperclip, Trash2, FileText } from "lucide-react";
 
 interface RaiseTicketDrawerProps {
   isOpen: boolean;
@@ -8,7 +8,7 @@ interface RaiseTicketDrawerProps {
     category: string;
     subject: string;
     description: string;
-    priority: string;
+    attachments?: File[];
   }) => void;
 }
 
@@ -25,8 +25,6 @@ const ticketCategories = [
   "General Inquiry",
 ];
 
-const priorities = ["Low", "Medium", "High", "Urgent"];
-
 export function RaiseTicketDrawer({
   isOpen,
   onClose,
@@ -35,8 +33,9 @@ export function RaiseTicketDrawer({
   const [category, setCategory] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("Medium");
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -49,19 +48,30 @@ export function RaiseTicketDrawer({
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setAttachments([...attachments, ...newFiles]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setAttachments(attachments.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = () => {
     if (validateForm()) {
       onSubmit({
         category,
         subject: subject.trim(),
         description: description.trim(),
-        priority,
+        attachments: attachments.length > 0 ? attachments : undefined
       });
       // Reset form
       setCategory("");
       setSubject("");
       setDescription("");
-      setPriority("Medium");
+      setAttachments([]);
       setErrors({});
     }
   };
@@ -70,7 +80,7 @@ export function RaiseTicketDrawer({
     setCategory("");
     setSubject("");
     setDescription("");
-    setPriority("Medium");
+    setAttachments([]);
     setErrors({});
     onClose();
   };
@@ -105,7 +115,7 @@ export function RaiseTicketDrawer({
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-6">
+        <div className="p-5 space-y-6 pb-24">
           {/* Category */}
           <div>
             <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
@@ -133,29 +143,6 @@ export function RaiseTicketDrawer({
             {errors.category && (
               <p className="text-xs text-destructive mt-1">{errors.category}</p>
             )}
-          </div>
-
-          {/* Priority */}
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-              Priority <span className="text-destructive">*</span>
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {priorities.map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPriority(p)}
-                  className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-                    priority === p
-                      ? "border-primary-500 bg-primary-50 dark:bg-primary-950/20 text-primary-700 dark:text-primary-400 ring-2 ring-primary-500/20"
-                      : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Subject */}
@@ -194,7 +181,7 @@ export function RaiseTicketDrawer({
                 setErrors({ ...errors, description: "" });
               }}
               placeholder="Provide detailed information about your request or issue..."
-              rows={8}
+              rows={6}
               className={`w-full px-3 py-2 bg-neutral-50 dark:bg-neutral-900 border rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 outline-none transition-[border-color,box-shadow] resize-none ${
                 errors.description
                   ? "border-destructive"
@@ -206,16 +193,63 @@ export function RaiseTicketDrawer({
             )}
           </div>
 
-          {/* Info Box */}
-          <div className="bg-primary-50 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800 rounded-lg p-4">
-            <p className="text-sm text-primary-700 dark:text-primary-300">
-              <span className="font-semibold">Note:</span> Your ticket will be submitted to the super admin team. You'll receive updates via email and can track the progress in this section.
-            </p>
+          {/* Attachments */}
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
+              Attachments
+            </label>
+            <input
+              type="file"
+              multiple
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full h-24 border-2 border-dashed border-neutral-300 dark:border-neutral-800 rounded-xl flex flex-col items-center justify-center gap-2 text-neutral-500 hover:text-primary-600 hover:border-primary-500/50 hover:bg-primary-50/50 dark:hover:bg-primary-950/20 transition-all group"
+            >
+              <div className="p-2 rounded-full bg-neutral-100 dark:bg-neutral-900 group-hover:bg-primary-100 dark:group-hover:bg-primary-900/50 transition-colors">
+                <Paperclip className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-medium">Click to upload or drag & drop files</span>
+              <span className="text-[10px] text-neutral-400">Max size: 5MB per file</span>
+            </button>
+
+            {attachments.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {attachments.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between p-2.5 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg group">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="p-1.5 rounded-md bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-500">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col overflow-hidden">
+                        <span className="text-xs font-medium text-neutral-900 dark:text-white truncate">
+                          {file.name}
+                        </span>
+                        <span className="text-[10px] text-neutral-500">
+                          {(file.size / 1024).toFixed(1)} KB
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="p-1.5 text-neutral-400 hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-white dark:bg-neutral-950 border-t border-neutral-200 dark:border-neutral-800 px-5 py-4 flex gap-3">
+        <div className="fixed bottom-0 right-0 w-full md:w-[600px] bg-white dark:bg-neutral-950 border-t border-neutral-200 dark:border-neutral-800 px-5 py-4 flex gap-3 z-10">
           <button
             onClick={handleClose}
             className="flex-1 h-10 px-4 border border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors font-medium text-sm"

@@ -1,6 +1,5 @@
-import { Menu, LogOut, Bell, User, ChevronDown, Check } from "lucide-react";
+import { Menu, LogOut, Bell, User, ChevronDown, Check, Search, Settings, Sun, Moon } from "lucide-react";
 import { useState } from "react";
-import logo from "../../../../assets/spinecloud-logo.png";
 
 interface Notification {
   id: string;
@@ -19,6 +18,11 @@ interface ClinicAdminHeaderProps {
   notifications?: Notification[];
   onMarkNotificationRead?: (id: string) => void;
   onMarkAllRead?: () => void;
+  isSidebarCollapsed?: boolean;
+  currentTheme?: string;
+  onThemeChange?: (theme: string) => void;
+  mode?: "light" | "dark";
+  onModeChange?: (mode: "light" | "dark") => void;
 }
 
 export function ClinicAdminHeader({
@@ -29,9 +33,25 @@ export function ClinicAdminHeader({
   notifications = [],
   onMarkNotificationRead,
   onMarkAllRead,
+  isSidebarCollapsed = false,
+  currentTheme = "ocean",
+  onThemeChange,
+  mode = "light",
+  onModeChange,
 }: ClinicAdminHeaderProps) {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showAppearancePanel, setShowAppearancePanel] = useState(false);
+  const [menuLayout, setMenuLayout] = useState<"vertical" | "horizontal">("vertical");
+  const [language, setLanguage] = useState("English");
+
+  const colorThemes = [
+    { id: "black", label: "Default Black", swatch: "bg-neutral-900" },
+    { id: "ocean", label: "Ocean Blue", swatch: "bg-[#1766C2]" },
+    { id: "emerald", label: "Emerald Green", swatch: "bg-emerald-500" },
+    { id: "violet", label: "Violet Purple", swatch: "bg-violet-500" },
+    { id: "amber", label: "Amber Orange", swatch: "bg-amber-500" },
+  ];
 
   const formatTime = (ts: string) => {
     try {
@@ -43,18 +63,28 @@ export function ClinicAdminHeader({
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 z-50">
-      <div className="flex items-center justify-between h-full px-4">
-        <div className="flex items-center gap-3">
+    <header className="sticky top-0 h-12 bg-white dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 z-30">
+      <div className="flex items-center justify-between h-full px-6 gap-4">
+        <div className="flex items-center gap-3 flex-1 max-w-md">
           <button
             onClick={onToggleSidebar}
-            className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+            className="w-8 h-8 flex items-center justify-center hover:bg-neutral-100 dark:hover:bg-neutral-900 rounded-lg transition-colors lg:hidden"
             aria-label="Toggle sidebar"
           >
             <Menu className="w-5 h-5 text-neutral-600 dark:text-neutral-400" />
           </button>
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="SpineCloud IQ" className="h-12 w-auto object-contain" />
+          {isSidebarCollapsed && (
+            <div className="hidden md:block text-sm font-semibold text-neutral-900 dark:text-white whitespace-nowrap">
+              SpineCloudIQ
+            </div>
+          )}
+          <div className="relative flex-1 hidden sm:block">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-neutral-500 dark:text-neutral-400" />
+            <input
+              type="text"
+              placeholder="Search clinic admin..."
+              className="w-full h-9 pl-10 pr-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+            />
           </div>
         </div>
 
@@ -66,12 +96,13 @@ export function ClinicAdminHeader({
               onClick={() => {
                 setShowNotifications(!showNotifications);
                 setShowProfileDropdown(false);
+                setShowAppearancePanel(false);
               }}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors relative"
             >
               <Bell className="w-5 h-5" />
               {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-error-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
                 </span>
               )}
@@ -80,7 +111,7 @@ export function ClinicAdminHeader({
             {showNotifications && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setShowNotifications(false)} />
-                <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-2xl overflow-hidden z-20">
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-xl overflow-hidden z-20">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
                     <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Notifications</h3>
                     {unreadNotificationsCount > 0 && (
@@ -119,12 +150,134 @@ export function ClinicAdminHeader({
             )}
           </div>
 
+          {/* Appearance Settings */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowAppearancePanel(!showAppearancePanel);
+                setShowNotifications(false);
+                setShowProfileDropdown(false);
+              }}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+                showAppearancePanel
+                  ? "bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-white"
+                  : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              }`}
+              title="Appearance settings"
+              aria-label="Appearance settings"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+
+            {showAppearancePanel && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowAppearancePanel(false)} />
+                <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-xl overflow-hidden z-20">
+                  <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-800">
+                    <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">Appearance</h3>
+                  </div>
+
+                  <div className="px-4 py-4 border-b border-neutral-200 dark:border-neutral-800">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 mb-3">
+                      Color Theme
+                    </p>
+                    <div className="space-y-1">
+                      {colorThemes.map((theme) => (
+                        <button
+                          key={theme.id}
+                          onClick={() => onThemeChange?.(theme.id)}
+                          className="w-full flex items-center justify-between gap-3 px-2 py-2 rounded-lg text-left text-neutral-800 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
+                        >
+                          <span className="flex items-center gap-3 min-w-0">
+                            <span className={`w-3.5 h-3.5 rounded-full shrink-0 ${theme.swatch}`} />
+                            <span className="text-sm truncate">{theme.label}</span>
+                          </span>
+                          {currentTheme === theme.id && (
+                            <Check className="w-4 h-4 text-neutral-900 dark:text-white shrink-0" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="px-4 py-4 border-b border-neutral-200 dark:border-neutral-800">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 mb-3">
+                      Mode
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => onModeChange?.("light")}
+                        className={`h-10 rounded-lg border text-sm flex items-center justify-center gap-2 transition-colors ${
+                          mode === "light"
+                            ? "bg-neutral-200 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white"
+                            : "bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                        }`}
+                      >
+                        <Sun className="w-4 h-4" />
+                        Light
+                      </button>
+                      <button
+                        onClick={() => onModeChange?.("dark")}
+                        className={`h-10 rounded-lg border text-sm flex items-center justify-center gap-2 transition-colors ${
+                          mode === "dark"
+                            ? "bg-neutral-200 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white"
+                            : "bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                        }`}
+                      >
+                        <Moon className="w-4 h-4" />
+                        Dark
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="px-4 py-4 border-b border-neutral-200 dark:border-neutral-800">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 mb-3">
+                      Menu Layout
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["vertical", "horizontal"] as const).map((layout) => (
+                        <button
+                          key={layout}
+                          onClick={() => setMenuLayout(layout)}
+                          className={`h-10 rounded-lg border text-sm capitalize transition-colors ${
+                            menuLayout === layout
+                              ? "bg-neutral-200 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-neutral-900 dark:text-white"
+                              : "bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                          }`}
+                        >
+                          {layout}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="px-4 py-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400 mb-3">
+                      Language
+                    </p>
+                    <select
+                      value={language}
+                      onChange={(event) => setLanguage(event.target.value)}
+                      className="w-full h-10 px-3 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+                    >
+                      <option>English</option>
+                      <option>Spanish</option>
+                      <option>French</option>
+                      <option>German</option>
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
           {/* Profile Dropdown */}
           <div className="relative">
             <button
               onClick={() => {
                 setShowProfileDropdown(!showProfileDropdown);
                 setShowNotifications(false);
+                setShowAppearancePanel(false);
               }}
               className="h-9 px-2 flex items-center gap-1.5 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
             >
@@ -162,7 +315,7 @@ export function ClinicAdminHeader({
                   <div className="p-1 border-t border-neutral-200 dark:border-neutral-800">
                     <button
                       onClick={() => { setShowProfileDropdown(false); onLogout?.(); }}
-                      className="w-full px-3 py-2 text-left text-sm text-destructive hover:bg-red-50 dark:hover:bg-red-950/20 rounded transition-colors flex items-center gap-2"
+                      className="w-full px-3 py-2 text-left text-sm text-error-600 dark:text-error-400 hover:bg-error-50 dark:hover:bg-error-950 rounded transition-colors flex items-center gap-2"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Logout</span>

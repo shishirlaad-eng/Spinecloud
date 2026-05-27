@@ -3,7 +3,6 @@ import { X, ChevronRight, ChevronLeft, Calendar, Clock, User, DoorClosed, Stetho
 
 interface Patient {
   id: string;
-  patientId: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -151,30 +150,43 @@ export function BookAppointmentDrawer({
 
   // Generate time slots based on service duration and room cleanup time
   const generateTimeSlots = (): TimeSlot[] => {
-    if (!selectedService) return [];
     const slots: TimeSlot[] = [];
+    
+    // If no service is selected, show generic 30-min slots
+    if (!selectedService) {
+      const startTime = 8 * 60; // 8:00 AM
+      const endTime = 18 * 60; // 6:00 PM
+      for (let minutes = startTime; minutes < endTime; minutes += 30) {
+        const hour = Math.floor(minutes / 60);
+        const min = minutes % 60;
+        const timeStr = `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
+        slots.push({
+          time: timeStr,
+          roomId: rooms[0]?.id || "",
+          roomName: rooms[0]?.roomName || "Standard Room",
+          providerId: providers[0]?.id || "",
+          providerName: providers[0] ? `${providers[0].firstName} ${providers[0].lastName}` : "Standard Provider",
+          providerSpecialty: providers[0]?.specialty || "General",
+          available: true,
+        });
+      }
+      return slots;
+    }
+
     const totalDuration = getTotalDuration(selectedService);
     const room = rooms.find((r) => r.id === selectedService.roomId);
-    
     if (!room) return [];
 
-    // Parse booking time window
     const [startHour, startMin] = selectedService.bookingStartTime.split(":").map(Number);
     const [endHour, endMin] = selectedService.bookingEndTime.split(":").map(Number);
-
     const startMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;
-
-    // Get available providers for this service
     const availableProviders = providers.filter((p) => selectedService.providerIds.includes(p.id));
 
-    // Generate slots - one slot for each provider at each time
     for (let minutes = startMinutes; minutes + totalDuration <= endMinutes; minutes += totalDuration) {
       const hour = Math.floor(minutes / 60);
       const min = minutes % 60;
       const timeStr = `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
-
-      // Create a slot for each available provider
       availableProviders.forEach((provider) => {
         slots.push({
           time: timeStr,
@@ -183,11 +195,10 @@ export function BookAppointmentDrawer({
           providerId: provider.id,
           providerName: `${provider.firstName} ${provider.lastName}`,
           providerSpecialty: provider.specialty,
-          available: true, // In real app, check against existing appointments
+          available: true,
         });
       });
     }
-
     return slots;
   };
 
@@ -212,10 +223,12 @@ export function BookAppointmentDrawer({
   };
 
   const handleNext = () => {
-    if (currentStep === 1 && selectedPatientId && selectedServiceId && selectedDate) {
+    if (currentStep === 1 && selectedPatientId && selectedDate) {
       setCurrentStep(2);
-    } else if (currentStep === 2 && selectedTimeSlot && selectedProviderId) {
+    } else if (currentStep === 2 && selectedTimeSlot) {
       setCurrentStep(3);
+    } else if (currentStep === 3 && selectedServiceId) {
+      setCurrentStep(4);
     }
   };
 
@@ -226,22 +239,28 @@ export function BookAppointmentDrawer({
   };
 
   const handleConfirm = () => {
-    if (selectedPatientId && selectedServiceId && selectedDate && selectedTimeSlot && selectedProviderId) {
+    if (selectedPatientId && selectedServiceId && selectedDate && selectedTimeSlot) {
+      // Find a provider and room for the selected service if not already set correctly
+      const service = services.find(s => s.id === selectedServiceId);
+      const providerId = service ? service.providerIds[0] : providers[0]?.id;
+      const roomId = service ? service.roomId : rooms[0]?.id;
+
       onBookAppointment({
         patientId: selectedPatientId,
         serviceId: selectedServiceId,
         date: selectedDate,
         time: selectedTimeSlot.time,
-        roomId: selectedTimeSlot.roomId,
-        providerId: selectedProviderId,
+        roomId: roomId || selectedTimeSlot.roomId,
+        providerId: providerId || selectedTimeSlot.providerId,
         recurringPattern: recurringPattern.enabled ? recurringPattern : undefined,
       });
       onClose();
     }
   };
 
-  const isStep1Valid = selectedPatientId && selectedServiceId && selectedDate;
-  const isStep2Valid = selectedTimeSlot && selectedProviderId;
+  const isStep1Valid = selectedPatientId && selectedDate;
+  const isStep2Valid = selectedTimeSlot;
+  const isStep3Valid = selectedServiceId;
 
   if (!isOpen) return null;
 
@@ -259,7 +278,7 @@ export function BookAppointmentDrawer({
               Book appointment
             </h2>
             <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-0.5">
-              Step {currentStep} of 3
+              Step {currentStep} of 4
             </p>
           </div>
           <button
@@ -273,7 +292,7 @@ export function BookAppointmentDrawer({
         {/* Progress Indicator */}
         <div className="px-5 py-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50">
           <div className="flex items-center gap-2">
-            {[1, 2, 3].map((step) => (
+            {[1, 2, 3, 4].map((step) => (
               <div key={step} className="flex items-center flex-1">
                 <div
                   className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors ${
@@ -286,7 +305,7 @@ export function BookAppointmentDrawer({
                 >
                   {step < currentStep ? <CheckCircle className="w-5 h-5" /> : step}
                 </div>
-                {step < 3 && (
+                {step < 4 && (
                   <div
                     className={`flex-1 h-1 mx-2 rounded-full transition-colors ${
                       step < currentStep
@@ -299,9 +318,10 @@ export function BookAppointmentDrawer({
             ))}
           </div>
           <div className="flex items-center justify-between mt-2">
-            <p className="text-xs text-neutral-600 dark:text-neutral-400">Select details</p>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400">Choose slot</p>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400">Confirm</p>
+            <p className="text-[10px] text-neutral-600 dark:text-neutral-400">Details</p>
+            <p className="text-[10px] text-neutral-600 dark:text-neutral-400">Time</p>
+            <p className="text-[10px] text-neutral-600 dark:text-neutral-400">Service</p>
+            <p className="text-[10px] text-neutral-600 dark:text-neutral-400">Confirm</p>
           </div>
         </div>
 
@@ -322,7 +342,7 @@ export function BookAppointmentDrawer({
                     onChange={(e) => setPatientSearchQuery(e.target.value)}
                     onFocus={() => setIsPatientDropdownOpen(true)}
                     onBlur={() => setTimeout(() => setIsPatientDropdownOpen(false), 200)}
-                    placeholder="Type patient name or ID to search..."
+                    placeholder="Type patient name to search..."
                     className="w-full h-10 px-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 outline-none transition-[border-color,box-shadow]"
                   />
                   {isPatientDropdownOpen && patientSearchQuery.length > 0 && (
@@ -330,28 +350,25 @@ export function BookAppointmentDrawer({
                       {patients
                         .filter((patient) =>
                           patient.firstName.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
-                          patient.lastName.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
-                          patient.patientId.toLowerCase().includes(patientSearchQuery.toLowerCase())
+                          patient.lastName.toLowerCase().includes(patientSearchQuery.toLowerCase())
                         )
                         .length > 0 ? (
                         patients
                           .filter((patient) =>
                             patient.firstName.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
-                            patient.lastName.toLowerCase().includes(patientSearchQuery.toLowerCase()) ||
-                            patient.patientId.toLowerCase().includes(patientSearchQuery.toLowerCase())
+                            patient.lastName.toLowerCase().includes(patientSearchQuery.toLowerCase())
                           )
                           .map((patient) => (
                             <div
                               key={patient.id}
                               onClick={() => {
                                 setSelectedPatientId(patient.id);
-                                setPatientSearchQuery(`${patient.firstName} ${patient.lastName} (${patient.patientId})`);
+                                setPatientSearchQuery(`${patient.firstName} ${patient.lastName}`);
                                 setIsPatientDropdownOpen(false);
                               }}
                               className="px-3 py-2 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm text-neutral-900 dark:text-white transition-colors"
                             >
                               <div className="font-medium">{patient.firstName} {patient.lastName}</div>
-                              <div className="text-xs text-neutral-600 dark:text-neutral-400">ID: {patient.patientId}</div>
                             </div>
                           ))
                       ) : (
@@ -362,35 +379,6 @@ export function BookAppointmentDrawer({
                     </div>
                   )}
                 </div>
-              </div>
-
-              {/* Service Selection */}
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
-                  Service <span className="text-destructive">*</span>
-                </label>
-                <select
-                  value={selectedServiceId}
-                  onChange={(e) => setSelectedServiceId(e.target.value)}
-                  className="w-full h-10 px-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10 outline-none transition-[border-color,box-shadow]"
-                >
-                  <option value="">Select service</option>
-                  {services
-                    .filter((s) => s.isActive)
-                    .map((service) => (
-                      <option key={service.id} value={service.id}>
-                        {service.name} ({getTotalDuration(service)} mins - ${service.price})
-                      </option>
-                    ))}
-                </select>
-                {selectedService && (
-                  <div className="mt-2 p-3 bg-primary-50 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800 rounded-lg">
-                    <p className="text-sm text-primary-700 dark:text-primary-300">
-                      <span className="font-semibold">Duration:</span> {getTotalDuration(selectedService)} minutes
-                      (includes {rooms.find((r) => r.id === selectedService.roomId)?.cleanupTime || 0} min cleanup)
-                    </p>
-                  </div>
-                )}
               </div>
 
               {/* Date Selection */}
@@ -651,80 +639,90 @@ export function BookAppointmentDrawer({
             <div className="space-y-6">
               <div>
                 <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-1">
-                  Available time slots
+                  Select time
                 </h3>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-4">
-                  {formatDate(selectedDate)} • {selectedService?.name}
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
+                  Available slots for {formatDate(selectedDate)}
                 </p>
 
                 {timeSlots.length === 0 ? (
                   <div className="p-8 text-center border border-neutral-200 dark:border-neutral-800 rounded-lg">
                     <Clock className="w-12 h-12 text-neutral-400 mx-auto mb-3" />
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                      No available time slots for this service
+                      No availability for this date
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                    {timeSlots.map((slot, index) => {
-                      const isSelected = selectedTimeSlot?.time === slot.time && selectedTimeSlot?.providerId === slot.providerId;
-                      
-                      return (
-                        <div
-                          key={index}
-                          onClick={() => {
-                            setSelectedTimeSlot(slot);
-                            setSelectedProviderId(slot.providerId);
-                          }}
-                          className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                            isSelected
-                              ? "border-primary-500 bg-primary-50 dark:bg-primary-950/30 ring-2 ring-primary-500/20"
-                              : "border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 space-y-2">
-                              {/* Time */}
-                              <div className="flex items-center gap-2">
-                                <Clock className="w-4 h-4 text-neutral-600 dark:text-neutral-400" />
-                                <span className="text-sm font-semibold text-neutral-900 dark:text-white">
-                                  {formatTime(slot.time)}
-                                </span>
-                              </div>
-                              
-                              {/* Room */}
-                              <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                                <DoorClosed className="w-4 h-4" />
-                                <span>{slot.roomName}</span>
-                              </div>
-                              
-                              {/* Provider */}
-                              <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
-                                <Stethoscope className="w-4 h-4" />
-                                <div>
-                                  <span className="font-medium text-neutral-900 dark:text-white">Dr. {slot.providerName}</span>
-                                  <span className="text-neutral-500 dark:text-neutral-500"> • {slot.providerSpecialty}</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {isSelected && (
-                              <div className="size-5 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
-                                <div className="size-2 rounded-full bg-white" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="grid grid-cols-3 gap-3">
+                    {/* Only show unique times to keep it straightforward */}
+                    {Array.from(new Set(timeSlots.map(s => s.time)))
+                      .sort()
+                      .map((time, index) => {
+                        const isSelected = selectedTimeSlot?.time === time;
+                        const slot = timeSlots.find(s => s.time === time);
+                        
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              if (slot) {
+                                setSelectedTimeSlot(slot);
+                                setSelectedProviderId(slot.providerId);
+                              }
+                            }}
+                            className={`h-11 flex items-center justify-center border rounded-xl text-sm font-medium transition-all ${
+                              isSelected
+                                ? "border-primary-600 bg-primary-600 text-white shadow-lg shadow-primary-600/20"
+                                : "border-neutral-200 dark:border-neutral-800 hover:border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/20 text-neutral-900 dark:text-white"
+                            }`}
+                          >
+                            {formatTime(time)}
+                          </button>
+                        );
+                      })}
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Step 3: Appointment Summary */}
+          {/* Step 3: Select Service */}
           {currentStep === 3 && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-1">
+                  Select service
+                </h3>
+                <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-6">
+                  What service is the patient booking for?
+                </p>
+
+                <div className="space-y-3">
+                  {services
+                    .filter((s) => s.isActive)
+                    .map((service) => (
+                      <button
+                        key={service.id}
+                        onClick={() => setSelectedServiceId(service.id)}
+                        className={`w-full p-4 flex items-center justify-between border rounded-xl text-sm font-medium transition-all ${
+                          selectedServiceId === service.id
+                            ? "border-primary-600 bg-primary-600 text-white shadow-lg shadow-primary-600/20"
+                            : "border-neutral-200 dark:border-neutral-800 hover:border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950/20 text-neutral-900 dark:text-white"
+                        }`}
+                      >
+                        <span>{service.name}</span>
+                        {selectedServiceId === service.id && (
+                          <CheckCircle className="w-5 h-5" />
+                        )}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Appointment Summary */}
+          {currentStep === 4 && (
             <div className="space-y-6">
               <div>
                 <h3 className="text-sm font-semibold text-neutral-900 dark:text-white mb-4">
@@ -743,9 +741,6 @@ export function BookAppointmentDrawer({
                     <p className="text-sm text-neutral-900 dark:text-white">
                       <span className="font-medium">Name:</span> {selectedPatient?.firstName}{" "}
                       {selectedPatient?.lastName}
-                    </p>
-                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                      <span className="font-medium">Patient ID:</span> {selectedPatient?.patientId}
                     </p>
                     <p className="text-sm text-neutral-600 dark:text-neutral-400">
                       <span className="font-medium">Email:</span> {selectedPatient?.email}
@@ -864,10 +859,14 @@ export function BookAppointmentDrawer({
               </>
             )}
           </button>
-          {currentStep < 3 ? (
+          {currentStep < 4 ? (
             <button
               onClick={handleNext}
-              disabled={currentStep === 1 ? !isStep1Valid : !isStep2Valid}
+              disabled={
+                currentStep === 1 ? !isStep1Valid : 
+                currentStep === 2 ? !isStep2Valid : 
+                !isStep3Valid
+              }
               className="px-4 h-10 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
             >
               Next

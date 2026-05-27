@@ -216,7 +216,6 @@ Status: ${invoice.status}
             <div class="header">
               <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
               <p><strong>Patient:</strong> ${appointment.patient.name}</p>
-              <p><strong>Patient ID:</strong> ${appointment.patient.id}</p>
               <p><strong>Date:</strong> ${formatDate(invoice.date)}</p>
               <p><strong>Service:</strong> ${appointment.service}</p>
             </div>
@@ -290,7 +289,7 @@ Status: ${invoice.status}
                   {appointment.service}
                 </h1>
                 <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-                  Patient: {appointment.patient.name} ({appointment.patient.id})
+                  Patient: {appointment.patient.name}
                 </p>
               </div>
               <span

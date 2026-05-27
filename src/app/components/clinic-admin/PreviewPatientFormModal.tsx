@@ -16,17 +16,17 @@ interface QuestionnaireData {
   questions: Question[];
 }
 
-interface PreviewQuestionnaireModalProps {
+interface PreviewPatientFormModalProps {
   isOpen: boolean;
   questionnaire: QuestionnaireData;
   onClose: () => void;
 }
 
-export function PreviewQuestionnaireModal({
+export function PreviewPatientFormModal({
   isOpen,
   questionnaire,
   onClose,
-}: PreviewQuestionnaireModalProps) {
+}: PreviewPatientFormModalProps) {
   if (!isOpen) return null;
 
   return (

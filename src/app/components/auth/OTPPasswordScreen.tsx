@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Eye, EyeOff, ArrowLeft, RefreshCw, Shield } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, RefreshCw, Shield, Pencil } from "lucide-react";
 
 interface OTPPasswordScreenProps {
   email: string;
@@ -208,9 +208,19 @@ export function OTPPasswordScreen({
             <h2 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-2">
               {context === "signup" ? "Verify email & set password" : "Reset password"}
             </h2>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400">
-              Code sent to <span className="font-medium text-neutral-900 dark:text-white">{email}</span>
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                Code sent to <span className="font-medium text-neutral-900 dark:text-white">{email}</span>
+              </p>
+              <button
+                type="button"
+                onClick={onBack}
+                title="Edit email address"
+                className="p-1 text-neutral-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">

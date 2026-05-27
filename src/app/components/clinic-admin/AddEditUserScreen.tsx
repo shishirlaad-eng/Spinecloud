@@ -8,12 +8,13 @@ interface UserData {
   lastName: string;
   email: string;
   role: string;
+  status: "Active" | "Inactive";
 }
 
 interface AddEditUserScreenProps {
   user?: UserData;
   mode: "add" | "edit";
-  availableRoles: string[];
+  availableRoles: { name: string, description: string }[];
   onNavigate: (menu: "dashboard" | "branches" | "questionnaires" | "roles" | "users") => void;
   onBack: () => void;
   onSave: (user: UserData) => void;
@@ -33,6 +34,7 @@ export function AddEditUserScreen({
   const [lastName, setLastName] = useState(user?.lastName || "");
   const [email, setEmail] = useState(user?.email || "");
   const [role, setRole] = useState(user?.role || "");
+  const [status, setStatus] = useState<"Active" | "Inactive">(user?.status || "Active");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
@@ -70,6 +72,7 @@ export function AddEditUserScreen({
       lastName,
       email,
       role,
+      status,
     };
 
     onSave(userData);
@@ -205,17 +208,57 @@ export function AddEditUserScreen({
                 >
                   <option value="">Select a role</option>
                   {availableRoles.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
+                    <option key={r.name} value={r.name}>
+                      {r.name}
                     </option>
                   ))}
                 </select>
                 {errors.role && (
                   <p className="text-xs text-destructive mt-1">{errors.role}</p>
                 )}
+                {role && (
+                  <div className="mt-3 p-3 bg-neutral-50 dark:bg-neutral-800/50 rounded-lg border border-neutral-200 dark:border-neutral-700">
+                    <p className="text-xs font-semibold text-neutral-900 dark:text-white uppercase tracking-wider mb-1">Role Description</p>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                      {availableRoles.find(r => r.name === role)?.description}
+                    </p>
+                  </div>
+                )}
                 <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-2">
                   This user will inherit all permissions from the selected role
                 </p>
+              </div>
+            </div>
+
+            {/* Status */}
+            <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-6 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-neutral-900 dark:text-white tracking-wide mb-1">
+                    USER STATUS
+                  </h2>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    Control if this user can currently access the system
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-sm font-medium ${status === "Active" ? "text-success-600" : "text-neutral-500"}`}>
+                    {status}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setStatus(status === "Active" ? "Inactive" : "Active")}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                      status === "Active" ? "bg-primary-600" : "bg-neutral-300 dark:bg-neutral-700"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        status === "Active" ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
             </div>
 
