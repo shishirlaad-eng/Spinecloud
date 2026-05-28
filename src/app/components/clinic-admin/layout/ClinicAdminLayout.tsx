@@ -10,6 +10,7 @@ interface ClinicAdminLayoutProps {
   onLogout?: () => void;
   onNavigateToProfile?: () => void;
   onNavigateToNotifications?: () => void;
+  onOpenHelpGuide?: () => void;
   unreadNotificationsCount?: number;
 }
 
@@ -21,6 +22,7 @@ export function ClinicAdminLayout({
   onLogout,
   onNavigateToProfile,
   onNavigateToNotifications,
+  onOpenHelpGuide,
   unreadNotificationsCount = 0
 }: ClinicAdminLayoutProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
@@ -141,6 +143,7 @@ export function ClinicAdminLayout({
           onLogout={onLogout}
           onNavigateToProfile={onNavigateToProfile}
           onNavigateToNotifications={onNavigateToNotifications}
+          onOpenHelpGuide={onOpenHelpGuide}
           unreadNotificationsCount={unreadNotificationsCount}
           isSidebarCollapsed={isSidebarCollapsed}
           currentTheme={currentTheme}

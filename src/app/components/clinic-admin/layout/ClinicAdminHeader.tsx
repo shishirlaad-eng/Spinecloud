@@ -1,4 +1,4 @@
-import { Menu, LogOut, Bell, User, ChevronDown, Check, Search, Settings, Sun, Moon } from "lucide-react";
+import { Menu, LogOut, Bell, User, ChevronDown, Check, Search, Settings, Sun, Moon, HelpCircle } from "lucide-react";
 import { useState } from "react";
 
 interface Notification {
@@ -14,6 +14,7 @@ interface ClinicAdminHeaderProps {
   onLogout?: () => void;
   onNavigateToProfile?: () => void;
   onNavigateToNotifications?: () => void;
+  onOpenHelpGuide?: () => void;
   unreadNotificationsCount?: number;
   notifications?: Notification[];
   onMarkNotificationRead?: (id: string) => void;
@@ -29,6 +30,7 @@ export function ClinicAdminHeader({
   onToggleSidebar,
   onLogout,
   onNavigateToProfile,
+  onOpenHelpGuide,
   unreadNotificationsCount = 0,
   notifications = [],
   onMarkNotificationRead,
@@ -149,6 +151,22 @@ export function ClinicAdminHeader({
               </>
             )}
           </div>
+
+          {onOpenHelpGuide && (
+            <button
+              onClick={() => {
+                setShowNotifications(false);
+                setShowProfileDropdown(false);
+                setShowAppearancePanel(false);
+                onOpenHelpGuide();
+              }}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              title="Module Knowledge Guide"
+              aria-label="Module Knowledge Guide"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
+          )}
 
           {/* Appearance Settings */}
           <div className="relative">

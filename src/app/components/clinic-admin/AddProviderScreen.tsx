@@ -1,5 +1,5 @@
 import { ClinicAdminLayout } from "./layout/ClinicAdminLayout";
-import { ArrowLeft, Plus, Trash2, Calendar as CalendarIcon, Upload, X, User, Save } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, User, Save } from "lucide-react";
 import { useState, useEffect } from "react";
 import { completeStep, isStepCompleted } from "../shared/walkthroughUtils";
 
@@ -48,8 +48,9 @@ interface AddProviderScreenProps {
   availableBranches: Branch[];
   onNavigate: (menu: any) => void;
   onBack: () => void;
-  onSave: (provider: Provider) => void; // Changed from onAddProvider
+  onSave: (provider: Provider) => void;
   onLogout?: () => void;
+  onOpenHelpGuide?: () => void;
 }
 
 type Tab = "basic" | "schedule";
@@ -68,8 +69,9 @@ export function AddProviderScreen({
   availableBranches,
   onNavigate,
   onBack,
-  onSave, // Changed from onAddProvider
+  onSave,
   onLogout,
+  onOpenHelpGuide,
 }: AddProviderScreenProps) {
   const [activeTab, setActiveTab] = useState<Tab>("basic");
 
@@ -220,25 +222,27 @@ export function AddProviderScreen({
   };
 
   return (
-    <ClinicAdminLayout activeMenu="providers" onNavigate={onNavigate} onLogout={onLogout}>
-      <div className="p-6 space-y-6">
-        {/* Header */}
+    <ClinicAdminLayout activeMenu="providers" onNavigate={onNavigate} onLogout={onLogout} onOpenHelpGuide={onOpenHelpGuide}>
+      <div className="p-5 md:p-6 space-y-6">
+        {/* Breadcrumb */}
+        <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-sm text-neutral-500 dark:text-neutral-400">
+          <span className="hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors">Clinic Admin</span>
+          <span className="text-neutral-300 dark:text-neutral-700">/</span>
+          <span className="hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors">Base Setup</span>
+          <span className="text-neutral-300 dark:text-neutral-700">/</span>
+          <span onClick={onBack} className="hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors">Providers</span>
+          <span className="text-neutral-300 dark:text-neutral-700">/</span>
+          <span className="text-neutral-900 dark:text-white">Add Provider</span>
+        </div>
+
+        {/* Page header */}
         <div>
-          <button
-            onClick={onBack}
-            className="inline-flex items-center gap-2 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors group mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span className="text-sm font-medium">Back to providers</span>
-          </button>
-          <div>
-            <h1 className="text-2xl font-semibold text-neutral-900 dark:text-white">
-              Add new provider
-            </h1>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
-              Fill in the provider information and configure their schedule
-            </p>
-          </div>
+          <h1 className="text-neutral-900 dark:text-white" style={{ fontSize: "18px", fontWeight: 600 }}>
+            Add new provider
+          </h1>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+            Fill in the provider information and configure their schedule
+          </p>
         </div>
 
         {/* Guided setup strip */}
@@ -254,32 +258,28 @@ export function AddProviderScreen({
 
         {/* Tabs */}
         <div className="border-b border-neutral-200 dark:border-neutral-800">
-          <div className="flex gap-6">
+          <div className="flex gap-1">
             <button
               onClick={() => setActiveTab("basic")}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-4 py-3 text-sm border-b-2 transition-colors inline-flex items-center gap-2 ${
                 activeTab === "basic"
-                  ? "border-primary-600 dark:border-primary-500 text-primary-600 dark:text-primary-400"
-                  : "border-transparent text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                  ? "border-primary-600 text-primary-600 dark:text-primary-400 font-semibold"
+                  : "border-transparent text-neutral-600 dark:text-neutral-400 font-medium hover:text-neutral-900 dark:hover:text-white"
               }`}
             >
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                Basic information
-              </div>
+              <User className="w-4 h-4" />
+              Basic information
             </button>
             <button
               onClick={() => setActiveTab("schedule")}
-              className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-4 py-3 text-sm border-b-2 transition-colors inline-flex items-center gap-2 ${
                 activeTab === "schedule"
-                  ? "border-primary-600 dark:border-primary-500 text-primary-600 dark:text-primary-400"
-                  : "border-transparent text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                  ? "border-primary-600 text-primary-600 dark:text-primary-400 font-semibold"
+                  : "border-transparent text-neutral-600 dark:text-neutral-400 font-medium hover:text-neutral-900 dark:hover:text-white"
               }`}
             >
-              <div className="flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4" />
-                Schedule
-              </div>
+              <CalendarIcon className="w-4 h-4" />
+              Schedule
             </button>
           </div>
         </div>
@@ -304,7 +304,7 @@ export function AddProviderScreen({
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       placeholder="Enter first name"
-                      className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-1 text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
+                      className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
                     />
                   </div>
                   <div>
@@ -317,7 +317,7 @@ export function AddProviderScreen({
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       placeholder="Enter last name"
-                      className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-1 text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
+                      className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
                     />
                   </div>
                   <div>
@@ -330,7 +330,7 @@ export function AddProviderScreen({
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="provider@example.com"
-                      className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-1 text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
+                      className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-sm text-neutral-900 dark:text-white placeholder:text-neutral-400 outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
                     />
                   </div>
                   <div>
@@ -341,7 +341,7 @@ export function AddProviderScreen({
                       id="specialty"
                       value={specialty}
                       onChange={(e) => setSpecialty(e.target.value)}
-                      className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-1 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
+                      className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
                     >
                       <option value="">Select specialty</option>
                       <option value="Chiropractor">Chiropractor</option>
@@ -509,7 +509,7 @@ export function AddProviderScreen({
                                   handleUpdateTimeSlot(day, index, "startTime", e.target.value)
                                 }
                                 disabled={!isEditingSchedule}
-                                className="flex h-9 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-1 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
+                                className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-2.5 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
                               />
                             </div>
                             <div>
@@ -524,7 +524,7 @@ export function AddProviderScreen({
                                   handleUpdateTimeSlot(day, index, "endTime", e.target.value)
                                 }
                                 disabled={!isEditingSchedule}
-                                className="flex h-9 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-1 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
+                                className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-2.5 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
                               />
                             </div>
                             <div>
@@ -538,7 +538,7 @@ export function AddProviderScreen({
                                   handleUpdateTimeSlot(day, index, "branchId", e.target.value)
                                 }
                                 disabled={!isEditingSchedule}
-                                className="flex h-9 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-1 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
+                                className="flex h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-2.5 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
                               >
                                 {availableBranches.map((branch) => (
                                   <option key={branch.id} value={branch.id}>

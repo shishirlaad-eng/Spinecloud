@@ -89,6 +89,10 @@ export function PatientsListScreen({
   const [updatedDateFrom, setUpdatedDateFrom] = useState("");
   const [updatedDateTo, setUpdatedDateTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [filterRows, setFilterRows] = useState<{ id: number; field: "status" | "tag"; value: string }[]>([
+    { id: 1, field: "status", value: "all" },
+  ]);
+  const [nextFilterId, setNextFilterId] = useState(2);
   const [sortField, setSortField] = useState<"name" | "email" | "city" | "state" | "lastUpdated" | "addedDate">("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -120,6 +124,50 @@ export function PatientsListScreen({
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, statusFilter, tagFilter, createdDateFrom, createdDateTo, updatedDateFrom, updatedDateTo]);
+
+  // Sync filter rows from committed filter state when modal opens
+  useEffect(() => {
+    if (showFilters) {
+      const rows: { id: number; field: "status" | "tag"; value: string }[] = [];
+      let counter = 1;
+      rows.push({ id: counter++, field: "status", value: statusFilter });
+      if (tagFilter !== "all") {
+        rows.push({ id: counter++, field: "tag", value: tagFilter });
+      }
+      setFilterRows(rows);
+      setNextFilterId(counter);
+    }
+  }, [showFilters]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const addFilterRow = () => {
+    setFilterRows((rows) => [...rows, { id: nextFilterId, field: "status", value: "all" }]);
+    setNextFilterId((id) => id + 1);
+  };
+
+  const removeFilterRow = (id: number) => {
+    setFilterRows((rows) => (rows.length > 1 ? rows.filter((r) => r.id !== id) : rows));
+  };
+
+  const updateFilterRowField = (id: number, field: "status" | "tag") => {
+    setFilterRows((rows) => rows.map((r) => (r.id === id ? { ...r, field, value: "all" } : r)));
+  };
+
+  const updateFilterRowValue = (id: number, value: string) => {
+    setFilterRows((rows) => rows.map((r) => (r.id === id ? { ...r, value } : r)));
+  };
+
+  const applyFilters = () => {
+    const statusRow = filterRows.find((r) => r.field === "status");
+    const tagRow = filterRows.find((r) => r.field === "tag");
+    setStatusFilter((statusRow?.value ?? "all") as typeof statusFilter);
+    setTagFilter((tagRow?.value ?? "all") as typeof tagFilter);
+    setShowFilters(false);
+  };
+
+  const clearAllFilters = () => {
+    setFilterRows([{ id: 1, field: "status", value: "all" }]);
+    setNextFilterId(2);
+  };
 
   // Filter patients based on search, status, and tag
   const filteredPatients = patients.filter((patient) => {
@@ -433,94 +481,71 @@ export function PatientsListScreen({
                       </div>
                     </div>
                     <div className="px-5 py-5 space-y-4">
-                      <div className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
-                        <div>
-                          <label className="text-sm text-neutral-600 dark:text-neutral-400 block mb-1">Where</label>
-                          <div className="relative">
-                            <select
-                              value="status"
-                              onChange={() => undefined}
-                              className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
-                            >
-                              <option value="status">Status</option>
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                      {filterRows.map((row, index) => (
+                        <div key={row.id} className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
+                          <div>
+                            {index === 0 && (
+                              <label className="text-sm text-neutral-600 dark:text-neutral-400 block mb-1">Where</label>
+                            )}
+                            <div className="relative">
+                              <select
+                                value={row.field}
+                                onChange={(e) => updateFilterRowField(row.id, e.target.value as "status" | "tag")}
+                                className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
+                              >
+                                <option value="status">Status</option>
+                                <option value="tag">Tag</option>
+                              </select>
+                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <label className="text-sm text-neutral-600 dark:text-neutral-400 block mb-1">What</label>
-                          <div className="relative">
-                            <select
-                              value={statusFilter}
-                              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                              className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
-                            >
-                              <option value="all">Select...</option>
-                              <option value="Active">Active</option>
-                              <option value="Inactive">Inactive</option>
-                              <option value="Link sent">Link sent</option>
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                          <div>
+                            {index === 0 && (
+                              <label className="text-sm text-neutral-600 dark:text-neutral-400 block mb-1">What</label>
+                            )}
+                            <div className="relative">
+                              <select
+                                value={row.value}
+                                onChange={(e) => updateFilterRowValue(row.id, e.target.value)}
+                                className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
+                              >
+                                <option value="all">Select...</option>
+                                {row.field === "status" ? (
+                                  <>
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                    <option value="Link sent">Link sent</option>
+                                  </>
+                                ) : (
+                                  <>
+                                    <option value="Staff Added">Staff Added</option>
+                                    <option value="Invited Patient">Invited Patient</option>
+                                  </>
+                                )}
+                              </select>
+                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                            </div>
                           </div>
+                          <button
+                            onClick={() => removeFilterRow(row.id)}
+                            className={`${index === 0 ? "mb-1" : ""} w-8 h-8 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-900`}
+                            title="Remove filter"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => setStatusFilter("all")}
-                          className="mb-1 w-8 h-8 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-900"
-                          title="Clear status filter"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
-                        <div>
-                          <div className="relative">
-                            <select
-                              value="tag"
-                              onChange={() => undefined}
-                              className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
-                            >
-                              <option value="tag">Tag</option>
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
-                          </div>
-                        </div>
-                        <div>
-                          <div className="relative">
-                            <select
-                              value={tagFilter}
-                              onChange={(e) => setTagFilter(e.target.value as typeof tagFilter)}
-                              className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
-                            >
-                              <option value="all">Select...</option>
-                              <option value="Staff Added">Staff Added</option>
-                              <option value="Invited Patient">Invited Patient</option>
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setTagFilter("all")}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-900"
-                          title="Clear tag filter"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <button className="mx-auto flex items-center gap-2 text-sm font-medium text-neutral-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">
+                      ))}
+                      <button
+                        onClick={addFilterRow}
+                        className="mx-auto flex items-center gap-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors"
+                      >
                         <Plus className="w-4 h-4" />
                         Add Filter
                       </button>
                     </div>
                     <div className="px-5 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 flex items-center justify-between">
                       <button
-                        onClick={() => {
-                          setStatusFilter("all");
-                          setTagFilter("all");
-                          setCreatedDateFrom("");
-                          setCreatedDateTo("");
-                          setUpdatedDateFrom("");
-                          setUpdatedDateTo("");
-                        }}
+                        onClick={clearAllFilters}
                         className="text-sm text-neutral-700 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-400"
                       >
                         Clear All
@@ -533,8 +558,8 @@ export function PatientsListScreen({
                           Cancel
                         </button>
                         <button
-                          onClick={() => setShowFilters(false)}
-                          className="px-5 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-lg text-sm font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
+                          onClick={applyFilters}
+                          className="px-5 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 active:bg-primary-800 transition-colors"
                         >
                           Apply
                         </button>

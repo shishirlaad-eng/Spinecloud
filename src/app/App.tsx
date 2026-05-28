@@ -2038,8 +2038,8 @@ export default function App() {
       ]);
     }
 
-    // Initialize branches if empty
-    if (branches.length === 0) {
+    // Initialize branches if empty or stale (fewer than expected)
+    if (branches.length < 11) {
       setBranches([
         {
           id: "branch-1",
@@ -2050,6 +2050,7 @@ export default function App() {
           zipCode: "10001",
           phone: "(555) 123-4567",
           email: "downtown@clinic.com",
+          country: "United States",
           status: "Active",
           intakeEnabled: true,
           consentEnabled: true,
@@ -2063,6 +2064,7 @@ export default function App() {
           zipCode: "10022",
           phone: "(555) 987-6543",
           email: "uptown@clinic.com",
+          country: "United States",
           status: "Active",
           intakeEnabled: true,
           consentEnabled: true,
@@ -2076,9 +2078,122 @@ export default function App() {
           zipCode: "10025",
           phone: "(555) 456-7890",
           email: "westside@clinic.com",
+          country: "United States",
           status: "Active",
           intakeEnabled: false,
           consentEnabled: false,
+        },
+        {
+          id: "branch-4",
+          name: "Brooklyn Heights",
+          address: "321 Atlantic Ave, Suite 200",
+          city: "Brooklyn",
+          state: "NY",
+          zipCode: "11201",
+          phone: "(555) 321-0987",
+          email: "brooklyn@clinic.com",
+          country: "United States",
+          status: "Active",
+          intakeEnabled: true,
+          consentEnabled: true,
+        },
+        {
+          id: "branch-5",
+          name: "Midtown Center",
+          address: "500 5th Ave, Floor 12",
+          city: "New York",
+          state: "NY",
+          zipCode: "10110",
+          phone: "(555) 654-3210",
+          email: "midtown@clinic.com",
+          country: "United States",
+          status: "Inactive",
+          intakeEnabled: false,
+          consentEnabled: true,
+        },
+        {
+          id: "branch-6",
+          name: "Queens Medical",
+          address: "88-11 Sutphin Blvd",
+          city: "Queens",
+          state: "NY",
+          zipCode: "11435",
+          phone: "(555) 789-4561",
+          email: "queens@clinic.com",
+          country: "United States",
+          status: "Active",
+          intakeEnabled: true,
+          consentEnabled: false,
+        },
+        {
+          id: "branch-7",
+          name: "Bronx Care Hub",
+          address: "1276 Fulton Ave",
+          city: "Bronx",
+          state: "NY",
+          zipCode: "10456",
+          phone: "(555) 147-2583",
+          email: "bronx@clinic.com",
+          country: "United States",
+          status: "Active",
+          intakeEnabled: true,
+          consentEnabled: true,
+        },
+        {
+          id: "branch-8",
+          name: "Harlem Wellness",
+          address: "215 W 125th St",
+          city: "New York",
+          state: "NY",
+          zipCode: "10027",
+          phone: "(555) 369-2580",
+          email: "harlem@clinic.com",
+          country: "United States",
+          status: "Inactive",
+          intakeEnabled: false,
+          consentEnabled: false,
+        },
+        {
+          id: "branch-9",
+          name: "Staten Island Spine",
+          address: "1050 Targee St",
+          city: "Staten Island",
+          state: "NY",
+          zipCode: "10304",
+          phone: "(555) 258-1470",
+          email: "statenisland@clinic.com",
+          country: "United States",
+          status: "Active",
+          intakeEnabled: true,
+          consentEnabled: true,
+        },
+        {
+          id: "branch-10",
+          name: "Long Island City",
+          address: "27-01 Queens Plaza N",
+          city: "Long Island City",
+          state: "NY",
+          zipCode: "11101",
+          phone: "(555) 741-8520",
+          email: "lic@clinic.com",
+          country: "United States",
+          status: "Active",
+          intakeEnabled: false,
+          consentEnabled: true,
+        },
+        {
+          id: "branch-11",
+          name: "Flushing Clinic",
+          address: "136-20 Roosevelt Ave",
+          city: "Flushing",
+          state: "NY",
+          zipCode: "11354",
+          phone: "(555) 963-8520",
+          email: "flushing@clinic.com",
+          country: "United States",
+          status: "Active",
+          intakeEnabled: true,
+          consentEnabled: true,
         },
       ]);
     }
@@ -3444,7 +3559,7 @@ export default function App() {
             city: "New York",
             state: "New York",
             zip: "10001",
-            country: "US",
+            country: "United States",
             status: "Active" as const,
             workingHours: {
               monday: {
@@ -3493,7 +3608,7 @@ export default function App() {
             city: "New York",
             state: "New York",
             zip: "10022",
-            country: "US",
+            country: "United States",
             status: "Active" as const,
             workingHours: {
               monday: {
@@ -3542,7 +3657,7 @@ export default function App() {
             city: "Brooklyn",
             state: "New York",
             zip: "11217",
-            country: "US",
+            country: "United States",
             status: "Inactive" as const,
             workingHours: {
               monday: {
@@ -9069,6 +9184,18 @@ export default function App() {
             setCurrentBranchId(id);
             setCurrentScreen("addEditBranch");
           }}
+          onToggleBranchStatus={(id) => {
+            setBranches(
+              branches.map((branch) =>
+                branch.id === id
+                  ? {
+                      ...branch,
+                      status: branch.status === "Active" ? "Inactive" : "Active",
+                    }
+                  : branch,
+              ),
+            );
+          }}
           onLogout={() => {
             setCurrentEntity("patient");
             setCurrentScreen("login");
@@ -9672,6 +9799,11 @@ export default function App() {
                   prev.filter((s) => s.id !== serviceId),
                 );
               }
+            }}
+            onToggleService={(serviceId, isActive) => {
+              setServices((prev) =>
+                prev.map((s) => s.id === serviceId ? { ...s, isActive } : s)
+              );
             }}
             onLogout={() => {
               setCurrentEntity("patient");

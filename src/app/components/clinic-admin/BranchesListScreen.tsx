@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { ClinicAdminLayout } from "./layout/ClinicAdminLayout";
-import { Search, Plus, Building2, Filter, X, Download, HelpCircle, BookOpen, Clock, Calendar, Ban, RefreshCw, UserCog, Globe, ChevronDown, ChevronUp, BarChart3, MoreVertical, Upload, Printer, LayoutGrid, List, Table2, Eye, Edit2, MapPin, Check } from "lucide-react";
+import { Search, Plus, Building2, Filter, X, Download, BookOpen, Clock, Calendar, Ban, RefreshCw, UserCog, Globe, ChevronDown, ChevronUp, BarChart3, MoreVertical, Upload, Printer, LayoutGrid, List, Table2, Eye, Edit2, MapPin, Check, ToggleLeft, ToggleRight, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Pagination } from "../shared/Pagination";
 import { TooltipBubble } from "../shared/TooltipBubble";
 import { isStepCompleted } from "../shared/walkthroughUtils";
@@ -32,12 +32,14 @@ interface Branch {
 type BranchWithBooking = Branch & { selfBookingEnabled?: boolean };
 type ViewMode = "grid" | "list" | "table";
 type BranchColumnId = "name" | "city" | "state" | "selfBooking" | "status" | "actions";
+type BranchSortField = Exclude<BranchColumnId, "actions">;
 
 interface BranchesListScreenProps {
   branches: Branch[];
   onNavigate: (menu: string) => void;
   onAddBranch: () => void;
   onViewBranch: (branchId: string) => void;
+  onToggleBranchStatus?: (branchId: string) => void;
   onLogout?: () => void;
   onNavigateToNotifications?: () => void;
   unreadNotificationsCount?: number;
@@ -48,6 +50,7 @@ export function BranchesListScreen({
   onNavigate,
   onAddBranch,
   onViewBranch,
+  onToggleBranchStatus,
   onLogout,
   onNavigateToNotifications,
   unreadNotificationsCount,
@@ -55,7 +58,13 @@ export function BranchesListScreen({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<"name" | "city" | "status">("name");
+
+  // Dynamic filter rows (pending state inside the modal)
+  const [filterRows, setFilterRows] = useState<{ id: number; field: string; value: string }[]>([
+    { id: 1, field: "status", value: "all" },
+  ]);
+  const [nextFilterId, setNextFilterId] = useState(2);
+  const [sortBy, setSortBy] = useState<BranchSortField>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -68,9 +77,9 @@ export function BranchesListScreen({
   const [showViewMenu, setShowViewMenu] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [openActionId, setOpenActionId] = useState<string | null>(null);
   const [showHeaderSearch, setShowHeaderSearch] = useState(false);
   const [showColumnsPanel, setShowColumnsPanel] = useState(false);
+  const [showCardMenu, setShowCardMenu] = useState<string | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<Record<BranchColumnId, boolean>>({
     name: true,
     city: true,
@@ -89,9 +98,44 @@ export function BranchesListScreen({
     setBubbleDismissed(localStorage.getItem("spinecloud_bubble_dismissed_branches") === "true");
   }, []);
 
+  // Sync pending filter rows each time the panel opens
+  useEffect(() => {
+    if (showFilters) {
+      setFilterRows([{ id: 1, field: "status", value: statusFilter }]);
+      setNextFilterId(2);
+    }
+  }, [showFilters]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleDismissBubble = () => {
     setBubbleDismissed(true);
     localStorage.setItem("spinecloud_bubble_dismissed_branches", "true");
+  };
+
+  // ── filter row helpers ───────────────────────────────────────────────────────
+  const addFilterRow = () => {
+    setFilterRows((prev) => [...prev, { id: nextFilterId, field: "status", value: "all" }]);
+    setNextFilterId((n) => n + 1);
+  };
+
+  const removeFilterRow = (id: number) => {
+    setFilterRows((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const updateFilterRowValue = (id: number, value: string) => {
+    setFilterRows((prev) => prev.map((r) => (r.id === id ? { ...r, value } : r)));
+  };
+
+  const applyFilters = () => {
+    // Use the last status row that has a real value, fallback to "all"
+    const statusRow = [...filterRows].reverse().find((r) => r.field === "status" && r.value !== "all");
+    setStatusFilter(statusRow?.value ?? "all");
+    setShowFilters(false);
+  };
+
+  const clearAllFilters = () => {
+    setFilterRows([{ id: 1, field: "status", value: "all" }]);
+    setNextFilterId(2);
+    setStatusFilter("all");
   };
 
   // Filter branches
@@ -109,22 +153,25 @@ export function BranchesListScreen({
 
   // Sort branches
   const sortedBranches = [...filteredBranches].sort((a, b) => {
-    if (sortBy === "name") {
-      return sortOrder === "asc"
-        ? a.name.localeCompare(b.name)
-        : b.name.localeCompare(a.name);
-    } else if (sortBy === "city") {
-      return sortOrder === "asc"
-        ? a.city.localeCompare(b.city)
-        : b.city.localeCompare(a.city);
-    } else {
-      return sortOrder === "asc"
-        ? a.status.localeCompare(b.status)
-        : b.status.localeCompare(a.status);
-    }
+    const getSortValue = (branch: Branch): string | number => {
+      if (sortBy === "selfBooking") {
+        return Boolean((branch as BranchWithBooking).selfBookingEnabled) ? 1 : 0;
+      }
+
+      return String(branch[sortBy] ?? "").toLowerCase();
+    };
+
+    const aValue = getSortValue(a);
+    const bValue = getSortValue(b);
+    const comparison =
+      typeof aValue === "number" && typeof bValue === "number"
+        ? aValue - bValue
+        : String(aValue).localeCompare(String(bValue));
+
+    return sortOrder === "asc" ? comparison : -comparison;
   });
 
-  const handleSort = (field: "name" | "city" | "status") => {
+  const handleSort = (field: BranchSortField) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -132,6 +179,17 @@ export function BranchesListScreen({
       setSortOrder("asc");
     }
   };
+
+  const renderSortIndicator = (field: BranchSortField) =>
+    sortBy === field ? (
+      sortOrder === "asc" ? (
+        <ArrowUp className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" />
+      ) : (
+        <ArrowDown className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" />
+      )
+    ) : (
+      <ArrowUpDown className="w-3.5 h-3.5 text-neutral-300 dark:text-neutral-600" />
+    );
 
   const activeFilterCount = (statusFilter !== "all" ? 1 : 0);
 
@@ -221,49 +279,49 @@ export function BranchesListScreen({
   );
 
   const renderRowActions = (branch: Branch) => (
-    <div className="relative">
+    <div className="flex items-center justify-end gap-2">
       <button
         onClick={(event) => {
           event.stopPropagation();
-          setOpenActionId(openActionId === branch.id ? null : branch.id);
+          onToggleBranchStatus?.(branch.id);
         }}
-        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-        title="Branch actions"
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+          branch.status === "Active"
+            ? "text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-950/30"
+            : "text-neutral-400 hover:bg-neutral-100 hover:text-primary-600 dark:hover:bg-neutral-800 dark:hover:text-primary-400"
+        }`}
+        title={branch.status === "Active" ? "Deactivate branch" : "Activate branch"}
+        aria-label={branch.status === "Active" ? `Deactivate ${branch.name}` : `Activate ${branch.name}`}
       >
-        <MoreVertical className="w-4 h-4" />
+        {branch.status === "Active" ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
       </button>
-      {openActionId === branch.id && (
-        <div
-          className="absolute right-0 top-9 w-36 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-lg py-1 z-20"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <button
-            onClick={() => {
-              setOpenActionId(null);
-              onViewBranch(branch.id);
-            }}
-            className="w-full px-3 py-2 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900 flex items-center gap-2"
-          >
-            <Eye className="w-4 h-4" />
-            View
-          </button>
-          <button
-            onClick={() => {
-              setOpenActionId(null);
-              onViewBranch(branch.id);
-            }}
-            className="w-full px-3 py-2 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900 flex items-center gap-2"
-          >
-            <Edit2 className="w-4 h-4" />
-            Edit
-          </button>
-        </div>
-      )}
+      <button
+        onClick={(event) => {
+          event.stopPropagation();
+          onViewBranch(branch.id);
+        }}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-primary-600 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-primary-400 transition-colors"
+        title="View branch"
+        aria-label={`View ${branch.name}`}
+      >
+        <Eye className="w-4 h-4" />
+      </button>
+      <button
+        onClick={(event) => {
+          event.stopPropagation();
+          onViewBranch(branch.id);
+        }}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-primary-600 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-primary-400 transition-colors"
+        title="Edit branch"
+        aria-label={`Edit ${branch.name}`}
+      >
+        <Edit2 className="w-4 h-4" />
+      </button>
     </div>
   );
 
   return (
-    <ClinicAdminLayout activeMenu="branches" onNavigate={onNavigate} onLogout={onLogout} onNavigateToNotifications={onNavigateToNotifications} unreadNotificationsCount={unreadNotificationsCount}>
+    <ClinicAdminLayout activeMenu="branches" onNavigate={onNavigate} onLogout={onLogout} onNavigateToNotifications={onNavigateToNotifications} onOpenHelpGuide={() => setShowKnowledgePanel(true)} unreadNotificationsCount={unreadNotificationsCount}>
       <div className="p-6">
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -272,9 +330,9 @@ export function BranchesListScreen({
               Branches Management
             </h1>
             <div className="mb-2 flex items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400">
-              <span>Clinic Admin</span>
+              <span className="hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors">Clinic Admin</span>
               <span>/</span>
-              <span>Base Setup</span>
+              <span className="hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors">Base Setup</span>
               <span>/</span>
               <span className="text-neutral-900 dark:text-white">Branches</span>
             </div>
@@ -335,53 +393,66 @@ export function BranchesListScreen({
                         </button>
                       </div>
                     </div>
-                    <div className="px-5 py-5 space-y-4">
-                      <div className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
-                        <div>
-                          <label className="text-sm text-neutral-600 dark:text-neutral-400 block mb-1">Where</label>
-                          <div className="relative">
-                            <select
-                              value="status"
-                              onChange={() => undefined}
-                              className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
-                            >
-                              <option value="status">Status</option>
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                    <div className="px-5 py-5 space-y-3">
+                      {/* Dynamic filter rows */}
+                      {filterRows.map((row, index) => (
+                        <div key={row.id} className="grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
+                          <div>
+                            {index === 0 && (
+                              <label className="text-sm text-neutral-600 dark:text-neutral-400 block mb-1">Where</label>
+                            )}
+                            <div className="relative">
+                              <select
+                                value={row.field}
+                                onChange={() => undefined}
+                                className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
+                              >
+                                <option value="status">Status</option>
+                              </select>
+                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <label className="text-sm text-neutral-600 dark:text-neutral-400 block mb-1">What</label>
-                          <div className="relative">
-                            <select
-                              value={statusFilter}
-                              onChange={(event) => setStatusFilter(event.target.value)}
-                              className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
-                            >
-                              <option value="all">Select...</option>
-                              <option value="Active">Active</option>
-                              <option value="Inactive">Inactive</option>
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                          <div>
+                            {index === 0 && (
+                              <label className="text-sm text-neutral-600 dark:text-neutral-400 block mb-1">What</label>
+                            )}
+                            <div className="relative">
+                              <select
+                                value={row.value}
+                                onChange={(e) => updateFilterRowValue(row.id, e.target.value)}
+                                className="w-full h-10 px-3 pr-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg text-sm text-neutral-900 dark:text-white focus:border-primary-600 outline-none appearance-none"
+                              >
+                                <option value="all">Select...</option>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                              </select>
+                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                            </div>
                           </div>
+                          <button
+                            onClick={() => removeFilterRow(row.id)}
+                            className={`w-8 h-8 flex items-center justify-center rounded-lg text-neutral-400 hover:text-red-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors ${index === 0 ? "mt-5" : ""}`}
+                            title="Remove filter"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => setStatusFilter("all")}
-                          className="mb-1 w-8 h-8 flex items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-900"
-                          title="Clear status filter"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <button className="mx-auto flex items-center gap-2 text-sm font-medium text-neutral-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">
+                      ))}
+
+                      {/* Add Filter */}
+                      <button
+                        type="button"
+                        onClick={addFilterRow}
+                        className="mx-auto flex items-center gap-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors pt-1"
+                      >
                         <Plus className="w-4 h-4" />
                         Add Filter
                       </button>
                     </div>
                     <div className="px-5 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 flex items-center justify-between">
                       <button
-                        onClick={() => setStatusFilter("all")}
-                        className="text-sm text-neutral-700 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-400"
+                        onClick={clearAllFilters}
+                        className="text-sm text-neutral-700 dark:text-neutral-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
                       >
                         Clear All
                       </button>
@@ -393,8 +464,8 @@ export function BranchesListScreen({
                           Cancel
                         </button>
                         <button
-                          onClick={() => setShowFilters(false)}
-                          className="px-5 py-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-950 rounded-lg text-sm font-medium hover:bg-neutral-800 dark:hover:bg-neutral-200 transition-colors"
+                          onClick={applyFilters}
+                          className="px-5 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 active:bg-primary-800 transition-colors"
                         >
                           Apply
                         </button>
@@ -406,7 +477,7 @@ export function BranchesListScreen({
             ) : (
               <button
                 onClick={() => setShowHeaderSearch(true)}
-                className="inline-flex items-center justify-center w-10 h-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                className="inline-flex items-center justify-center w-10 h-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white transition-all"
                 title="Search"
               >
                 <Search className="w-5 h-5" />
@@ -423,7 +494,7 @@ export function BranchesListScreen({
                   className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-colors ${
                     showColumnsPanel
                       ? "border-primary-500 dark:border-primary-600 text-primary-600 dark:text-primary-400"
-                      : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                      : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white"
                   }`}
                   title="Customized columns"
                 >
@@ -451,21 +522,29 @@ export function BranchesListScreen({
                           <button
                             key={column.id}
                             onClick={() => toggleColumn(column.id)}
-                            className="w-full h-12 px-3 rounded-lg bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors flex items-center justify-between gap-3 text-left"
+                            className={`w-full h-12 px-3 rounded-lg transition-colors flex items-center justify-between gap-3 text-left ${
+                              visibleColumns[column.id]
+                                ? "bg-primary-50 dark:bg-primary-950/30 hover:bg-primary-100 dark:hover:bg-primary-900/30"
+                                : "bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                            }`}
                           >
                             <span className="flex items-center gap-3 min-w-0">
                               <span
                                 className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
                                   visibleColumns[column.id]
-                                    ? "bg-neutral-900 dark:bg-white border-neutral-900 dark:border-white"
+                                    ? "bg-primary-600 border-primary-600"
                                     : "bg-white dark:bg-neutral-950 border-neutral-300 dark:border-neutral-700"
                                 }`}
                               >
                                 {visibleColumns[column.id] && (
-                                  <Check className="w-3.5 h-3.5 text-white dark:text-neutral-950" />
+                                  <Check className="w-3.5 h-3.5 text-white" />
                                 )}
                               </span>
-                              <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300 truncate">
+                              <span className={`text-sm font-medium truncate ${
+                                visibleColumns[column.id]
+                                  ? "text-primary-700 dark:text-primary-400"
+                                  : "text-neutral-700 dark:text-neutral-300"
+                              }`}>
                                 {column.label}
                               </span>
                             </span>
@@ -505,7 +584,7 @@ export function BranchesListScreen({
               className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-colors ${
                 showSummary
                   ? "border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-600 dark:bg-primary-950/30 dark:text-primary-400"
-                  : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                  : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white"
               }`}
               title="Summary"
             >
@@ -517,7 +596,7 @@ export function BranchesListScreen({
                 setStatusFilter("all");
                 setCurrentPage(1);
               }}
-              className="inline-flex items-center justify-center w-10 h-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+              className="inline-flex items-center justify-center w-10 h-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white transition-all"
               title="Refresh"
             >
               <RefreshCw className="w-5 h-5" />
@@ -527,8 +606,8 @@ export function BranchesListScreen({
                 onClick={() => setShowMoreMenu(!showMoreMenu)}
                 className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-colors ${
                   showMoreMenu
-                    ? "border-neutral-900 dark:border-white text-neutral-900 dark:text-white"
-                    : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    ? "border-primary-500 dark:border-primary-600 text-primary-600 dark:text-primary-400"
+                    : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white"
                 }`}
                 title="More options"
               >
@@ -554,7 +633,7 @@ export function BranchesListScreen({
             <div className="relative">
               <button
                 onClick={() => setShowViewMenu(!showViewMenu)}
-                className="inline-flex items-center justify-center w-10 h-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
+                className="inline-flex items-center justify-center w-10 h-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white transition-all"
                 title="View options"
               >
                 <ViewIcon className="w-5 h-5" />
@@ -567,14 +646,6 @@ export function BranchesListScreen({
                 </div>
               )}
             </div>
-            <button
-              onClick={() => setShowKnowledgePanel(true)}
-              title="Module Knowledge Guide"
-              className="inline-flex items-center gap-1.5 px-3 h-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-400 dark:hover:border-primary-600 rounded-lg text-xs font-medium transition-colors shadow-sm"
-            >
-              <HelpCircle className="w-4 h-4" />
-              <span>Help Guide</span>
-            </button>
           </div>
         </div>
 
@@ -827,12 +898,12 @@ export function BranchesListScreen({
         {currentItems.length > 0 ? (
           <>
             {viewMode === "grid" && (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 {currentItems.map((branch) => (
                   <div
                     key={branch.id}
                     onClick={() => onViewBranch(branch.id)}
-                    className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 hover:border-primary-300 dark:hover:border-primary-700 transition-colors cursor-pointer"
+                    className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 hover:border-primary-600 dark:hover:border-primary-500 transition-colors cursor-pointer"
                   >
                     <div className="flex items-start gap-3">
                       <div className="w-12 h-12 rounded-full bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
@@ -846,18 +917,58 @@ export function BranchesListScreen({
                           {branch.email}
                         </p>
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(branch.id)}
-                        onChange={(event) => {
-                          event.stopPropagation();
-                          toggleSelectBranch(branch.id);
-                        }}
-                        onClick={(event) => event.stopPropagation()}
-                        className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 text-primary-600"
-                        aria-label={`Select ${branch.name}`}
-                      />
-                      {renderRowActions(branch)}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(branch.id)}
+                          onChange={(event) => {
+                            event.stopPropagation();
+                            toggleSelectBranch(branch.id);
+                          }}
+                          onClick={(event) => event.stopPropagation()}
+                          className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-700 text-primary-600"
+                          aria-label={`Select ${branch.name}`}
+                        />
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowCardMenu(showCardMenu === branch.id ? null : branch.id);
+                            }}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                          {showCardMenu === branch.id && (
+                            <>
+                              <div className="fixed inset-0 z-20" onClick={(e) => { e.stopPropagation(); setShowCardMenu(null); }} />
+                              <div className="absolute right-0 top-9 w-44 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-lg py-1 z-30">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onViewBranch(branch.id); setShowCardMenu(null); }}
+                                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900 flex items-center gap-2"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  View
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onViewBranch(branch.id); setShowCardMenu(null); }}
+                                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900 flex items-center gap-2"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onToggleBranchStatus?.(branch.id); setShowCardMenu(null); }}
+                                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900 flex items-center gap-2"
+                                >
+                                  {branch.status === "Active" ? <ToggleRight className="w-4 h-4 text-primary-600" /> : <ToggleLeft className="w-4 h-4" />}
+                                  {branch.status === "Active" ? "Deactivate" : "Activate"}
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     <div className="mt-4 space-y-2 text-sm text-neutral-700 dark:text-neutral-300">
                       <div className="flex items-center gap-2">
@@ -884,7 +995,7 @@ export function BranchesListScreen({
                   <div
                     key={branch.id}
                     onClick={() => onViewBranch(branch.id)}
-                    className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 hover:border-primary-300 dark:hover:border-primary-700 transition-colors cursor-pointer"
+                    className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 hover:border-primary-600 dark:hover:border-primary-500 transition-colors cursor-pointer"
                   >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                       <div className="flex items-start gap-3 min-w-0">
@@ -915,7 +1026,45 @@ export function BranchesListScreen({
                         <span className="text-sm text-neutral-600 dark:text-neutral-400">{branch.email}</span>
                         {selfBookingBadge(branch)}
                         {statusBadge(branch.status)}
-                        {renderRowActions(branch)}
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowCardMenu(showCardMenu === branch.id ? null : branch.id);
+                            }}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                          {showCardMenu === branch.id && (
+                            <>
+                              <div className="fixed inset-0 z-20" onClick={(e) => { e.stopPropagation(); setShowCardMenu(null); }} />
+                              <div className="absolute right-0 top-9 w-44 bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-lg py-1 z-30">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onViewBranch(branch.id); setShowCardMenu(null); }}
+                                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900 flex items-center gap-2"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  View
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onViewBranch(branch.id); setShowCardMenu(null); }}
+                                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900 flex items-center gap-2"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); onToggleBranchStatus?.(branch.id); setShowCardMenu(null); }}
+                                  className="w-full px-4 py-2.5 text-left text-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-900 flex items-center gap-2"
+                                >
+                                  {branch.status === "Active" ? <ToggleRight className="w-4 h-4 text-primary-600" /> : <ToggleLeft className="w-4 h-4" />}
+                                  {branch.status === "Active" ? "Deactivate" : "Activate"}
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -944,11 +1093,7 @@ export function BranchesListScreen({
                     >
                       <div className="flex items-center gap-2">
                         Branch Name
-                        {sortBy === "name" && (
-                          <span className="text-neutral-400">
-                            {sortOrder === "asc" ? "↑" : "↓"}
-                          </span>
-                        )}
+                        {renderSortIndicator("name")}
                       </div>
                     </th>}
                     {visibleColumns.city && <th
@@ -957,18 +1102,26 @@ export function BranchesListScreen({
                     >
                       <div className="flex items-center gap-2">
                         City
-                        {sortBy === "city" && (
-                          <span className="text-neutral-400">
-                            {sortOrder === "asc" ? "↑" : "↓"}
-                          </span>
-                        )}
+                        {renderSortIndicator("city")}
                       </div>
                     </th>}
-                    {visibleColumns.state && <th className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                      State
+                    {visibleColumns.state && <th
+                      className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                      onClick={() => handleSort("state")}
+                    >
+                      <div className="flex items-center gap-2">
+                        State
+                        {renderSortIndicator("state")}
+                      </div>
                     </th>}
-                    {visibleColumns.selfBooking && <th className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                      Self-Booking
+                    {visibleColumns.selfBooking && <th
+                      className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                      onClick={() => handleSort("selfBooking")}
+                    >
+                      <div className="flex items-center gap-2">
+                        Self-Booking
+                        {renderSortIndicator("selfBooking")}
+                      </div>
                     </th>}
                     {visibleColumns.status && <th
                       className="text-left px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
@@ -976,11 +1129,7 @@ export function BranchesListScreen({
                     >
                       <div className="flex items-center gap-2">
                         Status
-                        {sortBy === "status" && (
-                          <span className="text-neutral-400">
-                            {sortOrder === "asc" ? "↑" : "↓"}
-                          </span>
-                        )}
+                        {renderSortIndicator("status")}
                       </div>
                     </th>}
                     {visibleColumns.actions && <th className="text-right px-6 py-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
@@ -1088,3 +1237,4 @@ export function BranchesListScreen({
     </ClinicAdminLayout>
   );
 }
+

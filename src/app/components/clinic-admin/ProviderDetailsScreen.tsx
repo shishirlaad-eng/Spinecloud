@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ClinicAdminLayout } from "./layout/ClinicAdminLayout";
-import { ArrowLeft, Clock, Save, Plus, Trash2, MapPin, ChevronDown, Check, Search, X, Edit2, User, Mail, Stethoscope, ChevronRight } from "lucide-react";
+import { Clock, Save, Plus, Trash2, MapPin, ChevronDown, Check, Search, X, Edit2, User } from "lucide-react";
 
 interface Branch {
   id: string;
@@ -65,6 +65,7 @@ interface ProviderDetailsScreenProps {
   onUpdateProvider: (provider: Provider) => void;
   onSaveSchedule: (providerId: string, schedule: Schedule) => void;
   onLogout?: () => void;
+  onOpenHelpGuide?: () => void;
 }
 
 type Tab = "basic" | "schedule";
@@ -91,6 +92,7 @@ export function ProviderDetailsScreen({
   onUpdateProvider,
   onSaveSchedule,
   onLogout,
+  onOpenHelpGuide,
 }: ProviderDetailsScreenProps) {
   const [activeTab, setActiveTab] = useState<Tab>("basic");
   const [isEditingBasic, setIsEditingBasic] = useState(false);
@@ -248,32 +250,6 @@ export function ProviderDetailsScreen({
 
   const renderBasicInfo = () => (
     <div className="space-y-5">
-      <div className="flex items-center justify-end mb-1">
-        {!isEditingBasic ? (
-          <button 
-            onClick={() => setIsEditingBasic(true)} 
-            className="inline-flex items-center gap-2 px-4 h-9 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors text-sm font-medium"
-          >
-            <Edit2 className="w-4 h-4" />Edit info
-          </button>
-        ) : (
-          <div className="flex gap-2">
-            <button 
-              onClick={handleCancelBasicEdit} 
-              className="inline-flex items-center gap-2 px-4 h-9 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors text-sm font-medium"
-            >
-              <X className="w-4 h-4" />Cancel
-            </button>
-            <button 
-              onClick={handleSaveBasicInfo} 
-              className="inline-flex items-center gap-2 px-4 h-9 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
-            >
-              <Save className="w-4 h-4" />Save changes
-            </button>
-          </div>
-        )}
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4">
@@ -304,42 +280,42 @@ export function ProviderDetailsScreen({
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 block mb-1">First name</label>
-                  <input 
-                    type="text" 
-                    value={firstName} 
-                    onChange={e => setFirstName(e.target.value)} 
-                    className={`h-9 w-full rounded-lg border ${basicInfoErrors.firstName ? 'border-destructive' : 'border-neutral-200 dark:border-neutral-700'} bg-neutral-50 dark:bg-neutral-800 px-3 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10`} 
+                  <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-1.5">First name</label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={e => setFirstName(e.target.value)}
+                    className={`h-10 w-full rounded-lg border ${basicInfoErrors.firstName ? 'border-destructive' : 'border-neutral-200 dark:border-neutral-700'} bg-neutral-50 dark:bg-neutral-800 px-3 py-2.5 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10`}
                   />
                   {basicInfoErrors.firstName && <p className="text-[10px] text-destructive mt-1">{basicInfoErrors.firstName}</p>}
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 block mb-1">Last name</label>
-                  <input 
-                    type="text" 
-                    value={lastName} 
-                    onChange={e => setLastName(e.target.value)} 
-                    className={`h-9 w-full rounded-lg border ${basicInfoErrors.lastName ? 'border-destructive' : 'border-neutral-200 dark:border-neutral-700'} bg-neutral-50 dark:bg-neutral-800 px-3 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10`} 
+                  <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-1.5">Last name</label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={e => setLastName(e.target.value)}
+                    className={`h-10 w-full rounded-lg border ${basicInfoErrors.lastName ? 'border-destructive' : 'border-neutral-200 dark:border-neutral-700'} bg-neutral-50 dark:bg-neutral-800 px-3 py-2.5 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10`}
                   />
                   {basicInfoErrors.lastName && <p className="text-[10px] text-destructive mt-1">{basicInfoErrors.lastName}</p>}
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 block mb-1">Email address</label>
-                <input 
-                  type="email" 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  className={`h-9 w-full rounded-lg border ${basicInfoErrors.email ? 'border-destructive' : 'border-neutral-200 dark:border-neutral-700'} bg-neutral-50 dark:bg-neutral-800 px-3 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10`} 
+                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-1.5">Email address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className={`h-10 w-full rounded-lg border ${basicInfoErrors.email ? 'border-destructive' : 'border-neutral-200 dark:border-neutral-700'} bg-neutral-50 dark:bg-neutral-800 px-3 py-2.5 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10`}
                 />
                 {basicInfoErrors.email && <p className="text-[10px] text-destructive mt-1">{basicInfoErrors.email}</p>}
               </div>
               <div>
-                <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 block mb-1">Specialty</label>
-                <select 
-                  value={specialty} 
-                  onChange={e => setSpecialty(e.target.value)} 
-                  className="h-9 w-full rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 px-3 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
+                <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-1.5">Specialty</label>
+                <select
+                  value={specialty}
+                  onChange={e => setSpecialty(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 px-3 py-2.5 text-sm text-neutral-900 dark:text-white outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-500/10"
                 >
                   <option value="">Select specialty</option>
                   <option value="Chiropractor">Chiropractor</option>
@@ -365,7 +341,7 @@ export function ProviderDetailsScreen({
 
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-medium text-neutral-600 dark:text-neutral-400 block mb-2">Account Status</label>
+              <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-2">Account Status</label>
               {!isEditingBasic ? (
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   provider.status === "Active"
@@ -564,56 +540,89 @@ export function ProviderDetailsScreen({
   );
 
   return (
-    <ClinicAdminLayout activeMenu="providers" onNavigate={onNavigate} onLogout={onLogout}>
-      <div className="p-6">
-        <button
-          onClick={onBack}
-          className="inline-flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white mb-6 group transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-          Back to providers
-        </button>
+    <ClinicAdminLayout activeMenu="providers" onNavigate={onNavigate} onLogout={onLogout} onOpenHelpGuide={onOpenHelpGuide}>
+      <div className="p-5 md:p-6">
 
-        <div className="mb-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-primary-600 flex items-center justify-center text-2xl font-bold text-white shadow-lg">
-                {provider.firstName[0]}{provider.lastName[0]}
-              </div>
-              <div>
-                <h1 className="text-2xl font-semibold text-neutral-900 dark:text-white mb-1">
-                  {provider.firstName} {provider.lastName}
-                </h1>
-                <div className="flex items-center gap-3">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    provider.status === "Active"
-                      ? "bg-success-50 dark:bg-success-950/30 text-success-700 dark:text-success-300"
-                      : "bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300"
-                  }`}>
-                    {provider.status}
-                  </span>
-                  <span className="text-sm text-neutral-500 dark:text-neutral-400 border-l border-neutral-200 dark:border-neutral-800 pl-3">
-                    {provider.specialty}
-                  </span>
-                </div>
+        {/* Breadcrumb */}
+        <div className="mb-1.5 flex flex-wrap items-center gap-1.5 text-sm text-neutral-500 dark:text-neutral-400">
+          <span className="hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors">Clinic Admin</span>
+          <span className="text-neutral-300 dark:text-neutral-700">/</span>
+          <span className="hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors">Base Setup</span>
+          <span className="text-neutral-300 dark:text-neutral-700">/</span>
+          <span onClick={onBack} className="hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors">Providers</span>
+          <span className="text-neutral-300 dark:text-neutral-700">/</span>
+          <span className="text-neutral-900 dark:text-white">{provider.firstName} {provider.lastName}</span>
+        </div>
+
+        {/* Page header */}
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-950/30 flex items-center justify-center text-sm font-semibold text-primary-700 dark:text-primary-400 shrink-0">
+              {provider.firstName[0]}{provider.lastName[0]}
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-neutral-900 dark:text-white mb-0.5 truncate" style={{ fontSize: "18px", fontWeight: 600 }}>
+                {provider.firstName} {provider.lastName}
+              </h1>
+              <div className="flex items-center gap-2.5">
+                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
+                  provider.status === "Active"
+                    ? "bg-success-50 dark:bg-success-950/30 text-success-700 dark:text-success-400"
+                    : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400"
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${provider.status === "Active" ? "bg-success-500" : "bg-neutral-400"}`} />
+                  {provider.status}
+                </span>
+                <span className="text-xs text-neutral-500 dark:text-neutral-400 truncate">{provider.specialty}</span>
               </div>
             </div>
           </div>
+
+          {/* Action cluster — only shown on Overview tab */}
+          {activeTab === "basic" && (
+            <div className="flex items-center gap-2 shrink-0 ml-4">
+              {!isEditingBasic ? (
+                <button
+                  onClick={() => setIsEditingBasic(true)}
+                  title="Edit provider"
+                  className="w-9 h-9 flex items-center justify-center border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:border-primary-600 dark:hover:border-primary-500 transition-colors"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleCancelBasicEdit}
+                    className="inline-flex items-center gap-2 px-4 h-9 border border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors text-sm font-medium"
+                  >
+                    <X className="w-4 h-4" />Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveBasicInfo}
+                    className="inline-flex items-center gap-2 px-4 h-9 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+                  >
+                    <Save className="w-4 h-4" />Save changes
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
+        {/* Tabs */}
         <div className="border-b border-neutral-200 dark:border-neutral-800 mb-6">
           <div className="flex gap-1">
             {[
-              { key: "basic",    label: "Overview"      },
-              { key: "schedule", label: "Schedule" },
+              { key: "basic",    label: "Overview"  },
+              { key: "schedule", label: "Schedule"  },
             ].map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as Tab)}
-                className={`px-4 pb-3 text-sm font-medium border-b-2 transition-colors ${
+                className={`px-4 py-3 text-sm border-b-2 transition-colors ${
                   activeTab === tab.key
-                    ? "border-primary-600 text-primary-600 dark:text-primary-400"
-                    : "border-transparent text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+                    ? "border-primary-600 text-primary-600 dark:text-primary-400 font-semibold"
+                    : "border-transparent text-neutral-600 dark:text-neutral-400 font-medium hover:text-neutral-900 dark:hover:text-white"
                 }`}
               >
                 {tab.label}
