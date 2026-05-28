@@ -20,6 +20,7 @@ import {
   ArrowUpDown,
   Check,
   Edit2,
+  Eye,
   ToggleLeft,
   ToggleRight,
   Columns3,
@@ -27,6 +28,7 @@ import {
   ChevronDown,
   BookOpen,
   Stethoscope,
+  DollarSign,
 } from "lucide-react";
 import { Pagination } from "@/app/components/shared/Pagination";
 
@@ -394,15 +396,15 @@ export function ServicesListScreenRedesigned({
   // ── Row actions (table) ────────────────────────────────────────────────────
 
   const renderRowActions = (service: Service) => (
-    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+    <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
       {/* Toggle active/inactive */}
       <button
         onClick={() => onToggleService?.(service.id, !service.isActive)}
-        title={service.isActive ? "Deactivate" : "Activate"}
-        className={`w-9 h-9 flex items-center justify-center rounded-lg border transition-colors ${
+        title={service.isActive ? "Deactivate service" : "Activate service"}
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
           service.isActive
-            ? "border-primary-200 dark:border-primary-800 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/30"
-            : "border-neutral-200 dark:border-neutral-700 text-neutral-400 dark:text-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+            ? "text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-950/30"
+            : "text-neutral-400 hover:bg-neutral-100 hover:text-primary-600 dark:hover:bg-neutral-800 dark:hover:text-primary-400"
         }`}
       >
         {service.isActive ? (
@@ -411,11 +413,19 @@ export function ServicesListScreenRedesigned({
           <ToggleLeft className="w-4 h-4" />
         )}
       </button>
+      {/* View */}
+      <button
+        onClick={() => onEditService(service.id)}
+        title="View service"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-primary-600 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-primary-400 transition-colors"
+      >
+        <Eye className="w-4 h-4" />
+      </button>
       {/* Edit */}
       <button
         onClick={() => onEditService(service.id)}
         title="Edit service"
-        className="w-9 h-9 flex items-center justify-center rounded-lg border border-neutral-200 dark:border-neutral-700 text-neutral-500 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:border-primary-600 dark:hover:border-primary-500 transition-colors"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-primary-600 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-primary-400 transition-colors"
       >
         <Edit2 className="w-4 h-4" />
       </button>
@@ -490,54 +500,67 @@ export function ServicesListScreenRedesigned({
         <div
           key={service.id}
           onClick={() => onEditService(service.id)}
-          className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 cursor-pointer hover:border-primary-600 dark:hover:border-primary-500 hover:shadow-sm transition-all group relative"
+          className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 hover:border-primary-600 dark:hover:border-primary-500 transition-colors cursor-pointer"
         >
-          {/* Checkbox */}
-          <div
-            className="absolute top-3 left-3"
-            onClick={(e) => { e.stopPropagation(); toggleServiceSelection(service.id); }}
-          >
-            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-              selectedServiceIds.includes(service.id)
-                ? "bg-primary-600 border-primary-600"
-                : "border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900"
-            }`}>
-              {selectedServiceIds.includes(service.id) && <Check className="w-2.5 h-2.5 text-white" />}
+          {/* Header row: avatar + name/price + checkbox + menu */}
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 rounded-full bg-primary-50 dark:bg-primary-950/30 flex items-center justify-center font-bold text-primary-600 dark:text-primary-400 text-sm shrink-0">
+              {getInitials(service.name)}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-neutral-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
+                {service.name}
+              </p>
+              <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+                {formatPrice(service.price)}
+              </p>
+            </div>
+            <div
+              className="flex items-center gap-1 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                onClick={() => toggleServiceSelection(service.id)}
+                className="cursor-pointer"
+              >
+                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                  selectedServiceIds.includes(service.id)
+                    ? "bg-primary-600 border-primary-600"
+                    : "border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-900"
+                }`}>
+                  {selectedServiceIds.includes(service.id) && <Check className="w-2.5 h-2.5 text-white" />}
+                </div>
+              </div>
+              {renderCardMenu(service)}
             </div>
           </div>
 
-          {/* Menu */}
-          <div className="absolute top-2 right-2">
-            {renderCardMenu(service)}
-          </div>
-
-          {/* Avatar */}
-          <div className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-950/30 flex items-center justify-center text-sm font-semibold text-primary-700 dark:text-primary-400 mt-2 mb-3">
-            {getInitials(service.name)}
-          </div>
-
-          {/* Name */}
-          <h3 className="text-sm font-semibold text-neutral-900 dark:text-white group-hover:text-primary-600 transition-colors truncate mb-1">
-            {service.name}
-          </h3>
-
-          {/* Price */}
-          <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400 mb-2">
-            {formatPrice(service.price)}
-          </p>
-
-          {/* Location */}
-          {service.locationIds.length > 0 && (
-            <div className="flex items-center gap-1 mb-3">
-              <MapPin className="w-3 h-3 text-neutral-400 shrink-0" />
-              <span className="text-xs text-neutral-500 dark:text-neutral-400 truncate">
-                {getLocationNames(service.locationIds)}
+          {/* Metadata rows */}
+          <div className="mt-4 space-y-2 text-sm text-neutral-700 dark:text-neutral-300">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-neutral-500 dark:text-neutral-400 shrink-0" />
+              <span>{formatPrice(service.price)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-neutral-500 dark:text-neutral-400 shrink-0" />
+              <span className="truncate">
+                {service.locationIds.length === 0
+                  ? "No locations"
+                  : service.locationIds.length === 1
+                  ? getLocationNames(service.locationIds)
+                  : `${service.locationIds.length} Locations`}
               </span>
             </div>
-          )}
+          </div>
 
-          {/* Status */}
-          {renderStatusBadge(service.isActive)}
+          {/* Bottom badges */}
+          <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800 flex flex-wrap items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-xs font-medium text-neutral-700 dark:text-neutral-300">
+              <span className={`w-1.5 h-1.5 rounded-full ${service.allowOnlineBooking ? "bg-primary-600" : "bg-neutral-400"}`} />
+              {service.allowOnlineBooking ? "Online booking" : "No online booking"}
+            </span>
+            {renderStatusBadge(service.isActive)}
+          </div>
         </div>
       ))}
     </div>
@@ -875,10 +898,10 @@ export function ServicesListScreenRedesigned({
             ) : (
               <button
                 onClick={() => setShowHeaderSearch(true)}
-                className="w-9 h-9 flex items-center justify-center border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 rounded-lg hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white transition-all"
+                className="inline-flex items-center justify-center w-10 h-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white transition-all"
                 title="Search"
               >
-                <Search className="w-4 h-4" />
+                <Search className="w-5 h-5" />
               </button>
             )}
 
@@ -887,14 +910,14 @@ export function ServicesListScreenRedesigned({
               <div className="relative">
                 <button
                   onClick={() => setShowColumnsPanel(!showColumnsPanel)}
-                  className={`w-9 h-9 flex items-center justify-center border rounded-lg transition-colors ${
+                  className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-all ${
                     showColumnsPanel
                       ? "border-primary-500 dark:border-primary-600 bg-primary-50 dark:bg-primary-950/30 text-primary-600 dark:text-primary-400"
-                      : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white"
+                      : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white"
                   }`}
                   title="Customize columns"
                 >
-                  <Columns3 className="w-4 h-4" />
+                  <Columns3 className="w-5 h-5" />
                 </button>
 
                 {showColumnsPanel && (
@@ -937,7 +960,7 @@ export function ServicesListScreenRedesigned({
             {/* Primary action */}
             <button
               onClick={onAddService}
-              className="inline-flex items-center gap-2 h-9 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
+              className="inline-flex items-center gap-2 h-10 px-4 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               Add service
@@ -947,35 +970,35 @@ export function ServicesListScreenRedesigned({
             <button
               onClick={() => setShowSummary(!showSummary)}
               title="Summary"
-              className={`w-9 h-9 flex items-center justify-center border rounded-lg transition-colors ${
+              className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-all ${
                 showSummary
                   ? "border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-600 dark:bg-primary-950/30 dark:text-primary-400"
-                  : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white"
+                  : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white"
               }`}
             >
-              <BarChart3 className="w-4 h-4" />
+              <BarChart3 className="w-5 h-5" />
             </button>
 
             {/* Refresh */}
             <button
               title="Refresh"
-              className="w-9 h-9 flex items-center justify-center border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 rounded-lg hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white transition-all"
+              className="inline-flex items-center justify-center w-10 h-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white transition-all"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-5 h-5" />
             </button>
 
             {/* More options */}
             <div className="relative">
               <button
                 onClick={() => { setShowMoreMenu(!showMoreMenu); setShowViewMenu(false); }}
-                className={`w-9 h-9 flex items-center justify-center border rounded-lg transition-colors ${
+                className={`inline-flex items-center justify-center w-10 h-10 border rounded-lg transition-all ${
                   showMoreMenu
                     ? "border-primary-500 dark:border-primary-600 text-primary-600 dark:text-primary-400"
-                    : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white"
+                    : "bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white"
                 }`}
                 title="More options"
               >
-                <MoreVertical className="w-4 h-4" />
+                <MoreVertical className="w-5 h-5" />
               </button>
               {showMoreMenu && (
                 <div
@@ -1003,10 +1026,10 @@ export function ServicesListScreenRedesigned({
             <div className="relative">
               <button
                 onClick={() => { setShowViewMenu(!showViewMenu); setShowMoreMenu(false); }}
-                className="w-9 h-9 flex items-center justify-center border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 rounded-lg hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white transition-all"
+                className="inline-flex items-center justify-center w-10 h-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-600 dark:text-neutral-400 hover:border-primary-600 dark:hover:border-primary-500 hover:text-neutral-900 dark:hover:text-white transition-all"
                 title="View mode"
               >
-                <ViewIcon className="w-4 h-4" />
+                <ViewIcon className="w-5 h-5" />
               </button>
               {showViewMenu && (
                 <div
