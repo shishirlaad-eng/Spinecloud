@@ -9769,92 +9769,82 @@ export default function App() {
       )}
 
       {/* Services List */}
-      {currentScreen === "servicesList" && (
-        <>
-          <ServicesListScreenRedesigned
-            services={services}
-            locations={branches}
-            providers={providers}
-            rooms={rooms}
-            questionnaires={questionnaires}
-            onNavigate={handleClinicAdminNavigate}
-            onAddService={() => {
-              setEditingService(null);
-              setIsAddEditServiceRedesignedOpen(true);
-            }}
-            onEditService={(serviceId) => {
-              const service = services.find(
-                (s) => s.id === serviceId,
-              );
-              setEditingService(service);
-              setIsAddEditServiceRedesignedOpen(true);
-            }}
-            onDeleteService={(serviceId) => {
-              if (
-                confirm(
-                  "Are you sure you want to delete this service?",
-                )
-              ) {
-                setServices((prev) =>
-                  prev.filter((s) => s.id !== serviceId),
-                );
-              }
-            }}
-            onToggleService={(serviceId, isActive) => {
-              setServices((prev) =>
-                prev.map((s) => s.id === serviceId ? { ...s, isActive } : s)
-              );
-            }}
-            onLogout={() => {
-              setCurrentEntity("patient");
-              setCurrentScreen("login");
-            }}
-          />
+      {currentScreen === "servicesList" && !isAddEditServiceRedesignedOpen && (
+        <ServicesListScreenRedesigned
+          services={services}
+          locations={branches}
+          providers={providers}
+          rooms={rooms}
+          questionnaires={questionnaires}
+          onNavigate={handleClinicAdminNavigate}
+          onAddService={() => {
+            setEditingService(null);
+            setIsAddEditServiceRedesignedOpen(true);
+          }}
+          onEditService={(serviceId) => {
+            const service = services.find((s) => s.id === serviceId);
+            setEditingService(service);
+            setIsAddEditServiceRedesignedOpen(true);
+          }}
+          onDeleteService={(serviceId) => {
+            if (confirm("Are you sure you want to delete this service?")) {
+              setServices((prev) => prev.filter((s) => s.id !== serviceId));
+            }
+          }}
+          onToggleService={(serviceId, isActive) => {
+            setServices((prev) =>
+              prev.map((s) => s.id === serviceId ? { ...s, isActive } : s)
+            );
+          }}
+          onLogout={() => {
+            setCurrentEntity("patient");
+            setCurrentScreen("login");
+          }}
+        />
+      )}
 
-          {/* Redesigned Service Drawer */}
-          <AddEditServiceDrawerRedesigned
-            isOpen={isAddEditServiceRedesignedOpen}
-            service={editingService}
-            locations={branches}
-            providers={providers}
-            rooms={rooms}
-            questionnaires={questionnaires}
-            onClose={() => {
-              setIsAddEditServiceRedesignedOpen(false);
-              setEditingService(null);
-            }}
-            onSave={(data) => {
-              const now = new Date();
-              if (editingService) {
-                // Update existing
-                setServices((prev) =>
-                  prev.map((s) =>
-                    s.id === editingService.id
-                      ? {
-                          ...s,
-                          ...data,
-                          updatedAt: now.toISOString(),
-                        }
-                      : s,
-                  ),
-                );
-              } else {
-                // Add new
-                setServices((prev) => [
-                  ...prev,
-                  {
-                    ...data,
-                    id: `svc-${Date.now()}`,
-                    createdAt: now.toISOString(),
-                    updatedAt: now.toISOString(),
-                  },
-                ]);
-              }
-              setIsAddEditServiceRedesignedOpen(false);
-              setEditingService(null);
-            }}
-          />
-        </>
+      {/* Add / Edit Service — full-page detail screen */}
+      {currentScreen === "servicesList" && isAddEditServiceRedesignedOpen && (
+        <AddEditServiceDrawerRedesigned
+          service={editingService}
+          locations={branches}
+          providers={providers}
+          rooms={rooms}
+          questionnaires={questionnaires}
+          onNavigate={handleClinicAdminNavigate}
+          onBack={() => {
+            setIsAddEditServiceRedesignedOpen(false);
+            setEditingService(null);
+          }}
+          onSave={(data) => {
+            const now = new Date();
+            if (editingService) {
+              setServices((prev) =>
+                prev.map((s) =>
+                  s.id === editingService.id
+                    ? { ...s, ...data, updatedAt: now.toISOString() }
+                    : s,
+                ),
+              );
+            } else {
+              setServices((prev) => [
+                ...prev,
+                {
+                  ...data,
+                  id: `svc-${Date.now()}`,
+                  createdAt: now.toISOString(),
+                  updatedAt: now.toISOString(),
+                },
+              ]);
+            }
+            setIsAddEditServiceRedesignedOpen(false);
+            setEditingService(null);
+          }}
+          onLogout={() => {
+            setCurrentEntity("patient");
+            setCurrentScreen("login");
+          }}
+        />
       )}
 
       {/* Add Patient Details Drawer - kept for potential future use */}

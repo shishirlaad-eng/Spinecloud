@@ -22,6 +22,7 @@ import {
   Table2,
   Check,
   Stethoscope,
+  MapPin,
   UserCheck,
   UserX,
   Mail,
@@ -1108,43 +1109,57 @@ export function ProvidersListScreen({
                   <div
                     key={provider.id}
                     onClick={() => onViewProvider(provider.id)}
-                    className="bg-white dark:!bg-neutral-900 border border-neutral-200 dark:!border-neutral-800 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-primary-300 dark:hover:border-primary-700 transition-all cursor-pointer group"
+                    className="group bg-white dark:!bg-neutral-900 border border-neutral-200 dark:!border-neutral-800 rounded-lg p-4 hover:border-primary-600 dark:hover:border-primary-500 transition-colors cursor-pointer"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedProviderIds.includes(provider.id)}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          toggleProviderSelection(provider.id);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-600 text-primary-600 accent-primary-600 cursor-pointer mt-0.5"
-                      />
-                      {renderCardMenu(provider)}
-                    </div>
-                    <div className="flex flex-col items-center text-center mb-3">
-                      <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-950/30 flex items-center justify-center font-bold text-primary-600 dark:text-primary-400 text-sm mb-2">
+                    {/* Header row: avatar + name/email + checkbox + menu */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-full bg-primary-50 dark:bg-primary-950/30 flex items-center justify-center font-bold text-primary-600 dark:text-primary-400 text-sm shrink-0">
                         {getInitials(provider)}
                       </div>
-                      <p className="text-sm font-semibold text-neutral-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors line-clamp-1">
-                        {provider.firstName} {provider.lastName}
-                      </p>
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5 line-clamp-1">
-                        {provider.email}
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-neutral-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors truncate">
+                          {provider.firstName} {provider.lastName}
+                        </p>
+                        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400 truncate">
+                          {provider.email}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={selectedProviderIds.includes(provider.id)}
+                          onChange={(e) => { e.stopPropagation(); toggleProviderSelection(provider.id); }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-4 h-4 rounded border-neutral-300 dark:border-neutral-600 text-primary-600 accent-primary-600 cursor-pointer"
+                          aria-label={`Select ${provider.firstName} ${provider.lastName}`}
+                        />
+                        {renderCardMenu(provider)}
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 truncate max-w-[60%]">
-                          {provider.specialty}
-                        </span>
-                        <span className="text-xs text-neutral-500 dark:text-neutral-400 shrink-0">
+
+                    {/* Metadata rows */}
+                    <div className="mt-4 space-y-2 text-sm text-neutral-700 dark:text-neutral-300">
+                      <div className="flex items-center gap-2">
+                        <Stethoscope className="w-4 h-4 text-neutral-500 dark:text-neutral-400 shrink-0" />
+                        <span className="truncate">{provider.specialty}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-neutral-500 dark:text-neutral-400 shrink-0" />
+                        <span>
                           {provider.branches.length}{" "}
-                          {provider.branches.length === 1 ? "branch" : "branches"}
+                          {provider.branches.length === 1 ? "Branch" : "Branches"}
                         </span>
                       </div>
-                      <div className="flex justify-center">{statusBadge(provider.accountStatus)}</div>
+                    </div>
+
+                    {/* Bottom badges */}
+                    <div className="mt-4 pt-4 border-t border-neutral-200 dark:border-neutral-800 flex flex-wrap items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-950 text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                        <span className="w-1.5 h-1.5 rounded-full bg-neutral-400 dark:bg-neutral-500" />
+                        {provider.branches.length}{" "}
+                        {provider.branches.length === 1 ? "Location" : "Locations"}
+                      </span>
+                      {statusBadge(provider.accountStatus)}
                     </div>
                   </div>
                 ))}
